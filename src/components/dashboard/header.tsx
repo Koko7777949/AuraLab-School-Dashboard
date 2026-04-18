@@ -49,7 +49,7 @@ function HeaderButton({
         <button
           onClick={onClick}
           aria-label={label}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg
+          className="ripple-effect flex h-9 w-9 shrink-0 items-center justify-center rounded-lg
             border border-[#2A2A38] bg-[#1A1A24]/80 text-[#C4C4D4]
             transition-all duration-200
             hover:scale-[1.02] hover:border-[#D4A574]/40 hover:text-[#D4A574]
@@ -174,6 +174,13 @@ export default function Header() {
           ${sidebarOpen ? 'mr-60' : 'mr-[72px]'}
         `}
       >
+        {/* Subtle gradient overlay (amber-to-transparent) */}
+        <div
+          className="absolute inset-0 pointer-events-none rounded-none"
+          style={{
+            background: 'linear-gradient(to bottom, rgba(212,165,116,0.03), transparent)',
+          }}
+        />
         {/* ----------------------------------------------------------------- */}
         {/* Right side (RTL start) — Search bar */}
         {/* ----------------------------------------------------------------- */}
@@ -342,7 +349,7 @@ export default function Header() {
               <button
                 onClick={() => setActiveSection('notifications')}
                 aria-label="الإشعارات"
-                className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg
+                className="relative ripple-effect glow-amber-sm flex h-9 w-9 shrink-0 items-center justify-center rounded-lg
                   border border-[#2A2A38] bg-[#1A1A24]/80 text-[#C4C4D4]
                   transition-all duration-200
                   hover:scale-[1.02] hover:border-[#D4A574]/40 hover:text-[#D4A574]

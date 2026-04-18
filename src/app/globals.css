@@ -1271,3 +1271,213 @@ html {
   [data-slot="sidebar"] { display: none !important; }
 }
 .print-only { display: none; }
+
+/* ===================================================================
+   38. NOISE TEXTURE OVERLAY
+   Subtle SVG noise overlay for visual depth on any container.
+   Usage: add class "noise-overlay" to a positioned container.
+   =================================================================== */
+.noise-overlay::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.015;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+/* ===================================================================
+   39. AURORA GRADIENT ANIMATION
+   Slowly shifting gradient background for decorative containers.
+   Amber-dominant with subtle emerald and sky tones.
+   =================================================================== */
+@keyframes aurora-shift {
+  0%, 100% { background-position: 0% 50%; }
+  25% { background-position: 50% 100%; }
+  50% { background-position: 100% 50%; }
+  75% { background-position: 50% 0%; }
+}
+.aurora-bg {
+  background: linear-gradient(135deg, rgba(212,165,116,0.08), rgba(74,222,128,0.04), rgba(56,189,248,0.04), rgba(212,165,116,0.08));
+  background-size: 400% 400%;
+  animation: aurora-shift 15s ease-in-out infinite;
+}
+
+/* ===================================================================
+   40. TYPING CURSOR ANIMATION
+   Blinking cursor pseudo-element for typing effect text.
+   =================================================================== */
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.typing-cursor::after {
+  content: "│";
+  animation: blink-cursor 1s step-end infinite;
+  color: #D4A574;
+  margin-right: 2px;
+  font-weight: 300;
+}
+
+/* ===================================================================
+   41. RIPPLE EFFECT
+   Radial gradient ripple on click. Requires JS to position the ::after.
+   =================================================================== */
+@keyframes ripple {
+  0% { transform: scale(0); opacity: 0.5; }
+  100% { transform: scale(4); opacity: 0; }
+}
+.ripple-effect {
+  position: relative;
+  overflow: hidden;
+}
+.ripple-effect::after {
+  content: "";
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: radial-gradient(circle, rgba(212,165,116,0.3), transparent);
+  border-radius: 50%;
+  transform: scale(0);
+  pointer-events: none;
+}
+
+/* ===================================================================
+   42. GRADIENT BORDER ANIMATED
+   Continuously rotating conic-gradient border using @property.
+   Uses mask-composite to only show the 1px border area.
+   =================================================================== */
+@keyframes gradient-rotate {
+  0% { --gradient-angle: 0deg; }
+  100% { --gradient-angle: 360deg; }
+}
+@property --gradient-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+.animated-gradient-border {
+  position: relative;
+  border-radius: 1rem;
+  background: #121218;
+}
+.animated-gradient-border::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: conic-gradient(from var(--gradient-angle), rgba(212,165,116,0.5), transparent 40%, transparent 60%, rgba(212,165,116,0.3));
+  animation: gradient-rotate 4s linear infinite;
+  z-index: -1;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  padding: 1px;
+}
+
+/* ===================================================================
+   43. TEXT REVEAL ANIMATION
+   Clip-path reveal from right to left (LTR: left to right).
+   =================================================================== */
+@keyframes text-reveal {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+.animate-text-reveal {
+  animation: text-reveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ===================================================================
+   44. MAGNETIC HOVER
+   CSS-only subtle scale-up on hover, simulating magnetic pull.
+   Pair with JS mousemove for full parallax magnetic effect.
+   =================================================================== */
+.magnetic-hover {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.magnetic-hover:hover {
+  transform: scale(1.03);
+}
+
+/* ===================================================================
+   45. GLOWING DOT INDICATOR
+   Pulsing glow around a small circular dot for status indicators.
+   =================================================================== */
+@keyframes dot-glow {
+  0%, 100% { box-shadow: 0 0 4px currentColor, 0 0 8px currentColor; }
+  50% { box-shadow: 0 0 8px currentColor, 0 0 16px currentColor; }
+}
+.glowing-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: dot-glow 2s ease-in-out infinite;
+}
+
+/* ===================================================================
+   46. SMOOTH UNDERLINE HOVER
+   Amber underline that expands from right (RTL) on hover.
+   =================================================================== */
+.smooth-underline {
+  position: relative;
+  display: inline-block;
+}
+.smooth-underline::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  right: 0;
+  width: 0;
+  height: 1px;
+  background: #D4A574;
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.smooth-underline:hover::after {
+  width: 100%;
+}
+
+/* ===================================================================
+   47. CARD SHINE EFFECT
+   Diagonal light sweep on hover, simulating a holographic shine.
+   =================================================================== */
+.card-shine {
+  position: relative;
+  overflow: hidden;
+}
+.card-shine::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.03) 45%,
+    rgba(255, 255, 255, 0.06) 50%,
+    rgba(255, 255, 255, 0.03) 55%,
+    transparent 70%
+  );
+  transform: translateX(-100%) rotate(0deg);
+  transition: transform 0.6s ease;
+  pointer-events: none;
+}
+.card-shine:hover::before {
+  transform: translateX(100%) rotate(0deg);
+}
+
+/* ===================================================================
+   48. SCROLL PROGRESS BAR
+   Fixed top bar that fills from right (RTL) as user scrolls.
+   Use with JS to set width based on scroll percentage.
+   =================================================================== */
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(to right, #D4A574, #E8C9A8, #FBBF24);
+  z-index: 9999;
+  transition: width 0.1s linear;
+}

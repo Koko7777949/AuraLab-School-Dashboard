@@ -684,7 +684,7 @@ function UpcomingEventsList() {
           <div
             key={event.id}
             className={`group flex items-center gap-3 rounded-lg border-r-[3px] ${event.borderColor} ${event.bgColor}
-              px-4 py-3 transition-all duration-300
+              px-4 py-3 transition-all duration-300 glass-card-hover
               hover:bg-white/[0.04] hover:-translate-x-0.5 cursor-pointer`}
           >
             {/* Icon */}
@@ -750,7 +750,7 @@ function DashboardSkeleton() {
 function WelcomeBanner({ onDismiss }: { onDismiss: () => void }) {
   return (
     <div
-      className="relative overflow-hidden rounded-xl p-5 animate-fade-in-up"
+      className="relative overflow-hidden rounded-xl p-5 animate-fade-in-up card-shine"
       style={{
         background: 'linear-gradient(135deg, rgba(212,165,116,0.15) 0%, rgba(212,165,116,0.05) 100%)',
         border: '1px solid rgba(212,165,116,0.15)',
@@ -1018,11 +1018,11 @@ export default function DashboardOverview() {
       </div>
 
       {/* ── KPI Cards Grid (with staggered animation) ── */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="aurora-bg rounded-2xl p-1 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {kpiCards.map((card, index) => (
           <div
             key={card.label}
-            className="animate-fade-in-up opacity-0"
+            className="animate-fade-in-up opacity-0 hover-lift rounded-xl"
             style={{ animationDelay: `${index * 100}ms` }}
           >
             <StatCard
@@ -1065,16 +1065,17 @@ export default function DashboardOverview() {
 
       {/* ── Quick Actions Row (expanded to 6) ── */}
       <div className="animate-fade-in-up opacity-0" style={{ animationDelay: '700ms' }}>
-        <h3 className="text-sm font-semibold text-muted-foreground mb-3">إجراءات سريعة</h3>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <h3 className="text-sm font-semibold text-muted-foreground mb-3 smooth-underline cursor-pointer" onClick={() => setActiveSection('students')}>إجراءات سريعة</h3>
+        <div className="stagger-grid grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           {QUICK_ACTIONS.map((action) => (
+            <div key={`${action.id}-${action.label}`} className="animate-fade-in-up opacity-0">
             <QuickActionButton
-              key={`${action.id}-${action.label}`}
               label={action.label}
               description={action.description}
               icon={action.icon}
               onClick={() => setActiveSection(action.id)}
             />
+            </div>
           ))}
         </div>
       </div>
@@ -1099,7 +1100,7 @@ export default function DashboardOverview() {
           icon={<Bell className="h-4 w-4" />}
           className="lg:col-span-2"
           action={
-            <span className="flex items-center gap-1.5 text-xs font-medium text-[#D4A574]">
+            <span className="smooth-underline cursor-pointer flex items-center gap-1.5 text-xs font-medium text-[#D4A574]">
               <span className="h-1.5 w-1.5 rounded-full bg-[#D4A574]" />
               {notificationsData.length} جديد
             </span>
@@ -1121,6 +1122,7 @@ export default function DashboardOverview() {
       {/* ── Today's Schedule + Student Performance Row ── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 animate-fade-in-up opacity-0" style={{ animationDelay: '900ms' }}>
         {/* Today's Schedule Widget */}
+        <div className="card-tilt">
         <SectionCard
           title="جدول اليوم"
           icon={<Clock className="h-4 w-4" />}
@@ -1136,16 +1138,19 @@ export default function DashboardOverview() {
         >
           <TodayScheduleWidget />
         </SectionCard>
+        </div>
 
         {/* Student Performance Summary */}
         <SectionCard
           title="توزيع الدرجات - الصف الثالث"
           icon={<BarChart3 className="h-4 w-4" />}
           action={
-            <span className="text-xs text-muted-foreground/50 font-medium">الفصل الحالي</span>
+            <span className="text-xs text-muted-foreground/50 font-medium smooth-underline cursor-pointer" onClick={() => setActiveSection('exams')}>الفصل الحالي</span>
           }
         >
+          <div className="shimmer-loading p-1 rounded-lg" style={{ animationDuration: '1.2s', animationIterationCount: '1' }}>
           <StudentPerformanceChart />
+          </div>
         </SectionCard>
       </div>
 

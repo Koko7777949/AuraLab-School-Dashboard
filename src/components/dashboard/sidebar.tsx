@@ -18,6 +18,8 @@ import {
   Sparkles,
   ClipboardCheck,
   Megaphone,
+  Trophy,
+  MessageSquare,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import type { ActiveSection } from '@/lib/types';
@@ -43,8 +45,10 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'exams', label: 'الامتحانات', icon: FileText, showCount: true },
   { id: 'sessions', label: 'الجلسات', icon: Calendar },
   { id: 'attendance', label: 'الحضور', icon: ClipboardCheck, showCount: true },
+  { id: 'grades', label: 'الدرجات', icon: Trophy, showCount: true },
   { id: 'analytics', label: 'التحليلات', icon: BarChart3 },
   { id: 'announcements', label: 'الإعلانات', icon: Megaphone, isAlert: true },
+  { id: 'messages', label: 'الرسائل', icon: MessageSquare, isAlert: true },
   { id: 'notifications', label: 'الإشعارات', icon: Bell, isAlert: true },
   { id: 'ai-assistant', label: 'المساعد الذكي', icon: Bot },
   { id: 'trash', label: 'المحذوفات', icon: Trash2, showCount: true },
@@ -64,6 +68,8 @@ export default function Sidebar() {
     teachers,
     classes,
     exams,
+    grades,
+    messages,
     notifications,
     trashItems,
   } = useAppStore();
@@ -93,10 +99,12 @@ export default function Sidebar() {
       teachers: teachers.length,
       classes: classes.length,
       exams: exams.length,
+      grades: grades.length,
+      messages: messages.filter((m) => !m.isRead).length,
       notifications: unreadCount,
       trash: trashItems.length,
     }),
-    [students, teachers, classes, exams, unreadCount, trashItems],
+    [students, teachers, classes, exams, grades, messages, unreadCount, trashItems],
   );
 
   // Handlers ----------------------------------------------------------------
@@ -392,7 +400,7 @@ export default function Sidebar() {
                 <Sparkles size={10} className="text-[#D4A574]/40" />
               </div>
               <span className="text-[9px] tracking-widest text-[#3E3E4E]">
-                v2.1.0
+                v2.2.0
               </span>
             </div>
           </div>

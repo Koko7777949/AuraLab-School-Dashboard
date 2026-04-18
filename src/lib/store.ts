@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ActiveSection, Student, Teacher, ClassRoom, Exam, TrashItem, AppNotification, ChatMessage } from './types';
+import type { ActiveSection, Student, Teacher, ClassRoom, Exam, TrashItem, AppNotification, ChatMessage, GradeRecord, Message } from './types';
 
 interface AppState {
   // Navigation
@@ -67,6 +67,22 @@ interface AppState {
   // Search
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+
+  // Grades
+  grades: GradeRecord[];
+  setGrades: (grades: GradeRecord[]) => void;
+  addGrade: (grade: GradeRecord) => void;
+  updateGrade: (id: string, data: Partial<GradeRecord>) => void;
+  deleteGrade: (id: string) => void;
+
+  // Messages
+  messages: Message[];
+  setMessages: (messages: Message[]) => void;
+  addMessage: (message: Message) => void;
+  updateMessage: (id: string, data: Partial<Message>) => void;
+  deleteMessage: (id: string) => void;
+  toggleMessageStar: (id: string) => void;
+  markMessageRead: (id: string) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -163,4 +179,36 @@ export const useAppStore = create<AppState>((set) => ({
   // Search
   searchQuery: '',
   setSearchQuery: (query) => set({ searchQuery: query }),
+
+  // Grades
+  grades: [],
+  setGrades: (grades) => set({ grades }),
+  addGrade: (grade) => set((state) => ({ grades: [...state.grades, grade] })),
+  updateGrade: (id, data) => set((state) => ({
+    grades: state.grades.map((g) => (g.id === id ? { ...g, ...data } : g)),
+  })),
+  deleteGrade: (id) => set((state) => ({
+    grades: state.grades.filter((g) => g.id !== id),
+  })),
+
+  // Messages
+  messages: [],
+  setMessages: (messages) => set({ messages }),
+  addMessage: (message) => set((state) => ({ messages: [...state.messages, message] })),
+  updateMessage: (id, data) => set((state) => ({
+    messages: state.messages.map((m) => (m.id === id ? { ...m, ...data } : m)),
+  })),
+  deleteMessage: (id) => set((state) => ({
+    messages: state.messages.filter((m) => m.id !== id),
+  })),
+  toggleMessageStar: (id) => set((state) => ({
+    messages: state.messages.map((m) =>
+      m.id === id ? { ...m, isStarred: !m.isStarred } : m
+    ),
+  })),
+  markMessageRead: (id) => set((state) => ({
+    messages: state.messages.map((m) =>
+      m.id === id ? { ...m, isRead: true } : m
+    ),
+  })),
 }));

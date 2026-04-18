@@ -103,6 +103,40 @@ export interface SystemSetting {
   updatedAt: string;
 }
 
+export interface GradeRecord {
+  id: string;
+  studentId: string;
+  studentName?: string;
+  classId?: string;
+  className?: string;
+  subject: string;
+  term: string;
+  examType: string;
+  score: number;
+  maxScore: number;
+  weight: number;
+  date: string;
+  notes: string;
+  createdAt: string;
+}
+
+export interface ReportCard {
+  id: string;
+  studentId: string;
+  studentName?: string;
+  className?: string;
+  term: string;
+  gpa: number;
+  totalScore: number;
+  rank: number;
+  totalStudents: number;
+  grades: GradeRecord[];
+  behaviorGrade: string;
+  attendanceRate: number;
+  teacherComment: string;
+  createdAt: string;
+}
+
 export type ActiveSection = 
   | 'dashboard' 
   | 'students' 
@@ -111,6 +145,8 @@ export type ActiveSection =
   | 'exams' 
   | 'sessions'
   | 'attendance'
+  | 'grades'
+  | 'messages'
   | 'analytics' 
   | 'announcements'
   | 'notifications' 
@@ -159,6 +195,33 @@ export interface Announcement {
   expiresAt: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Message {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderRole: 'admin' | 'teacher' | 'parent' | 'student';
+  recipientId: string;
+  recipientName: string;
+  recipientRole: 'admin' | 'teacher' | 'parent' | 'student';
+  subject: string;
+  content: string;
+  isRead: boolean;
+  isStarred: boolean;
+  hasAttachment: boolean;
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  parentId: string | null;
+  createdAt: string;
+}
+
+export interface MessageThread {
+  id: string;
+  participants: { id: string; name: string; role: string; avatar?: string }[];
+  messages: Message[];
+  lastMessageAt: string;
+  unreadCount: number;
+  subject: string;
 }
 
 export interface DashboardStats {
