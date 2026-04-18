@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useEffect, useState } from 'react';
 import {
   LayoutDashboard,
   GraduationCap,
@@ -15,6 +15,7 @@ import {
   Settings,
   PanelRightClose,
   PanelRightOpen,
+  Sparkles,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import type { ActiveSection } from '@/lib/types';
@@ -63,6 +64,19 @@ export default function Sidebar() {
     trashItems,
   } = useAppStore();
 
+  // Track mobile state for slide-in animation
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 1024);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  // Derive mobile visibility from props
+  const mobileVisible = isMobile && sidebarOpen;
+
   // Compute badge counts ----------------------------------------------------
   const unreadCount = useMemo(
     () => notifications.filter((n) => !n.isRead).length,
@@ -92,73 +106,105 @@ export default function Sidebar() {
   // -----------------------------------------------------------------------
   return (
     <>
+    {/* ---- Mobile overlay with shadow ---- */}
     {sidebarOpen && (
       <div
         className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm lg:hidden"
         onClick={toggleSidebar}
+        style={{
+          boxShadow: 'inset -60px 0 80px -40px rgba(0, 0, 0, 0.5)',
+        }}
       />
     )}
+
+    {/* ---- Sidebar main container ---- */}
     <aside
       dir="rtl"
       className={`
         fixed right-0 top-0 z-40 flex h-screen flex-col
-        border-l border-[#2A2A38] bg-[#141419]
-        transition-all duration-300 ease-in-out
+        transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
         ${sidebarOpen ? 'w-60' : 'w-[72px]'}
+        ${isMobile && sidebarOpen ? 'animate-sidebar-slide-in' : ''}
+        ${isMobile && !sidebarOpen ? '-translate-x-full' : ''}
       `}
+      style={{
+        background: 'rgba(18, 18, 24, 0.85)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+        borderLeft: '1px solid rgba(212, 165, 116, 0.08)',
+      }}
     >
-      {/* ---- Top: Toggle button ---- */}
+      {/* ---- Subtle gradient overlay (top to bottom) ---- */}
       <div
-        className={`
-          flex h-16 items-center justify-between px-4
-          ${sidebarOpen ? 'flex-row-reverse' : 'flex-col items-center justify-center'}
-        `}
-      >
-        {/* App Logo (visible when open) */}
+        className="pointer-events-none absolute inset-0 z-0"
+        style={{
+          background:
+            'linear-gradient(180deg, rgba(212,165,116,0.03) 0%, transparent 40%, rgba(0,0,0,0.08) 100%)',
+        }}
+        aria-hidden="true"
+      />
+
+      {/* ---- Top: Toggle button ---- */}
+      <div className="relative z-10">
         <div
           className={`
-            flex items-center gap-2 overflow-hidden whitespace-nowrap
-            transition-all duration-300
-            ${sidebarOpen ? 'opacity-100' : 'pointer-events-none absolute opacity-0'}
+            flex h-16 items-center justify-between px-4
+            ${sidebarOpen ? 'flex-row-reverse' : 'flex-col items-center justify-center'}
           `}
         >
-          {/* Gradient dot */}
-          <span
-            className="inline-block h-8 w-8 shrink-0 rounded-lg"
-            style={{
-              background:
-                'linear-gradient(135deg, #D4A574 0%, #B07D4F 100%)',
-            }}
-          />
-          <span className="text-lg font-bold text-white tracking-tight">
-            Aura<span className="text-[#D4A574]">Lab</span>
-          </span>
+          {/* App Logo (visible when open) */}
+          <div
+            className={`
+              flex items-center gap-2.5 overflow-hidden whitespace-nowrap
+              transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
+              ${sidebarOpen ? 'opacity-100' : 'pointer-events-none absolute opacity-0'}
+            `}
+          >
+            {/* Animated gradient dot */}
+            <span
+              className="animate-logo-gradient inline-block h-9 w-9 shrink-0 rounded-xl shadow-lg shadow-[#D4A574]/20"
+              style={{
+                background:
+                  'linear-gradient(135deg, #D4A574 0%, #E8C9A8 25%, #B07D4F 50%, #D4A574 75%, #E8C9A8 100%)',
+                backgroundSize: '200% 200%',
+              }}
+            />
+            <span className="text-lg font-bold tracking-tight text-white">
+              Aura<span className="gradient-text-amber">Lab</span>
+            </span>
+          </div>
+
+          {/* Collapse / Expand button */}
+          <button
+            onClick={toggleSidebar}
+            aria-label={sidebarOpen ? 'طي القائمة' : 'توسيع القائمة'}
+            className={`
+              flex h-9 w-9 shrink-0 items-center justify-center rounded-lg
+              text-[#8B8B9E] transition-all duration-300 ease-out
+              hover:bg-[rgba(212,165,116,0.08)] hover:text-[#D4A574]
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A574]/50
+              active:scale-95
+              ${!sidebarOpen ? 'mt-0' : ''}
+            `}
+          >
+            {sidebarOpen ? <PanelRightClose size={20} /> : <PanelRightOpen size={20} />}
+          </button>
         </div>
 
-        {/* Collapse / Expand button */}
-        <button
-          onClick={toggleSidebar}
-          aria-label={sidebarOpen ? 'طي القائمة' : 'توسيع القائمة'}
-          className={`
-            flex h-9 w-9 shrink-0 items-center justify-center rounded-lg
-            text-[#8B8B9E] transition-all duration-300 ease-out
-            hover:bg-[#1E1E2A] hover:text-[#D4A574]
-            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A574]/50
-            active:scale-95
-            ${!sidebarOpen ? 'mt-0' : ''}
-          `}
-        >
-          {sidebarOpen ? <PanelRightClose size={20} /> : <PanelRightOpen size={20} />}
-        </button>
+        {/* ---- Decorative divider with amber tint ---- */}
+        <div
+          className="mx-3 h-px"
+          style={{
+            background:
+              'linear-gradient(to left, transparent 0%, rgba(212,165,116,0.15) 30%, rgba(212,165,116,0.15) 70%, transparent 100%)',
+          }}
+        />
       </div>
 
-      {/* ---- Divider ---- */}
-      <div className="mx-3 h-px bg-[#2A2A38]" />
-
       {/* ---- Navigation list ---- */}
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden py-3">
+      <nav className="sidebar-scroll relative z-10 flex-1 overflow-y-auto overflow-x-hidden py-3">
         <ul className="flex flex-col gap-1 px-3">
-          {NAV_ITEMS.map((item) => {
+          {NAV_ITEMS.map((item, index) => {
             const isActive = activeSection === item.id;
             const Icon = item.icon;
             const count =
@@ -170,10 +216,17 @@ export default function Sidebar() {
 
             return (
               <li key={item.id} className="relative">
-                {/* Active indicator bar (right side) */}
+                {/* Active indicator bar (right side - amber) */}
                 {isActive && (
                   <span
-                    className="absolute right-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-l-full bg-[#D4A574] animate-slide-in-right"
+                    className="animate-indicator-glow absolute right-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-l-full bg-[#D4A574]"
+                  />
+                )}
+
+                {/* Active indicator line (left side - subtle) */}
+                {isActive && (
+                  <span
+                    className="absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-r-full bg-[#D4A574]/30"
                   />
                 )}
 
@@ -184,34 +237,58 @@ export default function Sidebar() {
                   className={`
                     group relative flex w-full items-center gap-3 rounded-xl
                     px-3 py-2.5 text-sm font-medium
-                    transition-all duration-300 ease-out
+                    transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A574]/50
                     ${
                       isActive
-                        ? 'bg-[#D4A574]/15 text-[#D4A574]'
-                        : 'text-[#8B8B9E] hover:bg-[#1E1E2A] hover:text-[#C4C4D4]'
+                        ? 'bg-[rgba(212,165,116,0.12)] text-[#D4A574]'
+                        : 'text-[#8B8B9E] hover:text-[#C4C4D4]'
                     }
                     ${sidebarOpen ? 'flex-row-reverse' : 'flex-col items-center justify-center gap-1'}
                   `}
+                  style={
+                    !isActive
+                      ? {
+                          background: 'transparent',
+                        }
+                      : undefined
+                  }
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background =
+                        'linear-gradient(to left, rgba(212,165,116,0.06) 0%, transparent 100%)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = 'transparent';
+                    }
+                  }}
                 >
-                  {/* Icon */}
+                  {/* Icon with amber glow for active */}
                   <span
                     className={`
                       shrink-0 transition-all duration-300 ease-out
                       ${isActive ? 'text-[#D4A574]' : 'text-[#8B8B9E] group-hover:text-[#C4C4D4]'}
                     `}
+                    style={
+                      isActive
+                        ? {
+                            filter: 'drop-shadow(0 0 8px rgba(212, 165, 116, 0.4))',
+                          }
+                        : undefined
+                    }
                   >
                     <Icon
                       size={20}
                       strokeWidth={isActive ? 2 : 1.6}
-                      className={isActive ? 'drop-shadow-[0_0_6px_rgba(212,165,116,0.4)]' : ''}
                     />
                   </span>
 
                   {/* Label */}
                   <span
                     className={`
-                      truncate transition-all duration-300
+                      truncate transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
                       ${sidebarOpen ? 'opacity-100 w-auto' : 'pointer-events-none absolute opacity-0 w-0'}
                     `}
                   >
@@ -228,7 +305,7 @@ export default function Sidebar() {
                         ${
                           item.isAlert
                             ? 'bg-red-500/90 text-white shadow-[0_0_8px_rgba(239,68,68,0.3)]'
-                            : 'bg-[#D4A574]/15 text-[#D4A574]'
+                            : 'bg-[rgba(212,165,116,0.12)] text-[#D4A574] ring-1 ring-[rgba(212,165,116,0.15)]'
                         }
                       `}
                     >
@@ -245,7 +322,7 @@ export default function Sidebar() {
                         ${
                           item.isAlert
                             ? 'bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.5)]'
-                            : 'bg-[#D4A574]'
+                            : 'bg-[#D4A574] shadow-[0_0_4px_rgba(212,165,116,0.4)]'
                         }
                       `}
                     />
@@ -257,31 +334,64 @@ export default function Sidebar() {
         </ul>
       </nav>
 
-      {/* ---- Bottom: App name ---- */}
-      <div className="border-t border-[#2A2A38] px-4 py-4">
+      {/* ---- Bottom Section ---- */}
+      <div className="relative z-10">
+        {/* Decorative separator */}
         <div
-          className={`
-            flex items-center justify-center overflow-hidden whitespace-nowrap
-            transition-all duration-300
-            ${sidebarOpen ? 'flex-row-reverse gap-2' : 'flex-col items-center gap-1'}
-          `}
-        >
-          {/* Gradient orb */}
-          <span
+          className="mx-3 h-px"
+          style={{
+            background:
+              'linear-gradient(to left, transparent 0%, rgba(212,165,116,0.1) 20%, rgba(212,165,116,0.1) 80%, transparent 100%)',
+          }}
+        />
+
+        <div className="px-4 py-4">
+          {/* Logo + brand row */}
+          <div
             className={`
-              inline-block shrink-0 rounded-full
-              ${sidebarOpen ? 'h-7 w-7' : 'h-6 w-6'}
+              flex items-center justify-center overflow-hidden whitespace-nowrap
+              transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
+              ${sidebarOpen ? 'flex-row-reverse gap-2' : 'flex-col items-center gap-1'}
             `}
-            style={{
-              background:
-                'linear-gradient(135deg, #D4A574 0%, #B07D4F 60%, #8B6332 100%)',
-            }}
-          />
-          {sidebarOpen && (
-            <span className="text-sm font-semibold tracking-wide text-[#8B8B9E]">
-              AuraLab
-            </span>
-          )}
+          >
+            {/* Gradient orb */}
+            <span
+              className={`
+                animate-logo-gradient inline-block shrink-0 rounded-full
+                ${sidebarOpen ? 'h-7 w-7' : 'h-6 w-6'}
+                shadow-md shadow-[#D4A574]/15
+              `}
+              style={{
+                background:
+                  'linear-gradient(135deg, #D4A574 0%, #E8C9A8 25%, #B07D4F 50%, #D4A574 75%, #E8C9A8 100%)',
+                backgroundSize: '200% 200%',
+              }}
+            />
+            {sidebarOpen && (
+              <span className="text-sm font-semibold tracking-wide text-[#8B8B9E]">
+                AuraLab
+              </span>
+            )}
+          </div>
+
+          {/* Powered by text & version (visible only when open) */}
+          <div
+            className={`
+              mt-2 overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
+              ${sidebarOpen ? 'max-h-12 opacity-100' : 'max-h-0 opacity-0'}
+            `}
+          >
+            <div className="flex flex-col items-center gap-1">
+              <div className="flex items-center gap-1 text-[10px] text-[#5A5A6E]">
+                <Sparkles size={10} className="text-[#D4A574]/40" />
+                <span>مدعوم بـ AuraLab</span>
+                <Sparkles size={10} className="text-[#D4A574]/40" />
+              </div>
+              <span className="text-[9px] tracking-widest text-[#3E3E4E]">
+                v1.2.0
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </aside>

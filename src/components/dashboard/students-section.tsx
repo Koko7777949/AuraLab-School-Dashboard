@@ -16,6 +16,7 @@ import {
 import { useAppStore } from '@/lib/store';
 import type { Student } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 // shadcn/ui
 import { Button } from '@/components/ui/button';
@@ -435,6 +436,7 @@ function StudentFormContent({
         psychBackground: psychBackground.trim(),
         updatedAt: now,
       });
+      toast.success('تم تحديث بيانات الطالب');
     } else {
       const newStudent: Student = {
         id: `std-${Date.now()}`,
@@ -449,6 +451,7 @@ function StudentFormContent({
         updatedAt: now,
       };
       addStudent(newStudent);
+      toast.success('تم إضافة الطالب بنجاح');
     }
 
     onClose();
@@ -634,6 +637,7 @@ function DeleteStudentDialog({
   const handleDelete = () => {
     if (student) {
       deleteStudent(student.id);
+      toast.success('تم حذف الطالب');
       onOpenChange(false);
     }
   };

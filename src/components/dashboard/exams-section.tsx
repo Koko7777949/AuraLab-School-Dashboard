@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   FileText,
   Plus,
@@ -14,6 +14,7 @@ import {
 import { useAppStore } from '@/lib/store';
 import type { Exam } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 // shadcn/ui
 import { Button } from '@/components/ui/button';
@@ -561,6 +562,7 @@ function ExamFormContent({
         className: getClassName(classId),
         updatedAt: now,
       });
+      toast.success('تم تحديث بيانات الامتحان');
     } else {
       const newExam: Exam = {
         id: `exam-${Date.now()}`,
@@ -579,6 +581,7 @@ function ExamFormContent({
         className: getClassName(classId),
       };
       addExam(newExam);
+      toast.success('تم إضافة الامتحان بنجاح');
     }
 
     onClose();
@@ -790,6 +793,7 @@ function DeleteExamDialog({
   const handleDelete = () => {
     if (exam) {
       deleteExam(exam.id);
+      toast.success('تم حذف الامتحان');
       onOpenChange(false);
     }
   };
@@ -838,9 +842,10 @@ function DeleteExamDialog({
 // ---------------------------------------------------------------------------
 
 export default function ExamsSection() {
-  const { exams, setExams, searchQuery, setSearchQuery } = useAppStore();
+  const { exams, setExams } = useAppStore();
 
   // Local UI state
+  const [localSearch, setLocalSearch] = useState('');
   const [formOpen, setFormOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -849,11 +854,13 @@ export default function ExamsSection() {
   const [classFilter, setClassFilter] = useState<string>('all');
 
   // Initialize mock data once
+  const initialized = useRef(false);
   useEffect(() => {
-    if (exams.length === 0) {
+    if (!initialized.current && exams.length === 0) {
+      initialized.current = true;
       setExams(INITIAL_EXAMS);
     }
-  }, [exams.length, setExams]);
+  }, []);
 
   // Summary stats
   const stats = useMemo(() => {
@@ -883,8 +890,8 @@ export default function ExamsSection() {
     }
 
     // Search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.trim().toLowerCase();
+    if (localSearch.trim()) {
+      const query = localSearch.trim().toLowerCase();
       result = result.filter(
         (e) =>
           e.title.toLowerCase().includes(query) ||
@@ -895,7 +902,7 @@ export default function ExamsSection() {
     }
 
     return result;
-  }, [exams, subjectFilter, classFilter, searchQuery]);
+  }, [exams, subjectFilter, classFilter, localSearch]);
 
   // Handlers
   const handleAdd = () => {
@@ -988,8 +995,8 @@ export default function ExamsSection() {
           <div className="relative">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
             <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={localSearch}
+              onChange={(e) => setLocalSearch(e.target.value)}
               placeholder="بحث بالعنوان أو المادة أو الطالب..."
               className="pr-10 w-full sm:w-64 bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 h-10"
             />

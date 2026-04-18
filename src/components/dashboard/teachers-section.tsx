@@ -14,6 +14,7 @@ import {
 import { useAppStore } from '@/lib/store';
 import type { Teacher } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 // shadcn/ui
 import { Button } from '@/components/ui/button';
@@ -421,6 +422,7 @@ function TeacherFormContent({
         status,
         updatedAt: now,
       });
+      toast.success('تم تحديث بيانات المعلم');
     } else {
       const newTeacher: Teacher = {
         id: `tch-${Date.now()}`,
@@ -436,6 +438,7 @@ function TeacherFormContent({
         classNames: [],
       };
       addTeacher(newTeacher);
+      toast.success('تم إضافة المعلم بنجاح');
     }
 
     onClose();
@@ -617,6 +620,7 @@ function DeleteTeacherDialog({
   const handleDelete = () => {
     if (teacher) {
       deleteTeacher(teacher.id);
+      toast.success('تم حذف المعلم');
       onOpenChange(false);
     }
   };

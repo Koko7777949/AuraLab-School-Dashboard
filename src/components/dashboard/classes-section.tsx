@@ -14,6 +14,7 @@ import {
 import { useAppStore } from '@/lib/store';
 import type { ClassRoom } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 // shadcn/ui
 import { Button } from '@/components/ui/button';
@@ -336,6 +337,7 @@ function ClassFormContent({
         notes: notes.trim(),
         updatedAt: now,
       });
+      toast.success('تم تحديث بيانات الصف');
     } else {
       const newClass: ClassRoom = {
         id: `cls-${Date.now()}`,
@@ -349,6 +351,7 @@ function ClassFormContent({
         teacherNames: [],
       };
       addClass(newClass);
+      toast.success('تم إضافة الصف بنجاح');
     }
 
     onClose();
@@ -502,6 +505,7 @@ function DeleteClassDialog({
   const handleDelete = () => {
     if (cls) {
       deleteClass(cls.id);
+      toast.success('تم حذف الصف');
       onOpenChange(false);
     }
   };

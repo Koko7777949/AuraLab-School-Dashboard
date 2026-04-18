@@ -16,6 +16,15 @@ import {
   FileText,
   BarChart3,
   X,
+  Clock,
+  Calendar,
+  CheckCircle2,
+  AlertTriangle,
+  Trophy,
+  UserX,
+  Timer,
+  ChevronLeft,
+  GraduationCap,
 } from 'lucide-react';
 import StatCard from './stat-card';
 import SectionCard from './section-card';
@@ -83,8 +92,141 @@ const notificationStatusStyles = {
   neutral: 'bg-slate-500',
 };
 
+// Attendance Quick Tracker pill data
+const attendancePills = [
+  {
+    id: 'present',
+    label: 'حاضر',
+    percentage: 85,
+    count: 27,
+    color: '#10b981',
+    borderColor: 'border-emerald-500/60',
+    bgColor: 'bg-emerald-500/10',
+    textColor: 'text-emerald-400',
+    icon: UserCheck,
+  },
+  {
+    id: 'late',
+    label: 'متأخر',
+    percentage: 8,
+    count: 3,
+    color: '#f59e0b',
+    borderColor: 'border-amber-500/60',
+    bgColor: 'bg-amber-500/10',
+    textColor: 'text-amber-400',
+    icon: Clock,
+  },
+  {
+    id: 'absent',
+    label: 'غائب',
+    percentage: 7,
+    count: 2,
+    color: '#f43f5e',
+    borderColor: 'border-rose-500/60',
+    bgColor: 'bg-rose-500/10',
+    textColor: 'text-rose-400',
+    icon: UserX,
+  },
+  {
+    id: 'excused',
+    label: 'مستأذن',
+    percentage: 3,
+    count: 1,
+    color: '#38bdf8',
+    borderColor: 'border-sky-500/60',
+    bgColor: 'bg-sky-500/10',
+    textColor: 'text-sky-400',
+    icon: AlertTriangle,
+  },
+];
+
+// Today's schedule mock data
+const todaySchedule = [
+  {
+    id: 1,
+    time: '07:30 - 08:15',
+    subject: 'اللغة العربية',
+    teacher: 'أ. فاطمة الحربي',
+    room: 'قاعة 101',
+    status: 'completed' as const,
+  },
+  {
+    id: 2,
+    time: '08:30 - 09:15',
+    subject: 'الرياضيات',
+    teacher: 'أ. خالد العتيبي',
+    room: 'قاعة 204',
+    status: 'current' as const,
+  },
+  {
+    id: 3,
+    time: '09:30 - 10:15',
+    subject: 'العلوم',
+    teacher: 'أ. سارة القحطاني',
+    room: 'مختبر 3',
+    status: 'upcoming' as const,
+  },
+  {
+    id: 4,
+    time: '10:30 - 11:15',
+    subject: 'التربية البدنية',
+    teacher: 'أ. ماجد الدوسري',
+    room: 'الملعب',
+    status: 'upcoming' as const,
+  },
+];
+
+// Student performance (grade distribution) data
+const gradeDistribution = [
+  { label: 'ممتاز', range: '90+', count: 8, maxCount: 12, color: '#10b981', gradientFrom: '#10b981', gradientTo: '#34d399' },
+  { label: 'جيد جدا', range: '80-89', count: 10, maxCount: 12, color: '#38bdf8', gradientFrom: '#38bdf8', gradientTo: '#7dd3fc' },
+  { label: 'جيد', range: '70-79', count: 7, maxCount: 12, color: '#f59e0b', gradientFrom: '#f59e0b', gradientTo: '#fbbf24' },
+  { label: 'مقبول', range: '60-69', count: 5, maxCount: 12, color: '#f97316', gradientFrom: '#f97316', gradientTo: '#fb923c' },
+  { label: 'راسب', range: '<60', count: 2, maxCount: 12, color: '#f43f5e', gradientFrom: '#f43f5e', gradientTo: '#fb7185' },
+];
+
+// Upcoming events mock data
+const upcomingEvents = [
+  {
+    id: 1,
+    title: 'اجتماع أولياء الأمور',
+    description: 'الخميس 10:00 صباحاً',
+    icon: Calendar,
+    borderColor: 'border-r-amber-500',
+    bgColor: 'bg-amber-500/8',
+    iconColor: 'text-amber-400',
+  },
+  {
+    id: 2,
+    title: 'اختبار نهاية الفصل',
+    description: 'الأحد الأسبوع القادم',
+    icon: Timer,
+    borderColor: 'border-r-rose-500',
+    bgColor: 'bg-rose-500/8',
+    iconColor: 'text-rose-400',
+  },
+  {
+    id: 3,
+    title: 'نشاط رياضي مدرسي',
+    description: 'الثلاثاء 2:00 مساءً',
+    icon: Trophy,
+    borderColor: 'border-r-emerald-500',
+    bgColor: 'bg-emerald-500/8',
+    iconColor: 'text-emerald-400',
+  },
+  {
+    id: 4,
+    title: 'ورشة عمل تربوية',
+    description: 'الأربعاء 11:00 صباحاً',
+    icon: GraduationCap,
+    borderColor: 'border-r-sky-500',
+    bgColor: 'bg-sky-500/8',
+    iconColor: 'text-sky-400',
+  },
+];
+
 // ---------------------------------------------------------------------------
-// Quick action buttons config
+// Quick action buttons config (expanded to 6)
 // ---------------------------------------------------------------------------
 
 const QUICK_ACTIONS = [
@@ -111,6 +253,18 @@ const QUICK_ACTIONS = [
     label: 'إرسال إشعار',
     icon: Bell,
     description: 'إرسال إشعار للمعلمين والطلاب',
+  },
+  {
+    id: 'sessions' as const,
+    label: 'تسجيل حضور',
+    icon: UserCheck,
+    description: 'تسجيل حضور الطلاب للحصة',
+  },
+  {
+    id: 'notifications' as const,
+    label: 'إدارة الإشعارات',
+    icon: Bell,
+    description: 'عرض وإدارة جميع الإشعارات',
   },
 ];
 
@@ -264,60 +418,294 @@ function AttendanceDistribution() {
   );
 }
 
-function CurrentLessonDetails() {
+// ---------------------------------------------------------------------------
+// NEW: Attendance Quick Tracker Pill
+// ---------------------------------------------------------------------------
+
+function AttendancePill({
+  label,
+  percentage,
+  count,
+  color,
+  borderColor,
+  bgColor,
+  textColor,
+  icon: Icon,
+  onClick,
+  isActive,
+}: {
+  label: string;
+  percentage: number;
+  count: number;
+  color: string;
+  borderColor: string;
+  bgColor: string;
+  textColor: string;
+  icon: React.ElementType;
+  onClick: () => void;
+  isActive: boolean;
+}) {
   return (
-    <div className="flex flex-col gap-5">
-      {/* Lesson badge */}
-      <div className="flex items-center gap-2">
-        <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-[#D4A574]/10">
-          <BookMarked className="h-4.5 w-4.5 text-[#D4A574]" />
-        </div>
-        <div>
-          <h4 className="text-base font-semibold text-white">الرياضيات - الوحدة الثالثة</h4>
-          <p className="text-xs text-muted-foreground/60 mt-0.5">الصف الثالث المتوسط / الفصل أ</p>
-        </div>
+    <button
+      onClick={onClick}
+      className={`group relative flex items-center gap-3 rounded-xl border-r-[3px] ${borderColor} ${bgColor} px-4 py-3
+        transition-all duration-300 ease-out cursor-pointer
+        hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(0,0,0,0.25)]
+        active:translate-y-0 active:shadow-none
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A574]/50
+        ${isActive ? 'ring-1 ring-white/10 bg-opacity-100' : ''}`}
+    >
+      {/* Icon */}
+      <div
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-110"
+        style={{ backgroundColor: `${color}20` }}
+      >
+        <Icon className="h-4 w-4" style={{ color }} />
       </div>
 
-      {/* Info rows */}
-      {[
-        { label: 'المعلم', value: 'أ. خالد العتيبي' },
-        { label: 'الوقت', value: '08:30 - 09:15 صباحاً' },
-        { label: 'الغرفة', value: 'قاعة 204' },
-        { label: 'التقدم', value: '65%' },
-      ].map((row) => (
-        <div
-          key={row.label}
-          className="flex items-center justify-between py-2 border-b border-white/[0.04] last:border-0"
-        >
-          <span className="text-sm text-muted-foreground">{row.label}</span>
-          <span
-            className={`text-sm font-medium text-slate-200 ${
-              row.label === 'التقدم' ? 'tabular-nums text-emerald-400' : ''
-            }`}
-          >
-            {row.value}
-          </span>
+      {/* Content */}
+      <div className="flex flex-col gap-0.5 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-white">{label}</span>
+          <span className={`text-sm font-bold tabular-nums ${textColor}`}>{percentage}%</span>
         </div>
-      ))}
-
-      {/* Progress bar for lesson */}
-      <div>
-        <div className="h-2 w-full rounded-full bg-white/[0.06] overflow-hidden">
+        {/* Mini progress track */}
+        <div className="h-1.5 w-24 rounded-full bg-white/[0.08] overflow-hidden">
           <div
-            className="h-full rounded-full bg-gradient-to-l from-emerald-400 to-emerald-500 transition-all duration-700 ease-out"
-            style={{ width: '65%' }}
+            className="h-full rounded-full transition-all duration-1000 ease-out"
+            style={{
+              width: `${percentage}%`,
+              backgroundColor: color,
+            }}
           />
         </div>
       </div>
 
-      {/* Status */}
-      <div className="flex items-center gap-2">
-        <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-        </span>
-        <span className="text-xs font-medium text-emerald-400">الدرس جارٍ حالياً</span>
+      {/* Count on click */}
+      {isActive && (
+        <div
+          className="absolute -top-2 -left-2 flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold text-white shadow-lg animate-scale-in"
+          style={{ backgroundColor: color }}
+        >
+          {count}
+        </div>
+      )}
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// NEW: Today's Schedule Widget
+// ---------------------------------------------------------------------------
+
+function TodayScheduleWidget() {
+  const statusConfig = {
+    completed: {
+      color: 'text-emerald-400',
+      bgColor: 'bg-emerald-500/10',
+      borderColor: 'border-emerald-500/30',
+      lineColor: 'bg-emerald-500/30',
+      dotColor: 'bg-emerald-500',
+      label: 'مكتمل',
+      icon: CheckCircle2,
+    },
+    current: {
+      color: 'text-[#D4A574]',
+      bgColor: 'bg-[#D4A574]/10',
+      borderColor: 'border-[#D4A574]/30',
+      lineColor: 'bg-[#D4A574]/20',
+      dotColor: 'bg-[#D4A574]',
+      label: 'جارٍ حالياً',
+      icon: Clock,
+    },
+    upcoming: {
+      color: 'text-slate-400',
+      bgColor: 'bg-white/[0.03]',
+      borderColor: 'border-white/[0.06]',
+      lineColor: 'bg-white/[0.06]',
+      dotColor: 'bg-white/20',
+      label: 'قادم',
+      icon: ChevronLeft,
+    },
+  };
+
+  return (
+    <div className="flex flex-col gap-0">
+      {todaySchedule.map((period, index) => {
+        const config = statusConfig[period.status];
+        const StatusIcon = config.icon;
+        const isCurrent = period.status === 'current';
+
+        return (
+          <div key={period.id} className="flex gap-4">
+            {/* Timeline column */}
+            <div className="flex flex-col items-center">
+              {/* Dot */}
+              <div className="relative flex items-center justify-center">
+                <div
+                  className={`h-3 w-3 rounded-full ${config.dotColor} z-10
+                    ${isCurrent ? 'animate-pulse-glow' : ''}`}
+                />
+                {isCurrent && (
+                  <div
+                    className="absolute h-3 w-3 rounded-full animate-ping opacity-40"
+                    style={{ backgroundColor: '#D4A574' }}
+                  />
+                )}
+              </div>
+              {/* Connector line */}
+              {index < todaySchedule.length - 1 && (
+                <div className={`w-0.5 flex-1 min-h-[40px] ${config.lineColor}`} />
+              )}
+            </div>
+
+            {/* Content card */}
+            <div
+              className={`flex-1 rounded-lg border ${config.borderColor} ${config.bgColor} px-4 py-3 mb-3
+                transition-all duration-300
+                ${isCurrent ? 'shadow-[0_0_20px_rgba(212,165,116,0.08)]' : ''}`}
+            >
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-white">{period.subject}</span>
+                  {isCurrent && (
+                    <span className="flex items-center gap-1 rounded-full bg-[#D4A574]/15 px-2 py-0.5 text-[10px] font-medium text-[#D4A574]">
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#D4A574] opacity-75" />
+                        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#D4A574]" />
+                      </span>
+                      {config.label}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[11px] tabular-nums text-muted-foreground/60">{period.time}</span>
+              </div>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground/70">
+                <span className="flex items-center gap-1">
+                  <BookMarked className="h-3 w-3" />
+                  {period.teacher}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Map className="h-3 w-3" />
+                  {period.room}
+                </span>
+              </div>
+              {period.status === 'completed' && (
+                <div className="flex items-center gap-1 mt-2">
+                  <CheckCircle2 className="h-3 w-3 text-emerald-500/60" />
+                  <span className="text-[10px] text-emerald-500/60 font-medium">تم التنفيذ</span>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// NEW: Student Performance Summary (Grade Distribution Bar Chart)
+// ---------------------------------------------------------------------------
+
+function StudentPerformanceChart() {
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Bars */}
+      <div className="flex flex-col gap-3">
+        {gradeDistribution.map((grade, index) => {
+          const barWidth = (grade.count / grade.maxCount) * 100;
+          return (
+            <div key={grade.label} className="flex items-center gap-3">
+              {/* Label */}
+              <div className="w-20 shrink-0 text-right">
+                <span className="text-xs font-semibold text-slate-300">{grade.label}</span>
+                <span className="block text-[10px] text-muted-foreground/50 tabular-nums">{grade.range}</span>
+              </div>
+              {/* Bar */}
+              <div className="flex-1 h-6 rounded-md bg-white/[0.04] overflow-hidden relative">
+                <div
+                  className="h-full rounded-md transition-all duration-1000 ease-out relative overflow-hidden"
+                  style={{
+                    width: `${barWidth}%`,
+                    background: `linear-gradient(to left, ${grade.gradientFrom}, ${grade.gradientTo})`,
+                    transitionDelay: `${index * 150}ms`,
+                  }}
+                >
+                  {/* Shimmer overlay */}
+                  <div
+                    className="absolute inset-0 opacity-20"
+                    style={{
+                      background: 'linear-gradient(to left, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%)',
+                    }}
+                  />
+                </div>
+              </div>
+              {/* Count */}
+              <span
+                className="w-6 text-left text-xs font-bold tabular-nums"
+                style={{ color: grade.color }}
+              >
+                {grade.count}
+              </span>
+            </div>
+          );
+        })}
       </div>
+
+      {/* Summary footer */}
+      <div
+        className="rounded-lg p-3 flex items-center justify-between"
+        style={{
+          backgroundColor: 'rgba(255,255,255,0.02)',
+          border: '1px solid rgba(255,255,255,0.06)',
+        }}
+      >
+        <span className="text-xs text-muted-foreground/60">إجمالي الطلاب</span>
+        <span className="text-sm font-bold text-white tabular-nums">
+          {gradeDistribution.reduce((sum, g) => sum + g.count, 0)} طالب
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// NEW: Upcoming Events Section
+// ---------------------------------------------------------------------------
+
+function UpcomingEventsList() {
+  return (
+    <div className="flex flex-col gap-2.5">
+      {upcomingEvents.map((event) => {
+        const EventIcon = event.icon;
+        return (
+          <div
+            key={event.id}
+            className={`group flex items-center gap-3 rounded-lg border-r-[3px] ${event.borderColor} ${event.bgColor}
+              px-4 py-3 transition-all duration-300
+              hover:bg-white/[0.04] hover:-translate-x-0.5 cursor-pointer`}
+          >
+            {/* Icon */}
+            <div
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-110"
+              style={{
+                backgroundColor: `${event.iconColor === 'text-amber-400' ? 'rgba(245,158,11,0.1)' : event.iconColor === 'text-rose-400' ? 'rgba(244,63,94,0.1)' : event.iconColor === 'text-emerald-400' ? 'rgba(16,185,129,0.1)' : 'rgba(56,189,248,0.1)'}`,
+              }}
+            >
+              <EventIcon className={`h-4 w-4 ${event.iconColor}`} />
+            </div>
+
+            {/* Content */}
+            <div className="flex flex-col gap-0.5 min-w-0">
+              <span className="text-sm font-semibold text-white group-hover:text-[#D4A574] transition-colors duration-200">
+                {event.title}
+              </span>
+              <span className="text-xs text-muted-foreground/60">{event.description}</span>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -364,7 +752,6 @@ function WelcomeBanner({ onDismiss }: { onDismiss: () => void }) {
       className="relative overflow-hidden rounded-xl p-5 animate-fade-in-up"
       style={{
         background: 'linear-gradient(135deg, rgba(212,165,116,0.15) 0%, rgba(212,165,116,0.05) 100%)',
-        borderRight: '4px solid rgba(212,165,116,0.5)',
         border: '1px solid rgba(212,165,116,0.15)',
         borderRight: '4px solid rgba(212,165,116,0.6)',
       }}
@@ -528,6 +915,11 @@ export default function DashboardOverview() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showBanner, setShowBanner] = useState(true);
+  const [activePill, setActivePill] = useState<string | null>(null);
+  const [lastUpdated] = useState(() => new Date().toLocaleTimeString('ar-SA', {
+    hour: '2-digit',
+    minute: '2-digit',
+  }));
 
   const dismissBanner = useCallback(() => setShowBanner(false), []);
 
@@ -594,17 +986,29 @@ export default function DashboardOverview() {
 
       {/* ── Page Title Area ── */}
       <div className="animate-fade-in-up" style={{ animationDelay: '0ms', opacity: 0 }}>
-        <h1 className="text-2xl font-bold text-white tracking-tight sm:text-3xl">
-          لوحة تحكم المدرسة
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-          نظرة عامة على {totalStudents} طالب و{totalTeachers} معلم — الأسبوع الدراسي الحالي
-        </p>
-        {error && (
-          <p className="mt-1 text-xs text-amber-400/80">
-            ⚠️ تعذر تحديث البيانات من الخادم — يتم عرض بيانات محفوظة
-          </p>
-        )}
+        <div className="flex items-start justify-between flex-wrap gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-white tracking-tight sm:text-3xl">
+              لوحة تحكم المدرسة
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground sm:text-base leading-relaxed">
+              نظرة عامة على {totalStudents} طالب و{totalTeachers} معلم — الأسبوع الدراسي الحالي
+            </p>
+            {error && (
+              <p className="mt-1 text-xs text-amber-400/80">
+                ⚠️ تعذر تحديث البيانات من الخادم — يتم عرض بيانات محفوظة
+              </p>
+            )}
+          </div>
+          {/* Last updated timestamp */}
+          <div className="flex items-center gap-2 text-xs text-muted-foreground/50 shrink-0 mt-1">
+            <div className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-50" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            </div>
+            <span>آخر تحديث: {lastUpdated}</span>
+          </div>
+        </div>
       </div>
 
       {/* ── Session Timer (centered) ── */}
@@ -633,13 +1037,38 @@ export default function DashboardOverview() {
         ))}
       </div>
 
-      {/* ── Quick Actions Row ── */}
-      <div className="animate-fade-in-up opacity-0" style={{ animationDelay: '650ms' }}>
+      {/* ── Attendance Quick Tracker ── */}
+      <div className="animate-fade-in-up opacity-0" style={{ animationDelay: '600ms' }}>
+        <div className="flex items-center gap-2 mb-3">
+          <UserCheck className="h-4 w-4 text-[#D4A574]" />
+          <h3 className="text-sm font-semibold text-muted-foreground">متابعة الحضور السريعة</h3>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {attendancePills.map((pill) => (
+            <AttendancePill
+              key={pill.id}
+              label={pill.label}
+              percentage={pill.percentage}
+              count={pill.count}
+              color={pill.color}
+              borderColor={pill.borderColor}
+              bgColor={pill.bgColor}
+              textColor={pill.textColor}
+              icon={pill.icon}
+              isActive={activePill === pill.id}
+              onClick={() => setActivePill(activePill === pill.id ? null : pill.id)}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* ── Quick Actions Row (expanded to 6) ── */}
+      <div className="animate-fade-in-up opacity-0" style={{ animationDelay: '700ms' }}>
         <h3 className="text-sm font-semibold text-muted-foreground mb-3">إجراءات سريعة</h3>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           {QUICK_ACTIONS.map((action) => (
             <QuickActionButton
-              key={action.id}
+              key={`${action.id}-${action.label}`}
               label={action.label}
               description={action.description}
               icon={action.icon}
@@ -650,7 +1079,7 @@ export default function DashboardOverview() {
       </div>
 
       {/* ── Analytics Row ── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5 animate-fade-in-up opacity-0" style={{ animationDelay: '750ms' }}>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5 animate-fade-in-up opacity-0" style={{ animationDelay: '800ms' }}>
         {/* Weekly Interaction Chart — takes 3 cols */}
         <SectionCard
           title="تحليل التفاعل الأسبوعي"
@@ -688,8 +1117,39 @@ export default function DashboardOverview() {
         </SectionCard>
       </div>
 
-      {/* ── Bottom Row ── */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 animate-fade-in-up opacity-0" style={{ animationDelay: '850ms' }}>
+      {/* ── Today's Schedule + Student Performance Row ── */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 animate-fade-in-up opacity-0" style={{ animationDelay: '900ms' }}>
+        {/* Today's Schedule Widget */}
+        <SectionCard
+          title="جدول اليوم"
+          icon={<Clock className="h-4 w-4" />}
+          action={
+            <span className="flex items-center gap-1.5 text-xs font-medium text-[#D4A574]">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#D4A574] opacity-75" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#D4A574]" />
+              </span>
+              4 حصص
+            </span>
+          }
+        >
+          <TodayScheduleWidget />
+        </SectionCard>
+
+        {/* Student Performance Summary */}
+        <SectionCard
+          title="توزيع الدرجات - الصف الثالث"
+          icon={<BarChart3 className="h-4 w-4" />}
+          action={
+            <span className="text-xs text-muted-foreground/50 font-medium">الفصل الحالي</span>
+          }
+        >
+          <StudentPerformanceChart />
+        </SectionCard>
+      </div>
+
+      {/* ── Bottom Row: Classroom Map + Attendance + Upcoming Events ── */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 animate-fade-in-up opacity-0" style={{ animationDelay: '1000ms' }}>
         {/* Classroom Map */}
         <SectionCard
           title="خريطة الفصل التفاعلية"
@@ -712,22 +1172,19 @@ export default function DashboardOverview() {
           <AttendanceDistribution />
         </SectionCard>
 
-        {/* Current Lesson Details */}
+        {/* Upcoming Events */}
         <SectionCard
-          title="تفاصيل الدرس الحالي"
-          icon={<BookMarked className="h-4 w-4" />}
+          title="الأحداث القادمة"
+          icon={<Calendar className="h-4 w-4" />}
           className="md:col-span-2 lg:col-span-1"
           action={
-            <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-400">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              </span>
-              جارٍ
+            <span className="flex items-center gap-1.5 text-xs font-medium text-sky-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
+              {upcomingEvents.length} أحداث
             </span>
           }
         >
-          <CurrentLessonDetails />
+          <UpcomingEventsList />
         </SectionCard>
       </div>
     </div>

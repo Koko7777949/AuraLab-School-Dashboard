@@ -90,6 +90,19 @@
   --sidebar-accent-foreground: #F1F1F6;
   --sidebar-border: rgba(255, 255, 255, 0.06);
   --sidebar-ring: #D4A574;
+
+  /* Enhanced custom properties for new utilities */
+  --glow-amber: rgba(212, 165, 116, 0.15);
+  --glow-amber-subtle: rgba(212, 165, 116, 0.08);
+  --glow-amber-lg: rgba(212, 165, 116, 0.25);
+  --glow-emerald-subtle: rgba(74, 222, 128, 0.1);
+  --glow-rose-subtle: rgba(251, 113, 133, 0.1);
+  --glow-sky-subtle: rgba(56, 189, 248, 0.1);
+  --glass-bg: rgba(26, 26, 36, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-blur: 16px;
+  --dot-color: rgba(255, 255, 255, 0.04);
+  --dot-spacing: 20px;
 }
 
 /* Global dark mode (always dark) */
@@ -110,10 +123,33 @@
   }
 }
 
-/* Custom Scrollbar */
+/* ===================================================================
+   1. BACKGROUND DOT GRID PATTERN
+   Subtle dot grid overlay on body for visual depth
+   =================================================================== */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, var(--dot-color) 1px, transparent 1px);
+  background-size: var(--dot-spacing) var(--dot-spacing);
+}
+
+/* Ensure content sits above the dot grid */
+body > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ===================================================================
+   2. ENHANCED SCROLLBAR STYLING
+   Thinner, elegant scrollbar with amber accent thumb
+   =================================================================== */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -121,13 +157,451 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
+  background: rgba(212, 165, 116, 0.15);
+  border-radius: 10px;
+  transition: background 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(212, 165, 116, 0.3);
 }
+
+::-webkit-scrollbar-thumb:active {
+  background: rgba(212, 165, 116, 0.45);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(212, 165, 116, 0.15) transparent;
+}
+
+/* ===================================================================
+   3. ANIMATION CLASSES
+   Smooth entrance animations with cubic-bezier easing
+   =================================================================== */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-slide-down {
+  animation: slide-down 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Stagger delay utilities for animation children */
+.delay-75 { animation-delay: 75ms; }
+.delay-150 { animation-delay: 150ms; }
+.delay-225 { animation-delay: 225ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-375 { animation-delay: 375ms; }
+.delay-450 { animation-delay: 450ms; }
+
+/* ===================================================================
+   4. IMPROVED GLOW UTILITIES
+   Subtle (sm) and ambient (lg) glow variants per color
+   =================================================================== */
+
+/* --- Amber glows --- */
+.glow-amber-sm {
+  box-shadow: 0 0 10px var(--glow-amber-subtle),
+              0 0 20px rgba(212, 165, 116, 0.04);
+}
+
+.glow-amber-lg {
+  box-shadow: 0 0 30px var(--glow-amber-lg),
+              0 0 60px rgba(212, 165, 116, 0.1),
+              0 0 100px rgba(212, 165, 116, 0.05);
+}
+
+/* --- Emerald glows --- */
+.glow-emerald-sm {
+  box-shadow: 0 0 10px var(--glow-emerald-subtle),
+              0 0 20px rgba(74, 222, 128, 0.04);
+}
+
+/* --- Rose glows --- */
+.glow-rose-sm {
+  box-shadow: 0 0 10px var(--glow-rose-subtle),
+              0 0 20px rgba(251, 113, 133, 0.04);
+}
+
+/* --- Sky glows --- */
+.glow-sky-sm {
+  box-shadow: 0 0 10px var(--glow-sky-subtle),
+              0 0 20px rgba(56, 189, 248, 0.04);
+}
+
+/* ===================================================================
+   5. GLASS CARD UTILITY
+   Dark glass background with border and backdrop blur
+   =================================================================== */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+}
+
+.glass-card-elevated {
+  background: rgba(26, 26, 36, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* ===================================================================
+   6. GRADIENT BORDER UTILITY
+   Pseudo-element approach: wrap with relative, inner element uses
+   -inset-[1px] to show gradient border effect
+   =================================================================== */
+.gradient-border-amber {
+  position: relative;
+  border-radius: var(--radius);
+  background: #121218;
+}
+
+.gradient-border-amber::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(212, 165, 116, 0.5),
+    rgba(212, 165, 116, 0.1),
+    rgba(212, 165, 116, 0.4)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Inner content element inside gradient-border-amber should have:
+   position: absolute; inset: 1px; border-radius: inherit;
+   background: var(--card); z-index: 1;
+   Use .gradient-border-inner on the child:
+*/
+.gradient-border-inner {
+  position: relative;
+  z-index: 1;
+  border-radius: inherit;
+  background: var(--card);
+}
+
+/* ===================================================================
+   7. ENHANCED SELECTION COLORS
+   Amber-tinted text selection
+   =================================================================== */
+::selection {
+  background: rgba(212, 165, 116, 0.3);
+  color: #F1F1F6;
+}
+
+::-moz-selection {
+  background: rgba(212, 165, 116, 0.3);
+  color: #F1F1F6;
+}
+
+/* ===================================================================
+   8. INPUT FOCUS RING ENHANCEMENT
+   Override focus styles to use amber accent consistently
+   =================================================================== */
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(212, 165, 116, 0.3);
+  border-color: rgba(212, 165, 116, 0.5);
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="search"]:focus,
+input[type="number"]:focus,
+input[type="tel"]:focus,
+input[type="url"]:focus {
+  box-shadow: 0 0 0 2px rgba(212, 165, 116, 0.25),
+              0 0 12px rgba(212, 165, 116, 0.08);
+  border-color: rgba(212, 165, 116, 0.5);
+}
+
+/* ===================================================================
+   9. TABLE STYLING
+   Alternating row backgrounds and hover effects
+   =================================================================== */
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+}
+
+tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.015);
+}
+
+tbody tr:hover {
+  background: rgba(212, 165, 116, 0.04);
+}
+
+tbody tr:hover td {
+  color: var(--foreground);
+}
+
+tbody td {
+  transition: color 0.15s ease;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ===================================================================
+   10. SHADCN DIALOG CONTENT OVERRIDES
+   Enhanced appearance for Dialog/Modal content panels
+   =================================================================== */
+[data-slot="dialog-content"] {
+  background: rgba(26, 26, 36, 0.95) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.3),
+    0 25px 60px rgba(0, 0, 0, 0.5),
+    0 0 80px rgba(212, 165, 116, 0.05) !important;
+  border-radius: 1rem !important;
+  animation: dialog-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+@keyframes dialog-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Dialog overlay */
+[data-slot="dialog-overlay"] {
+  background: rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  animation: overlay-fade-in 0.2s ease !important;
+}
+
+@keyframes overlay-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ===================================================================
+   11. BADGE PULSE ANIMATION
+   Pulsing glow for notification badges
+   =================================================================== */
+@keyframes badge-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(212, 165, 116, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(212, 165, 116, 0);
+  }
+}
+
+.animate-badge-pulse {
+  animation: badge-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Alternate badge pulse for destructive/urgent badges */
+@keyframes badge-pulse-destructive {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+  }
+}
+
+.animate-badge-pulse-destructive {
+  animation: badge-pulse-destructive 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ===================================================================
+   12. SMOOTH PAGE/SECTION TRANSITION CLASS
+   Use on section containers for cross-section transitions
+   =================================================================== */
+.section-transition {
+  animation: section-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes section-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Section exit (add via JS before switching) */
+.section-exit {
+  animation: section-exit 0.15s ease-in both;
+}
+
+@keyframes section-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+/* ===================================================================
+   13. SECTION FADE-IN-UP (250ms, 8px, ease-out)
+   Used for page section transitions keyed by activeSection
+   =================================================================== */
+@keyframes section-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-section-fade-in-up {
+  animation: section-fade-in-up 250ms ease-out both;
+}
+
+/* ===================================================================
+   14. LOADING OVERLAY ANIMATIONS
+   Pulse ring for the loading amber dot, overlay fade-out
+   =================================================================== */
+@keyframes loading-pulse-ring {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+}
+
+@keyframes loading-pulse-dot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes loading-fade-out {
+  from {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  to {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+.animate-loading-pulse-ring {
+  animation: loading-pulse-ring 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-loading-pulse-dot {
+  animation: loading-pulse-dot 1.5s ease-in-out infinite;
+}
+
+.animate-loading-fade-out {
+  animation: loading-fade-out 300ms ease-out forwards;
+}
+
+/* ===================================================================
+   EXISTING UTILITIES (preserved below)
+   =================================================================== */
 
 /* Smooth transitions for interactive elements */
 .transition-smooth {
@@ -226,10 +700,5 @@
 /* Prevent FOUC */
 html {
   background-color: #121218;
-}
-
-/* Selection color */
-::selection {
-  background: rgba(212, 165, 116, 0.3);
-  color: #F1F1F6;
+  scroll-behavior: smooth;
 }

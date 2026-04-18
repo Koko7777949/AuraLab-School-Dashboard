@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Calendar,
   Clock,
@@ -13,8 +13,8 @@ import {
   BookOpen,
   Filter,
   X,
+  Timer,
 } from 'lucide-react';
-import { useAppStore } from '@/lib/store';
 import type { Session } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -45,6 +45,7 @@ interface SessionCardData extends Session {
   engagementScore: number;
   teacherNameDisplay: string;
   classNameDisplay: string;
+  room?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -65,7 +66,7 @@ const MOCK_SESSIONS: SessionCardData[] = [
     id: 'session-001',
     classId: 'class-1',
     teacherId: 'teacher-001',
-    date: '2025-01-15',
+    date: new Date().toISOString().split('T')[0],
     startTime: '08:00',
     endTime: '09:30',
     engagementAvg: 88,
@@ -79,12 +80,13 @@ const MOCK_SESSIONS: SessionCardData[] = [
     engagementScore: 88,
     teacherNameDisplay: 'أ. عبدالله السالم',
     classNameDisplay: 'الصف الأول - أ',
+    room: 'قاعة 101',
   },
   {
     id: 'session-002',
     classId: 'class-3',
     teacherId: 'teacher-002',
-    date: '2025-01-15',
+    date: new Date().toISOString().split('T')[0],
     startTime: '10:00',
     endTime: '11:30',
     engagementAvg: 92,
@@ -98,14 +100,15 @@ const MOCK_SESSIONS: SessionCardData[] = [
     engagementScore: 92,
     teacherNameDisplay: 'أ. سارة المنصور',
     classNameDisplay: 'الصف الثاني - أ',
+    room: 'معمل الفيزياء',
   },
   {
     id: 'session-003',
     classId: 'class-5',
     teacherId: 'teacher-001',
-    date: '2025-01-16',
-    startTime: '08:00',
-    endTime: '09:30',
+    date: new Date().toISOString().split('T')[0],
+    startTime: '12:00',
+    endTime: '13:30',
     engagementAvg: 76,
     topic: 'الكيمياء العضوية - الجزيئات',
     notes: 'مراجعة عامة للفصل السابق',
@@ -117,14 +120,15 @@ const MOCK_SESSIONS: SessionCardData[] = [
     engagementScore: 76,
     teacherNameDisplay: 'أ. عبدالله السالم',
     classNameDisplay: 'الصف الثالث - أ',
+    room: 'قاعة 205',
   },
   {
     id: 'session-004',
     classId: 'class-2',
     teacherId: 'teacher-003',
-    date: '2025-01-16',
-    startTime: '11:00',
-    endTime: '12:30',
+    date: new Date().toISOString().split('T')[0],
+    startTime: '14:00',
+    endTime: '15:30',
     engagementAvg: null,
     topic: 'اللغة العربية: النحو والإعراب',
     notes: '',
@@ -136,12 +140,13 @@ const MOCK_SESSIONS: SessionCardData[] = [
     engagementScore: 0,
     teacherNameDisplay: 'أ. فهد العتيبي',
     classNameDisplay: 'الصف الأول - ب',
+    room: 'قاعة 102',
   },
   {
     id: 'session-005',
     classId: 'class-4',
     teacherId: 'teacher-002',
-    date: '2025-01-17',
+    date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
     startTime: '08:00',
     endTime: '09:30',
     engagementAvg: null,
@@ -155,12 +160,13 @@ const MOCK_SESSIONS: SessionCardData[] = [
     engagementScore: 0,
     teacherNameDisplay: 'أ. سارة المنصور',
     classNameDisplay: 'الصف الثاني - ب',
+    room: 'معمل الأحياء',
   },
   {
     id: 'session-006',
     classId: 'class-6',
     teacherId: 'teacher-003',
-    date: '2025-01-14',
+    date: new Date(Date.now() - 86400000).toISOString().split('T')[0],
     startTime: '10:00',
     endTime: '11:30',
     engagementAvg: 65,
@@ -174,12 +180,13 @@ const MOCK_SESSIONS: SessionCardData[] = [
     engagementScore: 65,
     teacherNameDisplay: 'أ. فهد العتيبي',
     classNameDisplay: 'الصف الثالث - ب',
+    room: 'قاعة 303',
   },
   {
     id: 'session-007',
     classId: 'class-1',
     teacherId: 'teacher-002',
-    date: '2025-01-17',
+    date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
     startTime: '12:00',
     endTime: '13:30',
     engagementAvg: null,
@@ -193,12 +200,13 @@ const MOCK_SESSIONS: SessionCardData[] = [
     engagementScore: 0,
     teacherNameDisplay: 'أ. سارة المنصور',
     classNameDisplay: 'الصف الأول - أ',
+    room: 'قاعة 101',
   },
   {
     id: 'session-008',
     classId: 'class-3',
     teacherId: 'teacher-001',
-    date: '2025-01-16',
+    date: new Date(Date.now() - 86400000).toISOString().split('T')[0],
     startTime: '14:00',
     endTime: '15:30',
     engagementAvg: 81,
@@ -212,6 +220,7 @@ const MOCK_SESSIONS: SessionCardData[] = [
     engagementScore: 81,
     teacherNameDisplay: 'أ. عبدالله السالم',
     classNameDisplay: 'الصف الثاني - أ',
+    room: 'قاعة 201',
   },
 ];
 
@@ -232,8 +241,8 @@ const STATUS_CONFIG: Record<
   'in-progress': {
     label: 'جارية',
     icon: PlayCircle,
-    color: 'text-emerald-400',
-    bg: 'bg-emerald-500/10 border-emerald-500/20',
+    color: 'text-amber-400',
+    bg: 'bg-amber-500/10 border-amber-500/20',
   },
   completed: {
     label: 'مكتملة',
@@ -245,12 +254,9 @@ const STATUS_CONFIG: Record<
 
 function getStatusColor(status: SessionStatus): string {
   switch (status) {
-    case 'upcoming':
-      return '#0ea5e9';
-    case 'in-progress':
-      return '#10b981';
-    case 'completed':
-      return '#64748b';
+    case 'upcoming': return '#0ea5e9';
+    case 'in-progress': return '#D4A574';
+    case 'completed': return '#64748b';
   }
 }
 
@@ -275,6 +281,29 @@ function formatTime(time: string | null): string {
   return time;
 }
 
+function calcDuration(start: string | null, end: string | null): string {
+  if (!start || !end) return '—';
+  const [sh, sm] = start.split(':').map(Number);
+  const [eh, em] = end.split(':').map(Number);
+  const diff = (eh * 60 + em) - (sh * 60 + sm);
+  if (diff <= 0) return '—';
+  const h = Math.floor(diff / 60);
+  const m = diff % 60;
+  if (h === 0) return `${m} دقيقة`;
+  if (m === 0) return `${h} ساعة`;
+  return `${h} ساعة و ${m} دقيقة`;
+}
+
+function getTodayLabel(dateStr: string): string {
+  const today = new Date().toISOString().split('T')[0];
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  if (dateStr === today) return 'اليوم';
+  if (dateStr === tomorrow) return 'غداً';
+  if (dateStr === yesterday) return 'أمس';
+  return formatDateArabic(dateStr);
+}
+
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
@@ -291,13 +320,7 @@ function EngagementRing({
 }) {
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
-  const [animated, setAnimated] = useState(false);
   const color = score > 0 ? getEngagementColor(score) : 'rgba(255,255,255,0.1)';
-
-  useEffect(() => {
-    const timer = setTimeout(() => setAnimated(true), 300);
-    return () => clearTimeout(timer);
-  }, []);
 
   return (
     <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
@@ -321,7 +344,7 @@ function EngagementRing({
             strokeLinecap="round"
             strokeDasharray={`${circumference} ${circumference}`}
             style={{
-              strokeDashoffset: animated ? circumference - (score / 100) * circumference : circumference,
+              strokeDashoffset: circumference - (score / 100) * circumference,
               transition: 'stroke-dashoffset 1s ease-out',
             }}
           />
@@ -353,7 +376,30 @@ function StatusBadge({ status }: { status: SessionStatus }) {
   );
 }
 
-/** Session card */
+/** Timeline dot */
+function TimelineDot({ status, isActive }: { status: SessionStatus; isActive: boolean }) {
+  const color = getStatusColor(status);
+  return (
+    <div className="relative flex items-center justify-center shrink-0">
+      {/* Pulsing ring for active sessions */}
+      {isActive && (
+        <span
+          className="absolute h-5 w-5 rounded-full animate-ping opacity-30"
+          style={{ backgroundColor: '#D4A574' }}
+        />
+      )}
+      <span
+        className="relative h-3 w-3 rounded-full border-2"
+        style={{
+          borderColor: color,
+          backgroundColor: status === 'completed' ? color : 'transparent',
+        }}
+      />
+    </div>
+  );
+}
+
+/** Session card on the timeline */
 function SessionCardComponent({
   session,
   onView,
@@ -361,31 +407,47 @@ function SessionCardComponent({
   session: SessionCardData;
   onView: (s: SessionCardData) => void;
 }) {
+  const isActive = session.status === 'in-progress';
   const borderColor = getStatusColor(session.status);
 
   return (
     <div
-      className="group relative rounded-xl p-5 transition-all duration-300 cursor-pointer hover:-translate-y-0.5"
+      className={cn(
+        'group relative rounded-xl p-5 transition-all duration-300 cursor-pointer',
+        isActive ? 'ring-1 ring-amber-500/30' : '',
+      )}
       style={{
-        backgroundColor: '#1A1A24',
-        border: '1px solid rgba(255,255,255,0.06)',
+        backgroundColor: isActive ? 'rgba(212,165,116,0.06)' : '#1A1A24',
+        border: isActive ? '1px solid rgba(212,165,116,0.25)' : '1px solid rgba(255,255,255,0.06)',
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.boxShadow = `0 8px 30px rgba(0,0,0,0.3), 0 0 0 1px ${borderColor}25`;
         e.currentTarget.style.borderColor = `${borderColor}40`;
+        e.currentTarget.style.transform = 'translateY(-2px)';
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.boxShadow = 'none';
-        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
+        e.currentTarget.style.borderColor = isActive ? 'rgba(212,165,116,0.25)' : 'rgba(255,255,255,0.06)';
+        e.currentTarget.style.transform = 'translateY(0)';
       }}
       onClick={() => onView(session)}
     >
-      {/* Top row: status + date */}
+      {/* Top row: status + time */}
       <div className="flex items-center justify-between mb-4">
-        <StatusBadge status={session.status} />
+        <div className="flex items-center gap-2">
+          <StatusBadge status={session.status} />
+          {isActive && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-full px-2 py-0.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+              مباشر
+            </span>
+          )}
+        </div>
         <span className="text-xs text-slate-500 flex items-center gap-1.5">
-          <Calendar className="h-3.5 w-3.5" />
-          {session.date}
+          <Clock className="h-3.5 w-3.5" />
+          <span dir="ltr" className="text-left">
+            {formatTime(session.startTime)} - {formatTime(session.endTime)}
+          </span>
         </span>
       </div>
 
@@ -404,11 +466,17 @@ function SessionCardComponent({
           <BookOpen className="h-3.5 w-3.5 text-slate-500" />
           <span>{session.teacherNameDisplay}</span>
         </div>
-        <div className="flex items-center gap-2 text-xs text-slate-400">
-          <Clock className="h-3.5 w-3.5 text-slate-500" />
-          <span dir="ltr" className="text-left">
-            {formatTime(session.startTime)} - {formatTime(session.endTime)}
-          </span>
+        <div className="flex items-center gap-4 text-xs text-slate-400">
+          {session.room && (
+            <div className="flex items-center gap-2">
+              <MapPin className="h-3.5 w-3.5 text-slate-500" />
+              <span>{session.room}</span>
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <Timer className="h-3.5 w-3.5 text-slate-500" />
+            <span>{calcDuration(session.startTime, session.endTime)}</span>
+          </div>
         </div>
       </div>
 
@@ -446,9 +514,6 @@ function SessionDetailDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   if (!session) return null;
-
-  const config = STATUS_CONFIG[session.status];
-  const StatusIcon = config.icon;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -531,9 +596,10 @@ function SessionDetailDialog({
               {[
                 { label: 'التاريخ', value: formatDateArabic(session.date), icon: Calendar },
                 { label: 'الوقت', value: `${formatTime(session.startTime)} - ${formatTime(session.endTime)}`, icon: Clock },
+                { label: 'المدة', value: calcDuration(session.startTime, session.endTime), icon: Timer },
                 { label: 'الفصل', value: session.classNameDisplay, icon: Users },
                 { label: 'المعلم', value: session.teacherNameDisplay, icon: BookOpen },
-                { label: 'المكان', value: 'القاعة الدراسية الرئيسية', icon: MapPin },
+                { label: 'القاعة', value: session.room || 'غير محدد', icon: MapPin },
               ].map((field) => (
                 <div
                   key={field.label}
@@ -572,8 +638,8 @@ function SessionDetailDialog({
   );
 }
 
-/** Add session dialog */
-function AddSessionDialog({
+/** Add / Start session dialog */
+function StartSessionDialog({
   open,
   onOpenChange,
 }: {
@@ -586,6 +652,7 @@ function AddSessionDialog({
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [startTime, setStartTime] = useState('08:00');
   const [endTime, setEndTime] = useState('09:30');
+  const [room, setRoom] = useState('');
   const [notes, setNotes] = useState('');
 
   const handleAdd = () => {
@@ -606,7 +673,7 @@ function AddSessionDialog({
         <DialogHeader>
           <DialogTitle className="text-white text-xl flex items-center gap-2">
             <Plus className="h-5 w-5 text-[#D4A574]" />
-            إضافة جلسة جديدة
+            بدء جلسة جديدة
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
             أضف جلسة تعليمية جديدة للجدول الدراسي
@@ -669,6 +736,18 @@ function AddSessionDialog({
             </div>
           </div>
 
+          {/* Room */}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm text-slate-300 font-medium">القاعة</label>
+            <input
+              type="text"
+              value={room}
+              onChange={(e) => setRoom(e.target.value)}
+              placeholder="مثال: قاعة 101"
+              className="w-full rounded-lg px-3.5 py-2.5 text-sm bg-white/[0.03] border border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 outline-none transition-colors"
+            />
+          </div>
+
           {/* Date */}
           <div className="flex flex-col gap-2">
             <label className="text-sm text-slate-300 font-medium">التاريخ</label>
@@ -724,7 +803,7 @@ function AddSessionDialog({
               className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold gap-2 rounded-lg px-6"
             >
               <Plus className="h-4 w-4" />
-              إضافة الجلسة
+              بدء الجلسة
             </Button>
             <Button
               variant="outline"
@@ -740,13 +819,48 @@ function AddSessionDialog({
   );
 }
 
+/** Empty state with better illustration */
+function EmptyState({ onAdd }: { onAdd: () => void }) {
+  return (
+    <div
+      className="flex flex-col items-center justify-center py-20 px-4 rounded-xl"
+      style={{
+        backgroundColor: '#1A1A24',
+        border: '1px solid rgba(255,255,255,0.06)',
+      }}
+    >
+      <div className="relative mb-6">
+        <div className="flex items-center justify-center h-24 w-24 rounded-3xl bg-white/[0.03] border border-white/[0.06]">
+          <Calendar className="h-12 w-12 text-slate-500" />
+        </div>
+        <div className="absolute -bottom-1 -left-1 flex items-center justify-center h-8 w-8 rounded-full bg-[#D4A574]/15 border border-[#D4A574]/30">
+          <Plus className="h-4 w-4 text-[#D4A574]" />
+        </div>
+      </div>
+      <h3 className="text-lg font-semibold text-slate-300 mb-2">
+        لا توجد جلسات
+      </h3>
+      <p className="text-sm text-muted-foreground mb-6 text-center max-w-sm leading-relaxed">
+        لم يتم العثور على جلسات تطابق معايير البحث المحددة.
+        <br />
+        يمكنك بدء جلسة جديدة الآن!
+      </p>
+      <Button
+        onClick={onAdd}
+        className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold gap-2 rounded-lg px-6"
+      >
+        <PlayCircle className="h-4 w-4" />
+        بدء جلسة جديدة
+      </Button>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Main Component
 // ---------------------------------------------------------------------------
 
 export default function SessionsSection() {
-  const { classes, teachers } = useAppStore();
-
   // Local state
   const [classFilter, setClassFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -768,6 +882,21 @@ export default function SessionsSection() {
 
     return result;
   }, [classFilter, statusFilter]);
+
+  // Group by date
+  const groupedByDate = useMemo(() => {
+    const groups: Record<string, SessionCardData[]> = {};
+    for (const s of filteredSessions) {
+      const label = getTodayLabel(s.date);
+      if (!groups[label]) groups[label] = [];
+      groups[label].push(s);
+    }
+    // Sort within each group by startTime
+    for (const key of Object.keys(groups)) {
+      groups[key].sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
+    }
+    return groups;
+  }, [filteredSessions]);
 
   // Summary stats
   const stats = useMemo(() => {
@@ -815,7 +944,7 @@ export default function SessionsSection() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'مكتملة', value: stats.completed, color: '#64748b', bg: 'bg-slate-500/15', icon: CheckCircle2 },
-          { label: 'جارية', value: stats.inProgress, color: '#10b981', bg: 'bg-emerald-500/15', icon: PlayCircle },
+          { label: 'جارية', value: stats.inProgress, color: '#D4A574', bg: 'bg-amber-500/15', icon: PlayCircle },
           { label: 'قادمة', value: stats.upcoming, color: '#0ea5e9', bg: 'bg-sky-500/15', icon: Calendar },
           { label: 'متوسط التفاعل', value: `${stats.engagementAvg}%`, color: '#f59e0b', bg: 'bg-amber-500/15', icon: Users },
         ].map((stat) => (
@@ -838,7 +967,7 @@ export default function SessionsSection() {
         ))}
       </div>
 
-      {/* ── Filters + Add ── */}
+      {/* ── Filters + Start Button ── */}
       <div
         className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl p-4"
         style={{
@@ -846,13 +975,13 @@ export default function SessionsSection() {
           border: '1px solid rgba(255,255,255,0.06)',
         }}
       >
-        {/* Add button */}
+        {/* Start new session button */}
         <Button
           onClick={() => setAddOpen(true)}
           className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold gap-2 rounded-lg px-5 h-10"
         >
-          <Plus className="h-4 w-4" />
-          إضافة جلسة جديدة
+          <PlayCircle className="h-4 w-4" />
+          بدء جلسة جديدة
         </Button>
 
         {/* Filters */}
@@ -922,40 +1051,31 @@ export default function SessionsSection() {
         </div>
       </div>
 
-      {/* ── Sessions Grid ── */}
+      {/* ── Sessions Timeline ── */}
       {filteredSessions.length === 0 ? (
-        <div
-          className="flex flex-col items-center justify-center py-16 px-4 rounded-xl"
-          style={{
-            backgroundColor: '#1A1A24',
-            border: '1px solid rgba(255,255,255,0.06)',
-          }}
-        >
-          <div className="flex items-center justify-center h-20 w-20 rounded-2xl bg-white/[0.03] border border-white/[0.06] mb-6">
-            <Calendar className="h-10 w-10 text-slate-500" />
-          </div>
-          <h3 className="text-lg font-semibold text-slate-300 mb-2">
-            لا توجد جلسات
-          </h3>
-          <p className="text-sm text-muted-foreground mb-6 text-center max-w-sm">
-            لم يتم العثور على جلسات تطابق معايير البحث المحددة
-          </p>
-          <Button
-            onClick={() => setAddOpen(true)}
-            className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold gap-2 rounded-lg px-6"
-          >
-            <Plus className="h-4 w-4" />
-            إضافة جلسة جديدة
-          </Button>
-        </div>
+        <EmptyState onAdd={() => setAddOpen(true)} />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
-          {filteredSessions.map((session) => (
-            <SessionCardComponent
-              key={session.id}
-              session={session}
-              onView={handleView}
-            />
+        <div className="flex flex-col gap-6">
+          {Object.entries(groupedByDate).map(([dateLabel, sessions]) => (
+            <div key={dateLabel}>
+              {/* Date header */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-px flex-1 bg-white/[0.06]" />
+                <span className="text-sm font-semibold text-[#D4A574] px-2">{dateLabel}</span>
+                <div className="h-px flex-1 bg-white/[0.06]" />
+              </div>
+
+              {/* Sessions grid with timeline */}
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+                {sessions.map((session) => (
+                  <SessionCardComponent
+                    key={session.id}
+                    session={session}
+                    onView={handleView}
+                  />
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       )}
@@ -967,7 +1087,7 @@ export default function SessionsSection() {
         onOpenChange={setDetailOpen}
       />
 
-      <AddSessionDialog
+      <StartSessionDialog
         open={addOpen}
         onOpenChange={setAddOpen}
       />

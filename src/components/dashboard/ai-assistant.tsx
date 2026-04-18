@@ -2,17 +2,59 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAppStore } from '@/lib/store';
-import { Bot, Send, Trash2, Sparkles, MessageSquare } from 'lucide-react';
+import {
+  Bot,
+  Send,
+  Trash2,
+  Sparkles,
+  BookOpen,
+  Lightbulb,
+  Calendar,
+  Bell,
+  Paperclip,
+  Mic,
+} from 'lucide-react';
+import { toast } from 'sonner';
+
+/* ═══════════════════════════════════════════════════════════════
+   Constants
+   ═══════════════════════════════════════════════════════════════ */
 
 const WELCOME_MESSAGE =
   'مرحباً! أنا المساعد الذكي لنظام AuraLab. يمكنني مساعدتك في تحليل بيانات الطلاب، تقديم اقتراحات لتحسين التفاعل، وإعداد التقارير. كيف يمكنني مساعدتك اليوم؟';
 
-const SUGGESTIONS = [
-  'تحليل أداء الطلاب',
-  'اقتراح تحسين التفاعل',
-  'تقرير الحضور',
-  'تنبيهات مهمة',
-] as const;
+interface Suggestion {
+  label: string;
+  description: string;
+  icon: React.ElementType;
+}
+
+const SUGGESTIONS: Suggestion[] = [
+  {
+    label: 'تحليل أداء الطلاب',
+    description: 'تحليل شامل لأداء جميع الطلاب',
+    icon: BookOpen,
+  },
+  {
+    label: 'اقتراح تحسين التفاعل',
+    description: 'توصيات مبنية على بيانات التفاعل',
+    icon: Lightbulb,
+  },
+  {
+    label: 'تقرير الحضور',
+    description: 'ملخص الحضور والغياب',
+    icon: Calendar,
+  },
+  {
+    label: 'تنبيهات مهمة',
+    description: 'عرض التنبيهات والملاحظات',
+    icon: Bell,
+  },
+];
+
+/* ═══════════════════════════════════════════════════════════════
+   Helpers
+   ═══════════════════════════════════════════════════════════════ */
 
 function formatTime(timestamp: string): string {
   const date = new Date(timestamp);
@@ -27,11 +69,16 @@ function generateId(): string {
   return `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   Component
+   ═══════════════════════════════════════════════════════════════ */
+
 export default function AiAssistant() {
   const { chatMessages, addChatMessage, clearChat, isAiLoading, setIsAiLoading } =
     useAppStore();
 
   const [inputValue, setInputValue] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -125,19 +172,58 @@ export default function AiAssistant() {
 
   const handleClear = () => {
     clearChat();
+    toast.success('تم مسح المحادثة');
   };
 
   const hasMessages = chatMessages.length > 0;
 
+  /* ─── Group consecutive messages ──────────────────────────── */
+  const groupedMessages = chatMessages.reduce<
+    { msg: (typeof chatMessages)[0]; showAvatar: boolean; isFirstInGroup: boolean }[]
+  >((acc, msg, i) => {
+    const prev = i > 0 ? chatMessages[i - 1] : null;
+    const isFirstInGroup = !prev || prev.role !== msg.role;
+    const showAvatar = isFirstInGroup;
+    acc.push({ msg, showAvatar, isFirstInGroup });
+    return acc;
+  }, []);
+
+  /* ══════════════════════════════════════════════════════════ */
   return (
     <div className="flex flex-col h-full rounded-2xl border border-white/10 bg-[#18181B] overflow-hidden">
-      {/* ─── Header ──────────────────────────────────────────── */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 bg-[#1E1E26]">
+      {/* ═══════════════════════════════════════════════════════
+          HEADER
+          ═══════════════════════════════════════════════════════ */}
+      <div
+        className="flex items-center justify-between px-5 py-4 border-b border-white/10"
+        style={{
+          background:
+            'linear-gradient(135deg, #1E1E26 0%, #1a1a28 50%, #1E1E26 100%)',
+        }}
+      >
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-amber-500/15">
-            <Sparkles className="w-5 h-5 text-amber-400" />
+          <div className="relative">
+            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-amber-500/15">
+              <Sparkles className="w-5 h-5 text-amber-400" />
+            </div>
+            {/* Online status dot */}
+            <span className="absolute -bottom-0.5 -left-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#1E1E26]" />
           </div>
-          <h2 className="text-base font-bold text-white">المساعد الذكي</h2>
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-bold text-white">المساعد الذكي</h2>
+              {/* Message count badge */}
+              {hasMessages && (
+                <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-[10px] font-bold text-amber-400">
+                  {chatMessages.length}
+                </span>
+              )}
+            </div>
+            <span className="flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              متصل
+            </span>
+          </div>
         </div>
 
         {hasMessages && (
@@ -152,77 +238,204 @@ export default function AiAssistant() {
         )}
       </div>
 
-      {/* ─── Chat Area ───────────────────────────────────────── */}
+      {/* ═══════════════════════════════════════════════════════
+          CHAT AREA
+          ═══════════════════════════════════════════════════════ */}
       <div
         ref={chatContainerRef}
-        className="flex-1 overflow-y-auto px-4 py-4 space-y-4 scroll-smooth"
+        className="flex-1 overflow-y-auto px-4 py-6 space-y-3 scroll-smooth"
         style={{ maxHeight: 'calc(100vh - 340px)', minHeight: '320px' }}
       >
-        {/* Empty / Welcome state */}
+        {/* ─── Welcome State ───────────────────────────────── */}
         {!hasMessages && (
-          <div className="flex flex-col items-center justify-center h-full py-16 text-center">
-            <div className="flex items-center justify-center w-20 h-20 rounded-2xl bg-amber-500/10 mb-6">
-              <Bot className="w-10 h-10 text-amber-400" />
+          <div className="flex flex-col items-center justify-center h-full py-12 text-center">
+            {/* Animated gradient ring around bot icon */}
+            <div className="relative mb-8">
+              <div
+                className="absolute inset-0 rounded-3xl animate-spin"
+                style={{
+                  background:
+                    'conic-gradient(from 0deg, #f59e0b, #d97706, #f59e0b, transparent, #f59e0b)',
+                  animationDuration: '3s',
+                  filter: 'blur(4px)',
+                  opacity: 0.6,
+                }}
+              />
+              <div className="relative flex items-center justify-center w-24 h-24 rounded-3xl bg-[#1a1a24] border border-white/10">
+                <Bot className="w-12 h-12 text-amber-400" />
+              </div>
             </div>
-            <h3 className="text-lg font-bold text-white mb-3">المساعد الذكي</h3>
-            <p className="text-sm text-zinc-400 leading-relaxed max-w-md">
+
+            <h3 className="text-xl font-bold text-white mb-2">المساعد الذكي</h3>
+            <p className="text-sm text-zinc-400 leading-relaxed max-w-md mb-8">
               {WELCOME_MESSAGE}
             </p>
+
+            {/* 2×2 Suggestion Cards Grid */}
+            <div className="grid grid-cols-2 gap-3 w-full max-w-lg">
+              {SUGGESTIONS.map((s) => {
+                const IconComp = s.icon;
+                return (
+                  <button
+                    key={s.label}
+                    onClick={() => sendMessage(s.label)}
+                    disabled={isAiLoading}
+                    className="group flex flex-col items-center gap-2 p-4 rounded-2xl
+                      bg-white/[0.03] border border-white/[0.08] backdrop-blur-sm
+                      hover:bg-amber-500/[0.06] hover:border-amber-500/30
+                      disabled:opacity-40 disabled:pointer-events-none
+                      transition-all duration-300 text-center"
+                  >
+                    <div
+                      className="flex items-center justify-center w-10 h-10 rounded-xl
+                        bg-amber-500/10 group-hover:bg-amber-500/20
+                        transition-colors duration-300"
+                    >
+                      <IconComp className="w-5 h-5 text-amber-400" />
+                    </div>
+                    <span className="text-xs font-semibold text-zinc-200 group-hover:text-amber-300 transition-colors duration-300">
+                      {s.label}
+                    </span>
+                    <span className="text-[10px] text-zinc-500 leading-relaxed">
+                      {s.description}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
 
-        {/* Messages */}
-        {chatMessages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex flex-col ${msg.role === 'user' ? 'items-start' : 'items-end'}`}
-          >
+        {/* ─── Messages ────────────────────────────────────── */}
+        {groupedMessages.map(({ msg, showAvatar }) => {
+          const isUser = msg.role === 'user';
+
+          return (
             <div
-              className={`max-w-[80%] sm:max-w-[70%] px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap break-words ${
-                msg.role === 'user'
-                  ? 'bg-amber-500/90 text-white rounded-2xl rounded-br-md'
-                  : 'bg-[#22222E] text-zinc-100 rounded-2xl rounded-bl-md'
+              key={msg.id}
+              className={`flex items-end gap-2.5 ${
+                isUser ? 'flex-row' : 'flex-row-reverse'
               }`}
+              style={{ marginBottom: showAvatar ? '12px' : '4px', marginTop: showAvatar ? '8px' : '0' }}
             >
-              <div className="flex items-start gap-2">
-                {msg.role === 'assistant' && (
-                  <Bot className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+              {/* Avatar */}
+              {showAvatar ? (
+                isUser ? (
+                  <div
+                    className="flex items-center justify-center w-8 h-8 rounded-full shrink-0 text-xs font-bold text-white shadow-lg"
+                    style={{
+                      background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                    }}
+                  >
+                    أ
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full shrink-0 bg-amber-500/15 border border-amber-500/20 shadow-lg">
+                    <Bot className="w-4 h-4 text-amber-400" />
+                  </div>
+                )
+              ) : (
+                <div className="w-8 shrink-0" />
+              )}
+
+              {/* Bubble */}
+              <div className="flex flex-col max-w-[80%] sm:max-w-[70%]">
+                <div
+                  className={`relative px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap break-words ${
+                    isUser
+                      ? 'rounded-2xl rounded-br-sm text-white shadow-lg'
+                      : 'rounded-2xl rounded-bl-sm text-zinc-100 border border-white/[0.08]'
+                  }`}
+                  style={
+                    isUser
+                      ? {
+                          background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                          boxShadow: '0 4px 20px -4px rgba(245, 158, 11, 0.35)',
+                        }
+                      : {
+                          background: 'linear-gradient(135deg, rgba(34,34,46,0.8) 0%, rgba(30,30,40,0.9) 100%)',
+                          backdropFilter: 'blur(12px)',
+                        }
+                  }
+                >
+                  {/* Tail / Arrow */}
+                  {isUser && (
+                    <div
+                      className="absolute top-3 -right-[6px] w-3 h-3 rotate-45"
+                      style={{
+                        background: 'linear-gradient(135deg, #d97706 0%, #d97706 100%)',
+                      }}
+                    />
+                  )}
+                  {!isUser && (
+                    <div
+                      className="absolute top-3 -left-[6px] w-3 h-3 rotate-45 bg-[#22222E]/80 border-l border-b border-white/[0.08]"
+                    />
+                  )}
+                  <span className="relative z-10">{msg.content}</span>
+                </div>
+
+                {/* Timestamp (only show for last message in group) */}
+                {showAvatar && (
+                  <span
+                    className={`mt-1.5 text-[10px] text-zinc-600 px-1 ${
+                      isUser ? 'text-right' : 'text-left'
+                    }`}
+                  >
+                    {formatTime(msg.timestamp)}
+                  </span>
                 )}
-                <span>{msg.content}</span>
               </div>
             </div>
-            <span className="mt-1.5 text-[10px] text-zinc-500 px-1">
-              {formatTime(msg.timestamp)}
-            </span>
-          </div>
-        ))}
+          );
+        })}
 
-        {/* AI Typing indicator */}
+        {/* ─── Typing Indicator ────────────────────────────── */}
         {isAiLoading && (
-          <div className="flex flex-col items-end">
-            <div className="bg-[#22222E] rounded-2xl rounded-bl-md px-5 py-4">
-              <div className="flex items-center gap-1.5" dir="ltr">
-                <span
-                  className="w-2 h-2 rounded-full bg-amber-400"
-                  style={{
-                    animation: 'aiBounce 1.4s ease-in-out infinite',
-                    animationDelay: '0ms',
-                  }}
-                />
-                <span
-                  className="w-2 h-2 rounded-full bg-amber-400"
-                  style={{
-                    animation: 'aiBounce 1.4s ease-in-out infinite',
-                    animationDelay: '200ms',
-                  }}
-                />
-                <span
-                  className="w-2 h-2 rounded-full bg-amber-400"
-                  style={{
-                    animation: 'aiBounce 1.4s ease-in-out infinite',
-                    animationDelay: '400ms',
-                  }}
-                />
+          <div className="flex items-end gap-2.5 flex-row-reverse">
+            {/* AI Avatar */}
+            <div className="flex items-center justify-center w-8 h-8 rounded-full shrink-0 bg-amber-500/15 border border-amber-500/20 shadow-lg">
+              <Bot className="w-4 h-4 text-amber-400" />
+            </div>
+
+            <div className="flex flex-col">
+              <div
+                className="relative rounded-2xl rounded-bl-sm px-5 py-4 border border-white/[0.08]"
+                style={{
+                  background:
+                    'linear-gradient(135deg, rgba(34,34,46,0.8) 0%, rgba(30,30,40,0.9) 100%)',
+                  backdropFilter: 'blur(12px)',
+                }}
+              >
+                {/* Tail */}
+                <div className="absolute top-3 -left-[6px] w-3 h-3 rotate-45 bg-[#22222E]/80 border-l border-b border-white/[0.08]" />
+
+                <div className="flex items-center gap-2" dir="ltr">
+                  <span
+                    className="w-2 h-2 rounded-full bg-amber-400"
+                    style={{
+                      animation: 'aiBounce 1.4s ease-in-out infinite',
+                      animationDelay: '0ms',
+                    }}
+                  />
+                  <span
+                    className="w-2 h-2 rounded-full bg-amber-400"
+                    style={{
+                      animation: 'aiBounce 1.4s ease-in-out infinite',
+                      animationDelay: '200ms',
+                    }}
+                  />
+                  <span
+                    className="w-2 h-2 rounded-full bg-amber-400"
+                    style={{
+                      animation: 'aiBounce 1.4s ease-in-out infinite',
+                      animationDelay: '400ms',
+                    }}
+                  />
+                  <span className="text-[10px] text-zinc-500 mr-1" dir="rtl">
+                    يكتب...
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -231,69 +444,138 @@ export default function AiAssistant() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* ─── Suggestion Chips ────────────────────────────────── */}
-      <div className="px-4 pt-2 pb-1">
-        <div className="flex flex-wrap gap-2 justify-end" dir="rtl">
-          {SUGGESTIONS.map((suggestion) => (
-            <button
-              key={suggestion}
-              onClick={() => sendMessage(suggestion)}
-              disabled={isAiLoading}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
-                bg-white/5 text-zinc-300 border border-white/10
-                hover:bg-amber-500/10 hover:border-amber-500/30 hover:text-amber-300
-                disabled:opacity-40 disabled:pointer-events-none
-                transition-colors"
-            >
-              <MessageSquare className="w-3 h-3" />
-              <span>{suggestion}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ─── Input Area ──────────────────────────────────────── */}
+      {/* ═══════════════════════════════════════════════════════
+          INPUT AREA
+          ═══════════════════════════════════════════════════════ */}
       <form
         onSubmit={handleSubmit}
-        className="flex items-end gap-3 px-4 py-3 border-t border-white/10 bg-[#1E1E26]"
+        className="flex items-end gap-2 px-4 py-3 border-t border-white/10 bg-[#1E1E26]"
       >
-        <textarea
-          ref={textareaRef}
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="اكتب رسالتك هنا..."
-          disabled={isAiLoading}
-          rows={1}
-          dir="rtl"
-          className="flex-1 resize-none rounded-xl bg-white/5 border border-white/10 px-4 py-2.5
-            text-sm text-white placeholder:text-zinc-500
-            focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500/40
-            disabled:opacity-50 transition-all"
-        />
+        {/* Attachment button (coming soon) */}
+        <button
+          type="button"
+          disabled
+          aria-label="إرفاق ملف"
+          title="قريباً..."
+          className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0
+            bg-white/5 border border-white/10
+            text-zinc-600 cursor-not-allowed
+            transition-colors"
+        >
+          <Paperclip className="w-4 h-4" />
+        </button>
+
+        {/* Textarea with gradient focus border */}
+        <div className="relative flex-1">
+          {isFocused && (
+            <div
+              className="absolute -inset-[2px] rounded-xl pointer-events-none"
+              style={{
+                background:
+                  'linear-gradient(135deg, #f59e0b 0%, #d97706 40%, #92400e 70%, #f59e0b 100%)',
+                backgroundSize: '200% 200%',
+                animation: 'gradientShift 3s ease-in-out infinite',
+                zIndex: 0,
+              }}
+            />
+          )}
+          <textarea
+            ref={textareaRef}
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            placeholder="اكتب رسالتك هنا..."
+            disabled={isAiLoading}
+            rows={1}
+            dir="rtl"
+            className="relative z-10 w-full resize-none rounded-xl bg-[#121218] border border-white/10 px-4 py-2.5
+              text-sm text-white placeholder:text-zinc-500
+              focus:outline-none
+              disabled:opacity-50 transition-all"
+          />
+        </div>
+
+        {/* Voice input button (coming soon) */}
+        <button
+          type="button"
+          disabled
+          aria-label="إدخال صوتي"
+          title="قريباً..."
+          className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0
+            bg-white/5 border border-white/10
+            text-zinc-600 cursor-not-allowed
+            transition-colors"
+        >
+          <Mic className="w-4 h-4" />
+        </button>
+
+        {/* Send button with animated gradient */}
         <button
           type="submit"
           disabled={!inputValue.trim() || isAiLoading}
           aria-label="إرسال"
-          className="flex items-center justify-center w-10 h-10 rounded-xl shrink-0
+          className="relative flex items-center justify-center w-10 h-10 rounded-xl shrink-0 overflow-hidden
             transition-all duration-200
             disabled:opacity-30 disabled:cursor-not-allowed
             cursor-pointer"
           style={{
-            backgroundColor: inputValue.trim() && !isAiLoading ? '#f59e0b' : '#3f3f46',
+            background:
+              inputValue.trim() && !isAiLoading
+                ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%)'
+                : '#3f3f46',
+            boxShadow:
+              inputValue.trim() && !isAiLoading
+                ? '0 4px 16px -2px rgba(245, 158, 11, 0.4)'
+                : 'none',
           }}
         >
-          <Send className="w-4 h-4" style={{ color: inputValue.trim() && !isAiLoading ? '#fff' : '#a1a1aa' }} />
+          {/* Animated shimmer overlay when active */}
+          {inputValue.trim() && !isAiLoading && (
+            <div
+              className="absolute inset-0"
+              style={{
+                background:
+                  'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.15) 50%, transparent 60%)',
+                backgroundSize: '200% 100%',
+                animation: 'sendShimmer 2s ease-in-out infinite',
+              }}
+            />
+          )}
+          <Send
+            className="relative z-10 w-4 h-4"
+            style={{
+              color: inputValue.trim() && !isAiLoading ? '#fff' : '#a1a1aa',
+            }}
+          />
         </button>
       </form>
 
-      {/* ─── Keyframe for typing dots ────────── */}
-      <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes aiBounce {
-          0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-          30% { transform: translateY(-6px); opacity: 1; }
-        }
-      `}} />
+      {/* ═══════════════════════════════════════════════════════
+          KEYFRAMES
+          ═══════════════════════════════════════════════════════ */}
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+            @keyframes aiBounce {
+              0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+              30% { transform: translateY(-6px); opacity: 1; }
+            }
+
+            @keyframes gradientShift {
+              0% { background-position: 0% 50%; }
+              50% { background-position: 100% 50%; }
+              100% { background-position: 0% 50%; }
+            }
+
+            @keyframes sendShimmer {
+              0% { background-position: 200% 0; }
+              100% { background-position: -200% 0; }
+            }
+          `,
+        }}
+      />
     </div>
   );
 }
