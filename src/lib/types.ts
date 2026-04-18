@@ -110,7 +110,9 @@ export type ActiveSection =
   | 'classes' 
   | 'exams' 
   | 'sessions'
+  | 'attendance'
   | 'analytics' 
+  | 'announcements'
   | 'notifications' 
   | 'trash' 
   | 'settings' 
@@ -132,6 +134,31 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: string;
+}
+
+export interface AttendanceRecord {
+  id: string;
+  studentId: string;
+  studentName?: string;
+  classId?: string;
+  className?: string;
+  date: string;
+  status: 'present' | 'absent' | 'late' | 'excused';
+  notes: string;
+  createdAt: string;
+}
+
+export interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  category: 'general' | 'academic' | 'event' | 'urgent' | 'parent';
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  author: string;
+  pinned: boolean;
+  expiresAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface DashboardStats {

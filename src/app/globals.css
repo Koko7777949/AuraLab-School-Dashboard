@@ -1065,3 +1065,209 @@ html {
 .card-tilt > * {
   transform: translateZ(0);
 }
+
+/* ===================================================================
+   27. ENHANCED CARD VARIANTS
+   Glass card with gradient border overlay
+   =================================================================== */
+.glass-card-gradient {
+  position: relative;
+  background: rgba(26, 26, 36, 0.7);
+  backdrop-filter: blur(16px);
+  border-radius: 1rem;
+  overflow: hidden;
+}
+.glass-card-gradient::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(212,165,116,0.3), transparent 50%, rgba(212,165,116,0.1));
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ===================================================================
+   28. TEXT GRADIENT UTILITIES
+   Rose, sky, and violet gradient text variants
+   =================================================================== */
+.gradient-text-rose {
+  background: linear-gradient(135deg, #FB7185, #FDA4AF);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.gradient-text-sky {
+  background: linear-gradient(135deg, #38BDF8, #7DD3FC);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.gradient-text-violet {
+  background: linear-gradient(135deg, #A78BFA, #C4B5FD);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ===================================================================
+   29. HOVER LIFT EFFECT
+   Smooth vertical lift with enhanced shadow on hover
+   =================================================================== */
+.hover-lift {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* ===================================================================
+   30. STATUS INDICATOR DOT PULSE
+   Pulsing ring animation around a status dot
+   =================================================================== */
+.status-dot {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.status-dot::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: inherit;
+  animation: status-dot-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+  opacity: 0.5;
+}
+@keyframes status-dot-ping {
+  0% { transform: scale(1); opacity: 0.5; }
+  75%, 100% { transform: scale(2.5); opacity: 0; }
+}
+
+/* ===================================================================
+   31. ENTRANCE ANIMATIONS
+   Bottom, left, and scale entrance transitions
+   =================================================================== */
+@keyframes enter-from-bottom {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes enter-from-left {
+  from { opacity: 0; transform: translateX(-16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes enter-scale-up {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-enter-bottom {
+  animation: enter-from-bottom 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-enter-left {
+  animation: enter-from-left 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-enter-scale {
+  animation: enter-scale-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ===================================================================
+   32. SHIMMER CARD LOADING
+   Moving gradient shimmer overlay for card surfaces
+   =================================================================== */
+.shimmer-card {
+  position: relative;
+  overflow: hidden;
+}
+.shimmer-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.03) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer-move 2.5s ease-in-out infinite;
+}
+@keyframes shimmer-move {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ===================================================================
+   33. ENHANCED FOCUS RING
+   Amber-tinted focus-within glow for interactive containers
+   =================================================================== */
+.focus-amber {
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.focus-amber:focus-within {
+  box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.15), 0 0 16px rgba(212, 165, 116, 0.08);
+  border-color: rgba(212, 165, 116, 0.4) !important;
+}
+
+/* ===================================================================
+   34. NUMBER COUNTER ANIMATION
+   Pop-in scale effect for numeric values
+   =================================================================== */
+@keyframes number-pop {
+  0% { transform: scale(0.8); opacity: 0; }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-number-pop {
+  animation: number-pop 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ===================================================================
+   35. TOOLTIP ENHANCEMENT FOR POPOVERS
+   Styled popover content with glass effect and entrance animation
+   =================================================================== */
+[data-slot="popover-content"] {
+  background: rgba(26, 26, 36, 0.95) !important;
+  backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(212, 165, 116, 0.12) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 16px rgba(212, 165, 116, 0.04) !important;
+  border-radius: 12px !important;
+  animation: popover-enter 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+@keyframes popover-enter {
+  from { opacity: 0; transform: scale(0.96) translateY(4px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ===================================================================
+   36. SEPARATOR WITH DOT
+   Horizontal line separator with a centered dot accent
+   =================================================================== */
+.separator-dot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.separator-dot::before,
+.separator-dot::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to left, rgba(212,165,116,0.15), transparent);
+}
+.separator-dot::after {
+  background: linear-gradient(to right, rgba(212,165,116,0.15), transparent);
+}
+
+/* ===================================================================
+   37. PRINT STYLES
+   Clean print layout: white background, no ambient orbs, hidden sidebar
+   =================================================================== */
+@media print {
+  body { background: white !important; color: black !important; }
+  body::before { display: none !important; }
+  .ambient-orb-1, .ambient-orb-2, .ambient-orb-3 { display: none !important; }
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
+  [data-slot="sidebar"] { display: none !important; }
+}
+.print-only { display: none; }

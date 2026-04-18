@@ -1,6 +1,6 @@
 'use client'
 
-
+import { useEffect, useRef, useState } from 'react'
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
 
 type Status = 'stable' | 'improved' | 'needs-attention' | 'active' | 'completed' | 'critical'
@@ -17,45 +17,101 @@ interface StatCardProps {
   subtext?: string
 }
 
-const statusConfig: Record<Status, { text: string; colorClass: string; bgClass: string }> = {
+const statusConfig: Record<Status, { text: string; colorClass: string; bgClass: string; dotColor: string }> = {
   stable: {
     text: 'مستقر',
     colorClass: 'text-green-400',
     bgClass: 'bg-green-500/10',
+    dotColor: '#4ADE80',
   },
   improved: {
     text: 'تحسّن',
     colorClass: 'text-blue-400',
     bgClass: 'bg-blue-500/10',
+    dotColor: '#38BDF8',
   },
   'needs-attention': {
     text: 'يحتاج انتباه',
     colorClass: 'text-amber-400',
     bgClass: 'bg-amber-500/10',
+    dotColor: '#FBBF24',
   },
   critical: {
     text: 'حرج',
     colorClass: 'text-red-400',
     bgClass: 'bg-red-500/10',
+    dotColor: '#EF4444',
   },
   active: {
     text: 'نشط',
     colorClass: 'text-violet-400',
     bgClass: 'bg-violet-500/10',
+    dotColor: '#A78BFA',
   },
   completed: {
     text: 'مكتمل',
     colorClass: 'text-green-400',
     bgClass: 'bg-green-500/10',
+    dotColor: '#4ADE80',
   },
 }
 
+/** Animated number counter — counts from 0 to target */
+function AnimatedValue({ value }: { value: string | number }) {
+  const numericValue = typeof value === 'number' ? value : parseInt(value, 10)
+  const isNumeric = typeof value === 'number' || (!isNaN(numericValue) && String(value) === String(numericValue))
+  const [displayed, setDisplayed] = useState(0)
+  const hasAnimated = useRef(false)
+
+  useEffect(() => {
+    if (!isNumeric || hasAnimated.current) return
+    hasAnimated.current = true
+
+    const duration = 800
+    const startTime = performance.now()
+    const target = numericValue
+
+    function step(now: number) {
+      const elapsed = now - startTime
+      const progress = Math.min(elapsed / duration, 1)
+      // Ease out cubic
+      const eased = 1 - Math.pow(1 - progress, 3)
+      setDisplayed(Math.round(eased * target))
+      if (progress < 1) {
+        requestAnimationFrame(step)
+      }
+    }
+    requestAnimationFrame(step)
+  }, [isNumeric, numericValue])
+
+  if (!isNumeric) {
+    return <span className="animate-number-pop">{value}</span>
+  }
+
+  return (
+    <span className="animate-number-pop tabular-nums">
+      {displayed}
+    </span>
+  )
+}
+
+/** Enhanced progress ring with gradient stroke */
 function ProgressRing({ percentage, color }: { percentage: number; color: string }) {
-  const radius = 16
-  const stroke = 3
+  const radius = 20
+  const stroke = 3.5
   const normalizedRadius = radius - stroke
   const circumference = normalizedRadius * 2 * Math.PI
-  const strokeDashoffset = circumference - (percentage / 100) * circumference
+  const [mounted, setMounted] = useState(false)
+  const gradientId = `progress-${color.replace('#', '')}`
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setMounted(true))
+    return () => cancelAnimationFrame(raf)
+  }, [])
+
+  const animatedOffset = mounted
+    ? circumference - (percentage / 100) * circumference
+    : circumference
 
   return (
     <svg
@@ -64,27 +120,46 @@ function ProgressRing({ percentage, color }: { percentage: number; color: string
       className="shrink-0"
       style={{ direction: 'ltr' }}
     >
+      <defs>
+        <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor={color} stopOpacity="1" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.6" />
+        </linearGradient>
+      </defs>
       {/* Background ring */}
       <circle
-        stroke="rgba(255,255,255,0.08)"
+        stroke="rgba(255,255,255,0.06)"
         fill="transparent"
         strokeWidth={stroke}
         r={normalizedRadius}
         cx={radius}
         cy={radius}
       />
-      {/* Progress ring */}
+      {/* Progress ring with gradient */}
+      <circle
+        stroke={`url(#${gradientId})`}
+        fill="transparent"
+        strokeWidth={stroke}
+        strokeLinecap="round"
+        strokeDasharray={`${circumference} ${circumference}`}
+        style={{ strokeDashoffset: animatedOffset }}
+        r={normalizedRadius}
+        cx={radius}
+        cy={radius}
+        className="transition-all duration-1000 ease-out"
+      />
+      {/* Glow filter for the progress ring */}
       <circle
         stroke={color}
         fill="transparent"
         strokeWidth={stroke}
         strokeLinecap="round"
         strokeDasharray={`${circumference} ${circumference}`}
-        style={{ strokeDashoffset }}
+        style={{ strokeDashoffset: animatedOffset, filter: `drop-shadow(0 0 4px ${color}40)` }}
         r={normalizedRadius}
         cx={radius}
         cy={radius}
-        className="transition-all duration-700 ease-out"
+        className="transition-all duration-1000 ease-out opacity-50"
       />
       {/* Percentage text */}
       <text
@@ -92,9 +167,9 @@ function ProgressRing({ percentage, color }: { percentage: number; color: string
         y={radius}
         textAnchor="middle"
         dominantBaseline="central"
-        fill="rgba(255,255,255,0.7)"
-        fontSize="9"
-        fontWeight="600"
+        fill="rgba(255,255,255,0.8)"
+        fontSize="10"
+        fontWeight="700"
         className="select-none"
       >
         {Math.round(percentage)}%
@@ -129,51 +204,56 @@ export default function StatCard({
 
   return (
     <div
-      className="group relative rounded-xl bg-[#1A1A24] border border-white/[0.06] p-5 transition-all duration-300 ease-out cursor-default hover:-translate-y-0.5 hover:border-amber-500/20"
+      className="group relative rounded-xl bg-[#1A1A24] border border-white/[0.06] p-5 hover-lift cursor-default hover:border-amber-500/20"
       style={{
         backgroundColor: '#1A1A24',
       }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-2px)'
-        e.currentTarget.style.boxShadow =
-          '0 8px 30px rgba(0,0,0,0.3), 0 0 0 1px rgba(245,158,11,0.15)'
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'translateY(0)'
-        e.currentTarget.style.boxShadow = 'none'
-      }}
     >
-      {/* ── Top row: icon + status badge ── */}
-      <div className="flex items-center justify-between mb-4">
-        {/* Icon container */}
+      {/* ── Subtle gradient overlay at top ── */}
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-20 rounded-t-xl opacity-50"
+        style={{
+          background: `linear-gradient(180deg, ${color}08 0%, transparent 100%)`,
+        }}
+      />
+
+      {/* ── Top row: icon container with gradient + status badge with pulse dot ── */}
+      <div className="relative flex items-center justify-between mb-4">
+        {/* Icon container with gradient background */}
         <div
-          className="flex items-center justify-center h-10 w-10 rounded-full transition-transform duration-300 group-hover:scale-110"
-          style={{ backgroundColor: `${color}15` }}
+          className="flex items-center justify-center h-11 w-11 rounded-xl transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg"
+          style={{
+            background: `linear-gradient(135deg, ${color}18, ${color}08)`,
+            boxShadow: `0 2px 12px ${color}15`,
+          }}
         >
           <div style={{ color }} className="transition-colors duration-300">
             {icon}
           </div>
         </div>
 
-        {/* Status badge */}
+        {/* Status badge with pulse dot */}
         <span
-          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${statusInfo.colorClass} ${statusInfo.bgClass}`}
+          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${statusInfo.colorClass} ${statusInfo.bgClass}`}
         >
-          <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
+          <span
+            className="status-dot h-1.5 w-1.5 rounded-full"
+            style={{ backgroundColor: statusInfo.dotColor }}
+          />
           {statusInfo.text}
         </span>
       </div>
 
-      {/* ── Middle: value + trend ── */}
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-3xl font-bold text-white tracking-tight leading-none">
-          {value}
+      {/* ── Middle: animated value + trend ── */}
+      <div className="relative flex items-center gap-2 mb-2">
+        <span className="text-3xl font-bold text-white tracking-tight leading-none shimmer-card inline-block py-1 px-2 -mx-2 rounded">
+          <AnimatedValue value={value} />
         </span>
         {trend && <TrendIcon trend={trend} />}
       </div>
 
-      {/* ── Bottom: label + subtext + ring ── */}
-      <div className="flex items-center justify-between">
+      {/* ── Bottom: label + subtext + enhanced progress ring ── */}
+      <div className="relative flex items-center justify-between">
         <div className="flex flex-col gap-0.5">
           <span className="text-sm text-muted-foreground font-medium">
             {label}

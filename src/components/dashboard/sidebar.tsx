@@ -16,6 +16,8 @@ import {
   PanelRightClose,
   PanelRightOpen,
   Sparkles,
+  ClipboardCheck,
+  Megaphone,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import type { ActiveSection } from '@/lib/types';
@@ -40,7 +42,9 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'classes', label: 'الصفوف', icon: School, showCount: true },
   { id: 'exams', label: 'الامتحانات', icon: FileText, showCount: true },
   { id: 'sessions', label: 'الجلسات', icon: Calendar },
+  { id: 'attendance', label: 'الحضور', icon: ClipboardCheck, showCount: true },
   { id: 'analytics', label: 'التحليلات', icon: BarChart3 },
+  { id: 'announcements', label: 'الإعلانات', icon: Megaphone, isAlert: true },
   { id: 'notifications', label: 'الإشعارات', icon: Bell, isAlert: true },
   { id: 'ai-assistant', label: 'المساعد الذكي', icon: Bot },
   { id: 'trash', label: 'المحذوفات', icon: Trash2, showCount: true },
@@ -388,7 +392,7 @@ export default function Sidebar() {
                 <Sparkles size={10} className="text-[#D4A574]/40" />
               </div>
               <span className="text-[9px] tracking-widest text-[#3E3E4E]">
-                v1.2.0
+                v2.1.0
               </span>
             </div>
           </div>

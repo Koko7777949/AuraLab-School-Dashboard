@@ -10,7 +10,9 @@ import TeachersSection from '@/components/dashboard/teachers-section';
 import ClassesSection from '@/components/dashboard/classes-section';
 import ExamsSection from '@/components/dashboard/exams-section';
 import SessionsSection from '@/components/dashboard/sessions-section';
+import AttendanceSection from '@/components/dashboard/attendance-section';
 import AnalyticsSection from '@/components/dashboard/analytics-section';
+import AnnouncementsSection from '@/components/dashboard/announcements-section';
 import NotificationsSection from '@/components/dashboard/notifications-section';
 import AiAssistant from '@/components/dashboard/ai-assistant';
 import TrashSection from '@/components/dashboard/trash-section';
@@ -32,8 +34,12 @@ function SectionRenderer({ section }: { section: ActiveSection }) {
       return <ExamsSection />;
     case 'sessions':
       return <SessionsSection />;
+    case 'attendance':
+      return <AttendanceSection />;
     case 'analytics':
       return <AnalyticsSection />;
+    case 'announcements':
+      return <AnnouncementsSection />;
     case 'notifications':
       return <NotificationsSection />;
     case 'ai-assistant':
@@ -205,7 +211,7 @@ export default function Home() {
                 </nav>
 
                 {/* Version */}
-                <p className="text-xs text-muted-foreground/50">الإصدار 2.0.0</p>
+                <p className="text-xs text-muted-foreground/50">الإصدار 2.1.0</p>
               </div>
 
               {/* Mobile layout: stacked */}
@@ -235,7 +241,7 @@ export default function Home() {
                   ))}
                 </nav>
 
-                <p className="text-[11px] text-muted-foreground/40">الإصدار 2.0.0</p>
+                <p className="text-[11px] text-muted-foreground/40">الإصدار 2.1.0</p>
               </div>
             </div>
           </footer>

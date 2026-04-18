@@ -11,12 +11,15 @@ import {
   Search,
   Users,
   Download,
+  Upload,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import type { Teacher } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { exportToCSV } from '@/lib/csv-export';
+import { TEACHER_IMPORT_COLUMNS } from '@/lib/csv-import';
+import ImportDialog from '@/components/dashboard/import-dialog';
 
 // shadcn/ui
 import { Button } from '@/components/ui/button';
@@ -677,6 +680,7 @@ export default function TeachersSection() {
   const [localSearch, setLocalSearch] = useState('');
   const [formOpen, setFormOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
@@ -726,6 +730,26 @@ export default function TeachersSection() {
   const handleDelete = (teacher: Teacher) => {
     setSelectedTeacher(teacher);
     setDeleteOpen(true);
+  };
+
+  const handleImportTeachers = (data: Record<string, unknown>[]) => {
+    const now = new Date().toISOString();
+    data.forEach((row) => {
+      const newTeacher: Teacher = {
+        id: `tch-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        name: String(row.name ?? ''),
+        subject: String(row.subject ?? ''),
+        status: (row.status as Teacher['status']) ?? 'active',
+        permissions: (row.permissions as Teacher['permissions']) ?? 'teacher',
+        avatar: '',
+        email: String(row.email ?? ''),
+        phone: String(row.phone ?? ''),
+        createdAt: now,
+        updatedAt: now,
+        classNames: [],
+      };
+      addTeacher(newTeacher);
+    });
   };
 
   const handleExportTeachers = () => {
@@ -786,6 +810,14 @@ export default function TeachersSection() {
           >
             <UserPlus className="h-4 w-4" />
             إضافة معلم جديد
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setImportOpen(true)}
+            className="border-[#D4A574]/30 text-[#D4A574] hover:bg-[#D4A574]/10 gap-2 rounded-lg px-4 h-10"
+          >
+            <Upload className="h-4 w-4" />
+            استيراد CSV
           </Button>
           <Button
             variant="outline"
@@ -865,6 +897,15 @@ export default function TeachersSection() {
         teacher={selectedTeacher}
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
+      />
+
+      <ImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        type="teachers"
+        columns={TEACHER_IMPORT_COLUMNS}
+        onImport={handleImportTeachers}
+        templateFilename="teachers-template"
       />
     </div>
   );

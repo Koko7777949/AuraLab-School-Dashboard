@@ -159,3 +159,16 @@ model Attendance {
 
   @@unique([studentId, date])
 }
+
+model Announcement {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  category  String   @default("general") // general, academic, event, urgent, parent
+  priority  String   @default("normal") // low, normal, high, urgent
+  author    String   @default("المدير")
+  pinned    Boolean  @default(false)
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
