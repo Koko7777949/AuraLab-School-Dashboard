@@ -328,7 +328,7 @@ function EmptyState({ onMark }: { onMark: () => void }) {
       </p>
       <Button
         onClick={onMark}
-        className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold gap-2 rounded-lg px-6"
+        className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold gap-2 rounded-lg px-6 btn-shine"
       >
         <ClipboardCheck className="h-4 w-4" />
         تسجيل حضور

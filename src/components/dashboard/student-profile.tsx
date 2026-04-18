@@ -5,7 +5,6 @@ import {
   X,
   Pencil,
   Printer,
-  Trash2,
   Send,
   StickyNote,
   User,
@@ -17,12 +16,10 @@ import {
   Brain,
   ShieldCheck,
   TrendingUp,
-  TrendingDown,
   AlertCircle,
   Download,
   CheckCircle2,
   XCircle,
-  Loader2,
   Plus,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
@@ -33,7 +30,6 @@ import { exportToCSV, formatCsvDate } from '@/lib/csv-export';
 
 // shadcn/ui
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
@@ -377,7 +373,7 @@ export default function StudentProfile({ student, onClose }: { student: Student;
   }, [grades, student.studentId, student.id]);
 
   // If no grades in store, show placeholder
-  const displayGrades = studentGrades.length > 0 ? studentGrades : [];
+  const displayGrades = studentGrades;
 
   // Attendance stats
   const attendanceStats = useMemo(() => {
@@ -395,7 +391,7 @@ export default function StudentProfile({ student, onClose }: { student: Student;
       excused,
       presentRate: total > 0 ? Math.round((present / total) * 100) : 0,
     };
-  }, []);
+  }, [attendanceRecords]);
 
   // Grade stats
   const gradeStats = useMemo(() => {

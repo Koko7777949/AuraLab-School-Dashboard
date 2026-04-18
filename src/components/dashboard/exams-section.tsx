@@ -1008,7 +1008,7 @@ export default function ExamsSection() {
         <div className="flex items-center gap-2">
           <Button
             onClick={handleAdd}
-            className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold gap-2 rounded-lg px-5 h-10"
+            className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold gap-2 rounded-lg px-5 h-10 btn-shine"
           >
             <Plus className="h-4 w-4" />
             إضافة امتحان جديد
@@ -1016,7 +1016,7 @@ export default function ExamsSection() {
           <Button
             variant="outline"
             onClick={handleExportExams}
-            className="border-[#D4A574]/30 text-[#D4A574] hover:bg-[#D4A574]/10 gap-2 rounded-lg px-4 h-10"
+            className="border-[#D4A574]/30 text-[#D4A574] hover:bg-[#D4A574]/10 gap-2 rounded-lg px-4 h-10 btn-amber-glow"
           >
             <Download className="h-4 w-4" />
             تصدير CSV

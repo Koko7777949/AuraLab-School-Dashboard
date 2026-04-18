@@ -15,8 +15,6 @@ import {
   ChevronDown,
   Loader2,
   CalendarDays,
-  Users,
-  Trophy,
   X,
   Clock,
   Filter,
@@ -154,27 +152,6 @@ const STATUS_MAP: Record<string, string> = {
   excused: 'مستأذن',
 };
 
-const PRIORITY_MAP: Record<string, string> = {
-  low: 'منخفض',
-  normal: 'عادي',
-  high: 'مرتفع',
-  urgent: 'عاجل',
-};
-
-const CATEGORY_MAP: Record<string, string> = {
-  general: 'عام',
-  academic: 'أكاديمي',
-  event: 'فعالية',
-  urgent: 'عاجل',
-  parent: 'أولياء الأمور',
-};
-
-const PERMISSION_MAP: Record<string, string> = {
-  admin: 'مدير',
-  teacher: 'معلم',
-  supervisor: 'مشرف',
-};
-
 // ---------------------------------------------------------------------------
 // Helper: mock data seed with useRef guard
 // ---------------------------------------------------------------------------
@@ -185,7 +162,6 @@ function useMockReportData() {
 
   if (!seeded.current) {
     seeded.current = true;
-    const now = new Date().toISOString();
     recentReports.current = [
       {
         id: 'r1',
@@ -687,7 +663,8 @@ export default function ReportsSection() {
     setIsGenerating(true);
     // Simulate generation delay
     setTimeout(() => {
-      const report = generateReport(selectedType!, reportTitle, { from: dateFrom, to: dateTo }, filters, { students, teachers, classes, exams, grades });
+      if (!selectedType) return;
+      const report = generateReport(selectedType, reportTitle, { from: dateFrom, to: dateTo }, filters, { students, teachers, classes, exams, grades });
       setGeneratedReport(report);
       setViewingReport(report);
       setRecentReports((prev) => [report, ...prev.slice(0, 9)]);
@@ -704,10 +681,10 @@ export default function ReportsSection() {
       });
       return obj;
     });
-    const columns = report.tableHeaders.map((header) => {
-      const key = report.tableHeaders.indexOf(header) as keyof Record<string, unknown>;
-      return { key, label: header };
-    });
+    const columns = report.tableHeaders.map((header) => ({
+      key: header,
+      label: header,
+    }));
     exportToCSV(data as Record<string, unknown>[], report.title.replace(/\s+/g, '-'), columns);
     toast.success('تم تصدير التقرير كملف CSV');
   }, []);

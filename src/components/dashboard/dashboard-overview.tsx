@@ -25,6 +25,10 @@ import {
   Timer,
   ChevronLeft,
   GraduationCap,
+  CheckCircle,
+  Megaphone,
+  Target,
+  Medal,
 } from 'lucide-react';
 import StatCard from './stat-card';
 import SectionCard from './section-card';
@@ -224,6 +228,44 @@ const upcomingEvents = [
     bgColor: 'bg-sky-500/8',
     iconColor: 'text-sky-400',
   },
+];
+
+// Quick Stats Ribbon data
+const quickStatsData = [
+  { label: 'طالب', value: '320', icon: GraduationCap, color: '#D4A574' },
+  { label: 'معلم', value: '24', icon: Users, color: '#D4A574' },
+  { label: 'فصل', value: '12', icon: BookOpen, color: '#D4A574' },
+  { label: 'امتحان', value: '156', icon: FileText, color: '#D4A574' },
+  { label: 'حضور', value: '92%', icon: CheckCircle, color: '#D4A574' },
+];
+
+// Activity Feed mock data
+const activityFeedData = [
+  { id: 1, type: 'registration' as const, description: 'تم تسجيل الطالبة نورا أحمد في الصف الثالث', time: 'منذ 5 دقائق', icon: UserPlus, color: '#10b981', bgColor: 'bg-emerald-500/15' },
+  { id: 2, type: 'grade' as const, description: 'تم رفع درجات اختبار الرياضيات للصف الثاني', time: 'منذ 15 دقيقة', icon: CheckCircle, color: '#38bdf8', bgColor: 'bg-sky-500/15' },
+  { id: 3, type: 'attendance' as const, description: 'تم تسجيل حضور حصة العلوم - 28 حاضر من 32', time: 'منذ 30 دقيقة', icon: UserCheck, color: '#f59e0b', bgColor: 'bg-amber-500/15' },
+  { id: 4, type: 'message' as const, description: 'أ. خالد العتيبي أرسل رسالة لولي أمر الطالب أحمد', time: 'منذ 45 دقيقة', icon: MessageSquare, color: '#A78BFA', bgColor: 'bg-violet-500/15' },
+  { id: 5, type: 'announcement' as const, description: 'إعلان: موعد اختبار نهاية الفصل تم تأكيده', time: 'منذ ساعة', icon: Megaphone, color: '#f43f5e', bgColor: 'bg-rose-500/15' },
+  { id: 6, type: 'exam' as const, description: 'تم إنشاء اختبار جديد لمادة اللغة الإنجليزية', time: 'منذ ساعتين', icon: FileText, color: '#38bdf8', bgColor: 'bg-sky-500/15' },
+  { id: 7, type: 'attendance' as const, description: 'تنبيه: 3 طلاب غابوا عن حصلتين متتاليتين', time: 'منذ 3 ساعات', icon: AlertTriangle, color: '#f59e0b', bgColor: 'bg-amber-500/15' },
+  { id: 8, type: 'grade' as const, description: 'تم مراجعة وتأكيد درجات اختبار القراءة', time: 'منذ 4 ساعات', icon: CheckCircle, color: '#10b981', bgColor: 'bg-emerald-500/15' },
+];
+
+// Weekly Goals data
+const weeklyGoalsData = [
+  { label: 'نسبة الحضور', current: 85, target: 95, unit: '%', color: '#10b981', bgColor: 'bg-emerald-500' },
+  { label: 'تكليفات التصحيح', current: 12, target: 15, unit: '', color: '#f59e0b', bgColor: 'bg-amber-500' },
+  { label: 'اجتماعات أولياء الأمور', current: 2, target: 3, unit: '', color: '#38bdf8', bgColor: 'bg-sky-500' },
+  { label: 'تقارير الدرجات', current: 5, target: 8, unit: '', color: '#A78BFA', bgColor: 'bg-violet-500' },
+];
+
+// Top Students leaderboard data
+const topStudentsData = [
+  { rank: 1, name: 'سارة القحطاني', score: 98, initial: 'س' },
+  { rank: 2, name: 'أحمد العتيبي', score: 96, initial: 'أ' },
+  { rank: 3, name: 'نورة الدوسري', score: 94, initial: 'ن' },
+  { rank: 4, name: 'خالد الحربي', score: 91, initial: 'خ' },
+  { rank: 5, name: 'فاطمة الشمري', score: 89, initial: 'ف' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -806,7 +848,7 @@ function QuickActionButton({
     <button
       onClick={onClick}
       className="group flex items-center gap-4 rounded-xl border border-white/[0.06] bg-[#1A1A24] p-4 text-right
-        transition-all duration-300 ease-out
+        transition-all duration-300 ease-out btn-shine
         hover:border-[#D4A574]/20 hover:bg-[#1E1E2A] hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(0,0,0,0.25)]
         active:translate-y-0 active:shadow-none
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A574]/50"
@@ -829,6 +871,168 @@ function QuickActionButton({
         </span>
       </div>
     </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Quick Stats Ribbon
+// ---------------------------------------------------------------------------
+
+function QuickStatsRibbon() {
+  return (
+    <div className="animate-fade-in-up opacity-0" style={{ animationDelay: '550ms' }}>
+      <div className="flex items-center gap-2 mb-3">
+        <BarChart3 className="h-4 w-4 text-[#D4A574]" />
+        <h3 className="text-sm font-semibold text-muted-foreground">إحصائيات سريعة</h3>
+      </div>
+      <div className="scroll-snap-x hide-scrollbar flex gap-3 overflow-x-auto pb-2">
+        {quickStatsData.map((stat) => {
+          const StatIcon = stat.icon;
+          return (
+            <div
+              key={stat.label}
+              className="scroll-snap-x shrink-0 w-[130px] sm:w-auto sm:shrink sm:flex-1 rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-3 flex flex-col items-center gap-2 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/[0.05] hover:border-white/[0.1] cursor-default"
+            >
+              <StatIcon className="h-5 w-5" style={{ color: stat.color }} />
+              <span className="text-lg font-bold text-white tabular-nums">{stat.value}</span>
+              <span className="text-[11px] text-muted-foreground font-medium">{stat.label}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Activity Feed Widget
+// ---------------------------------------------------------------------------
+
+function ActivityFeed() {
+  return (
+    <div className="flex flex-col gap-0">
+      {activityFeedData.map((item, index) => {
+        const ItemIcon = item.icon;
+        const isLast = index === activityFeedData.length - 1;
+        return (
+          <div key={item.id} className="flex gap-3 relative">
+            {/* Timeline column */}
+            <div className="flex flex-col items-center">
+              <div className="relative flex items-center justify-center">
+                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${item.bgColor} z-10`}>
+                  <ItemIcon className="h-3.5 w-3.5" style={{ color: item.color }} />
+                </div>
+              </div>
+              {/* Connector line */}
+              {!isLast && (
+                <div className="w-0.5 flex-1 min-h-[32px] bg-white/[0.06]" />
+              )}
+            </div>
+
+            {/* Content */}
+            <div className={`flex-1 pb-4 data-row-hover rounded-lg px-2 -mx-2 transition-colors duration-200 ${!isLast ? '' : ''}`}>
+              <p className="text-sm leading-relaxed text-slate-300">{item.description}</p>
+              <span className="text-[11px] text-muted-foreground/50 font-medium mt-1 block">{item.time}</span>
+            </div>
+          </div>
+        );
+      })}
+      {/* View All link */}
+      <button className="mt-1 self-center flex items-center gap-1.5 text-xs font-medium text-[#D4A574] hover:text-[#E8C9A8] transition-colors duration-200 smooth-underline cursor-pointer">
+        عرض الكل
+        <ChevronLeft className="h-3 w-3" />
+      </button>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Weekly Goals Progress
+// ---------------------------------------------------------------------------
+
+function WeeklyGoalsProgress() {
+  return (
+    <div className="glass-card-elevated rounded-xl p-5">
+      <div className="flex items-center gap-2 mb-5">
+        <Target className="h-4 w-4 text-[#D4A574]" />
+        <h3 className="text-sm font-semibold text-white">أهداف الأسبوع</h3>
+      </div>
+      <div className="flex flex-col gap-5">
+        {weeklyGoalsData.map((goal, index) => {
+          const percentage = Math.round((goal.current / goal.target) * 100);
+          return (
+            <div key={goal.label} className="animate-fade-in-up opacity-0" style={{ animationDelay: `${index * 100}ms` }}>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-medium text-slate-300">{goal.label}</span>
+                <span className="text-xs font-semibold tabular-nums" style={{ color: goal.color }}>
+                  {goal.current}/{goal.target}{goal.unit}
+                  <span className="text-muted-foreground/50 mr-1">({percentage}%)</span>
+                </span>
+              </div>
+              <div className="h-2 w-full rounded-full bg-white/[0.06] overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${goal.bgColor} transition-all duration-1000 ease-out`}
+                  style={{ width: `${percentage}%`, transitionDelay: `${300 + index * 150}ms` }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Student Leaderboard Widget
+// ---------------------------------------------------------------------------
+
+function StudentLeaderboard() {
+  const rankColors: Record<number, { bg: string; text: string; border: string }> = {
+    1: { bg: 'bg-amber-500/15', text: 'text-amber-400', border: 'border-amber-500/30' },
+    2: { bg: 'bg-slate-400/15', text: 'text-slate-300', border: 'border-slate-400/30' },
+    3: { bg: 'bg-amber-700/15', text: 'text-amber-600', border: 'border-amber-700/30' },
+  };
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      {topStudentsData.map((student) => {
+        const rankStyle = rankColors[student.rank];
+        const isTop3 = !!rankStyle;
+        return (
+          <div
+            key={student.rank}
+            className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-200 data-row-hover cursor-default ${isTop3 ? `${rankStyle.bg} border ${rankStyle.border}` : 'hover:bg-white/[0.03]'}`}
+          >
+            {/* Rank badge */}
+            <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${isTop3 ? `${rankStyle.bg} ${rankStyle.text}` : 'bg-white/[0.04] text-muted-foreground'}`}>
+              {student.rank <= 3 ? (
+                <Medal className="h-3.5 w-3.5" />
+              ) : (
+                <span className="tabular-nums">{student.rank}</span>
+              )}
+            </div>
+
+            {/* Avatar */}
+            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${isTop3 ? 'bg-[#D4A574]/15 text-[#D4A574]' : 'bg-white/[0.06] text-muted-foreground'}`}>
+              {student.initial}
+            </div>
+
+            {/* Name & Score */}
+            <div className="flex-1 min-w-0">
+              <span className="text-sm font-medium text-white truncate block group-hover:text-[#D4A574] transition-colors duration-200">
+                {student.name}
+              </span>
+            </div>
+
+            {/* Score */}
+            <span className={`text-sm font-bold tabular-nums shrink-0 ${isTop3 ? rankStyle.text : 'text-muted-foreground'}`}>
+              {student.score}
+            </span>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -1017,6 +1221,9 @@ export default function DashboardOverview() {
         <SessionTimer />
       </div>
 
+      {/* ── Quick Stats Ribbon ── */}
+      <QuickStatsRibbon />
+
       {/* ── KPI Cards Grid (with staggered animation) ── */}
       <div className="aurora-bg rounded-2xl p-1 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {kpiCards.map((card, index) => (
@@ -1069,7 +1276,7 @@ export default function DashboardOverview() {
       {/* ── Quick Actions Row (expanded to 6) ── */}
       <div className="animate-fade-in-up opacity-0" style={{ animationDelay: '700ms' }}>
         <h3 className="text-sm font-semibold text-muted-foreground mb-3 smooth-underline cursor-pointer" onClick={() => setActiveSection('students')}>إجراءات سريعة</h3>
-        <div className="stagger-grid grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="stagger-grid corner-accent grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           {QUICK_ACTIONS.map((action) => (
             <div key={`${action.id}-${action.label}`} className="animate-fade-in-up opacity-0">
             <QuickActionButton
@@ -1081,6 +1288,11 @@ export default function DashboardOverview() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* ── Weekly Goals Progress ── */}
+      <div className="animate-fade-in-up opacity-0" style={{ animationDelay: '750ms' }}>
+        <WeeklyGoalsProgress />
       </div>
 
       {/* ── Analytics Row ── */}
@@ -1122,11 +1334,38 @@ export default function DashboardOverview() {
         </SectionCard>
       </div>
 
+      {/* ── Activity Feed + Student Leaderboard Row ── */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 animate-fade-in-up opacity-0" style={{ animationDelay: '850ms' }}>
+        <SectionCard
+          title="آخر الأنشطة"
+          icon={<Megaphone className="h-4 w-4" />}
+          className="lg:col-span-2"
+          action={
+            <span className="smooth-underline cursor-pointer text-xs font-medium text-[#D4A574]">
+              عرض الكل
+            </span>
+          }
+        >
+          <ActivityFeed />
+        </SectionCard>
+
+        {/* Student Leaderboard */}
+        <SectionCard
+          title="أفضل الطلاب"
+          icon={<Trophy className="h-4 w-4" />}
+          action={
+            <span className="text-xs text-muted-foreground/50 font-medium">هذا الفصل</span>
+          }
+        >
+          <StudentLeaderboard />
+        </SectionCard>
+      </div>
+
       {/* ── Ornamental Divider ── */}
-      <div className="divider-ornament animate-fade-in opacity-0" style={{ animationDelay: '850ms' }} />
+      <div className="divider-ornament animate-fade-in opacity-0" style={{ animationDelay: '900ms' }} />
 
       {/* ── Today's Schedule + Student Performance Row ── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 animate-fade-in-up opacity-0" style={{ animationDelay: '900ms' }}>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 animate-fade-in-up opacity-0" style={{ animationDelay: '950ms' }}>
         {/* Today's Schedule Widget */}
         <div className="card-tilt">
         <SectionCard
@@ -1161,10 +1400,10 @@ export default function DashboardOverview() {
       </div>
 
       {/* ── Ornamental Divider ── */}
-      <div className="divider-ornament animate-fade-in opacity-0" style={{ animationDelay: '950ms' }} />
+      <div className="divider-ornament animate-fade-in opacity-0" style={{ animationDelay: '1000ms' }} />
 
       {/* ── Bottom Row: Classroom Map + Attendance + Upcoming Events ── */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 animate-fade-in-up opacity-0" style={{ animationDelay: '1000ms' }}>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 animate-fade-in-up opacity-0" style={{ animationDelay: '1050ms' }}>
         {/* Classroom Map */}
         <SectionCard
           title="خريطة الفصل التفاعلية"
@@ -1189,7 +1428,7 @@ export default function DashboardOverview() {
       </div>
 
       {/* ── Calendar + Upcoming Events Row ── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 animate-fade-in-up opacity-0" style={{ animationDelay: '1100ms' }}>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 animate-fade-in-up opacity-0" style={{ animationDelay: '1150ms' }}>
         {/* Calendar Widget */}
         <div className="flex items-start justify-center">
           <CalendarWidget />

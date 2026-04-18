@@ -21,6 +21,7 @@ import {
   Trophy,
   MessageSquare,
   FileBarChart,
+  ShieldAlert,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import type { ActiveSection } from '@/lib/types';
@@ -47,6 +48,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'sessions', label: 'الجلسات', icon: Calendar },
   { id: 'attendance', label: 'الحضور', icon: ClipboardCheck, showCount: true },
   { id: 'grades', label: 'الدرجات', icon: Trophy, showCount: true },
+  { id: 'behavior', label: 'سلوك الطلاب', icon: ShieldAlert, showCount: true },
   { id: 'analytics', label: 'التحليلات', icon: BarChart3 },
   { id: 'reports', label: 'التقارير', icon: FileBarChart },
   { id: 'announcements', label: 'الإعلانات', icon: Megaphone, isAlert: true },
@@ -402,7 +404,7 @@ export default function Sidebar() {
                 <Sparkles size={10} className="text-[#D4A574]/40" />
               </div>
               <span className="text-[9px] tracking-widest text-[#3E3E4E]">
-                v2.3.0
+                v2.4.0
               </span>
             </div>
           </div>

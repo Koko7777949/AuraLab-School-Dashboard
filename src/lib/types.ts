@@ -137,6 +137,23 @@ export interface ReportCard {
   createdAt: string;
 }
 
+export interface BehaviorRecord {
+  id: string;
+  studentId: string;
+  studentName?: string;
+  classId?: string;
+  className?: string;
+  date: string;
+  type: 'positive' | 'negative';
+  category: string;
+  severity: 'low' | 'medium' | 'high';
+  description: string;
+  action: string;
+  points: number;
+  recordedBy: string;
+  createdAt: string;
+}
+
 export type ActiveSection = 
   | 'dashboard' 
   | 'students' 
@@ -153,7 +170,8 @@ export type ActiveSection =
   | 'notifications' 
   | 'trash' 
   | 'settings' 
-  | 'ai-assistant';
+  | 'ai-assistant'
+  | 'behavior';
 
 export interface KpiData {
   label: string;

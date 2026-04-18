@@ -849,7 +849,7 @@ export default function StudentsSection() {
         <div className="flex items-center gap-2">
           <Button
             onClick={handleAdd}
-            className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold gap-2 rounded-lg px-5 h-10"
+            className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold gap-2 rounded-lg px-5 h-10 btn-shine"
           >
             <UserPlus className="h-4 w-4" />
             إضافة طالب جديد
@@ -865,7 +865,7 @@ export default function StudentsSection() {
           <Button
             variant="outline"
             onClick={handleExportStudents}
-            className="border-[#D4A574]/30 text-[#D4A574] hover:bg-[#D4A574]/10 gap-2 rounded-lg px-4 h-10"
+            className="border-[#D4A574]/30 text-[#D4A574] hover:bg-[#D4A574]/10 gap-2 rounded-lg px-4 h-10 btn-amber-glow"
           >
             <Download className="h-4 w-4" />
             تصدير CSV

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ActiveSection, Student, Teacher, ClassRoom, Exam, TrashItem, AppNotification, ChatMessage, GradeRecord, Message } from './types';
+import type { ActiveSection, Student, Teacher, ClassRoom, Exam, TrashItem, AppNotification, ChatMessage, GradeRecord, Message, BehaviorRecord } from './types';
 
 interface AppState {
   // Navigation
@@ -74,6 +74,13 @@ interface AppState {
   addGrade: (grade: GradeRecord) => void;
   updateGrade: (id: string, data: Partial<GradeRecord>) => void;
   deleteGrade: (id: string) => void;
+
+  // Behaviors
+  behaviors: BehaviorRecord[];
+  setBehaviors: (behaviors: BehaviorRecord[]) => void;
+  addBehavior: (behavior: BehaviorRecord) => void;
+  updateBehavior: (id: string, data: Partial<BehaviorRecord>) => void;
+  deleteBehavior: (id: string) => void;
 
   // Messages
   messages: Message[];
@@ -223,6 +230,17 @@ export const useAppStore = create<AppState>((set) => ({
   })),
   deleteGrade: (id) => set((state) => ({
     grades: state.grades.filter((g) => g.id !== id),
+  })),
+
+  // Behaviors
+  behaviors: [],
+  setBehaviors: (behaviors) => set({ behaviors }),
+  addBehavior: (behavior) => set((state) => ({ behaviors: [...state.behaviors, behavior] })),
+  updateBehavior: (id, data) => set((state) => ({
+    behaviors: state.behaviors.map((b) => (b.id === id ? { ...b, ...data } : b)),
+  })),
+  deleteBehavior: (id) => set((state) => ({
+    behaviors: state.behaviors.filter((b) => b.id !== id),
   })),
 
   // Messages
