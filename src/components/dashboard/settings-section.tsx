@@ -5,7 +5,10 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
+import { useAppStore } from '@/lib/store';
+import { toast } from 'sonner';
 import {
   Select,
   SelectContent,
@@ -33,6 +36,10 @@ import {
   CalendarDays,
   Check,
   Save,
+  Palette,
+  Layers,
+  Sparkles,
+  CheckCircle2,
 } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
@@ -191,6 +198,492 @@ function DisplayField({
 }
 
 /* ------------------------------------------------------------------ */
+/*  Accent Color Swatch                                                */
+/* ------------------------------------------------------------------ */
+const ACCENT_COLORS = [
+  { value: '#D4A574', label: 'عنبري' },
+  { value: '#34D399', label: 'زمردي' },
+  { value: '#F472B6', label: 'وردي' },
+  { value: '#38BDF8', label: 'سماوي' },
+  { value: '#A78BFA', label: 'بنفسجي' },
+  { value: '#FB923C', label: 'برتقالي' },
+] as const;
+
+/* ------------------------------------------------------------------ */
+/*  Theme Customizer — Live Preview Card                               */
+/* ------------------------------------------------------------------ */
+function LivePreviewCard({
+  accentColor,
+  borderRadius,
+  backgroundStyle,
+  uiDensity,
+}: {
+  accentColor: string;
+  borderRadius: number;
+  backgroundStyle: 'solid' | 'gradient' | 'dots';
+  uiDensity: 'compact' | 'default' | 'comfortable';
+}) {
+  const densityPadding = uiDensity === 'compact' ? 'p-2' : uiDensity === 'comfortable' ? 'p-4' : 'p-3';
+  const densityGap = uiDensity === 'compact' ? 'gap-1' : uiDensity === 'comfortable' ? 'gap-3' : 'gap-2';
+
+  const bgStyle: React.CSSProperties =
+    backgroundStyle === 'dots'
+      ? {
+          backgroundColor: '#121218',
+          backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px)',
+          backgroundSize: '12px 12px',
+        }
+      : backgroundStyle === 'gradient'
+        ? {
+            background: 'linear-gradient(135deg, #121218 0%, #1A1A2E 50%, #1E1E30 100%)',
+          }
+        : {
+            backgroundColor: '#121218',
+          };
+
+  return (
+    <div
+      className={cn('w-full min-h-[140px] transition-all duration-300', densityPadding, densityGap)}
+      style={{
+        ...bgStyle,
+        borderRadius: `${borderRadius}px`,
+        border: `1px solid ${accentColor}20`,
+      }}
+    >
+      {/* Preview header */}
+      <div
+        className={cn('flex items-center justify-between', uiDensity === 'compact' ? 'mb-1' : uiDensity === 'comfortable' ? 'mb-3' : 'mb-2')}
+      >
+        <div className={cn('flex items-center', densityGap)}>
+          <div
+            className="rounded-md"
+            style={{
+              width: uiDensity === 'compact' ? 18 : uiDensity === 'comfortable' ? 26 : 22,
+              height: uiDensity === 'compact' ? 18 : uiDensity === 'comfortable' ? 26 : 22,
+              backgroundColor: `${accentColor}18`,
+            }}
+          />
+          <div
+            className="rounded-sm"
+            style={{
+              width: uiDensity === 'compact' ? 40 : 55,
+              height: uiDensity === 'compact' ? 6 : 8,
+              backgroundColor: 'rgba(255,255,255,0.12)',
+            }}
+          />
+        </div>
+        <div className="flex gap-1.5">
+          <div
+            className="rounded-full"
+            style={{ width: 6, height: 6, backgroundColor: `${accentColor}40` }}
+          />
+          <div
+            className="rounded-full"
+            style={{ width: 6, height: 6, backgroundColor: 'rgba(255,255,255,0.08)' }}
+          />
+          <div
+            className="rounded-full"
+            style={{ width: 6, height: 6, backgroundColor: 'rgba(255,255,255,0.08)' }}
+          />
+        </div>
+      </div>
+
+      {/* Preview content cards */}
+      <div className={cn('grid grid-cols-2', densityGap)}>
+        {[0, 1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="transition-all duration-300"
+            style={{
+              backgroundColor: '#1A1A24',
+              borderRadius: `${Math.max(borderRadius - 4, 2)}px`,
+              border: `1px solid rgba(255,255,255,0.04)`,
+              padding: uiDensity === 'compact' ? '6px' : uiDensity === 'comfortable' ? '12px' : '8px',
+            }}
+          >
+            <div
+              className="rounded-sm mb-1"
+              style={{
+                width: `${50 + i * 10}%`,
+                height: uiDensity === 'compact' ? 4 : 6,
+                backgroundColor: `${accentColor}30`,
+              }}
+            />
+            <div
+              className="rounded-sm"
+              style={{
+                width: `${30 + i * 5}%`,
+                height: uiDensity === 'compact' ? 3 : 4,
+                backgroundColor: 'rgba(255,255,255,0.06)',
+              }}
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Preview button */}
+      <div className={cn('flex items-center', densityGap, uiDensity === 'compact' ? 'mt-1' : uiDensity === 'comfortable' ? 'mt-3' : 'mt-2')}>
+        <div
+          className="rounded-md"
+          style={{
+            backgroundColor: accentColor,
+            color: '#121218',
+            padding: uiDensity === 'compact' ? '3px 10px' : uiDensity === 'comfortable' ? '6px 18px' : '4px 14px',
+            fontSize: uiDensity === 'compact' ? '9px' : uiDensity === 'comfortable' ? '12px' : '10px',
+            fontWeight: 600,
+            width: 'fit-content',
+            borderRadius: `${Math.max(borderRadius - 4, 2)}px`,
+          }}
+        >
+          زر
+        </div>
+        <div
+          className="rounded-md"
+          style={{
+            border: `1px solid ${accentColor}40`,
+            color: accentColor,
+            padding: uiDensity === 'compact' ? '3px 10px' : uiDensity === 'comfortable' ? '6px 18px' : '4px 14px',
+            fontSize: uiDensity === 'compact' ? '9px' : uiDensity === 'comfortable' ? '12px' : '10px',
+            fontWeight: 600,
+            width: 'fit-content',
+            borderRadius: `${Math.max(borderRadius - 4, 2)}px`,
+          }}
+        >
+          زر ثانٍ
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Theme Customizer Card                                              */
+/* ------------------------------------------------------------------ */
+function ThemeCustomizerCard() {
+  const {
+    accentColor,
+    setAccentColor,
+    uiDensity,
+    setUiDensity,
+    borderRadius,
+    setBorderRadius,
+    backgroundStyle,
+    setBackgroundStyle,
+  } = useAppStore();
+
+  const [localAccent, setLocalAccent] = useState(accentColor);
+  const [localDensity, setLocalDensity] = useState(uiDensity);
+  const [localRadius, setLocalRadius] = useState(borderRadius);
+  const [localBgStyle, setLocalBgStyle] = useState(backgroundStyle);
+
+  const handleSaveTheme = () => {
+    setAccentColor(localAccent);
+    setUiDensity(localDensity);
+    setBorderRadius(localRadius);
+    setBackgroundStyle(localBgStyle);
+    toast.success('تم حفظ إعدادات المظهر بنجاح');
+  };
+
+  const handleResetTheme = () => {
+    setLocalAccent('#D4A574');
+    setLocalDensity('default');
+    setLocalRadius(8);
+    setLocalBgStyle('dots');
+    setAccentColor('#D4A574');
+    setUiDensity('default');
+    setBorderRadius(8);
+    setBackgroundStyle('dots');
+    toast.success('تم إعادة تعيين إعدادات المظهر');
+  };
+
+  const hasChanges =
+    localAccent !== accentColor ||
+    localDensity !== uiDensity ||
+    localRadius !== borderRadius ||
+    localBgStyle !== backgroundStyle;
+
+  const densityOptions: { value: 'compact' | 'default' | 'comfortable'; label: string; desc: string }[] = [
+    { value: 'compact', label: 'مضغوط', desc: 'مسافات صغيرة' },
+    { value: 'default', label: 'افتراضي', desc: 'مسافات متوسطة' },
+    { value: 'comfortable', label: 'مريح', desc: 'مسافات واسعة' },
+  ];
+
+  const bgStyleOptions: { value: 'solid' | 'gradient' | 'dots'; label: string }[] = [
+    { value: 'solid', label: 'صلب' },
+    { value: 'gradient', label: 'متدرج' },
+    { value: 'dots', label: 'نقاط' },
+  ];
+
+  return (
+    <SettingCard
+      title="تخصيص المظهر"
+      icon={<Palette className="h-5 w-5" />}
+      badge="مخصص"
+    >
+      <div className="flex flex-col gap-5">
+        {/* ── Accent Color Picker ── */}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="h-4 w-4 text-[#D4A574]" />
+            <span className="text-sm font-semibold text-slate-300">اللون المميز</span>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-wrap gap-3">
+              {ACCENT_COLORS.map((c) => (
+                <button
+                  key={c.value}
+                  onClick={() => setLocalAccent(c.value)}
+                  className="group relative flex flex-col items-center gap-1.5 transition-transform duration-200 hover:scale-110 active:scale-95"
+                  title={c.label}
+                >
+                  <div
+                    className={cn(
+                      'h-9 w-9 rounded-full transition-all duration-200',
+                      localAccent === c.value && 'ring-2 ring-offset-2 ring-offset-[#1A1A24]',
+                    )}
+                    style={{
+                      backgroundColor: c.value,
+                      ringColor: localAccent === c.value ? c.value : 'transparent',
+                      boxShadow: localAccent === c.value ? `0 0 12px ${c.value}50` : 'none',
+                    }}
+                  >
+                    {localAccent === c.value && (
+                      <CheckCircle2
+                        className="h-5 w-5 text-white mx-auto mt-[6px] drop-shadow-md"
+                        strokeWidth={3}
+                      />
+                    )}
+                  </div>
+                  <span className="text-[10px] text-slate-500 group-hover:text-slate-300 transition-colors">
+                    {c.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+            {/* Live Preview */}
+            <div className="flex-1 min-w-[200px] max-w-[300px] mx-auto">
+              <LivePreviewCard
+                accentColor={localAccent}
+                borderRadius={localRadius}
+                backgroundStyle={localBgStyle}
+                uiDensity={localDensity}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* ── UI Density Selector ── */}
+        <div
+          className="p-4 rounded-xl"
+          style={{
+            backgroundColor: 'rgba(255,255,255,0.02)',
+            border: '1px solid rgba(255,255,255,0.04)',
+          }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Layers className="h-4 w-4 text-[#D4A574]" />
+            <span className="text-sm font-semibold text-slate-300">كثافة الواجهة</span>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {densityOptions.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setLocalDensity(opt.value)}
+                className={cn(
+                  'flex flex-col items-center gap-1 rounded-xl p-3 transition-all duration-200',
+                  localDensity === opt.value
+                    ? 'border'
+                    : 'border border-transparent hover:bg-white/[0.03]',
+                )}
+                style={
+                  localDensity === opt.value
+                    ? {
+                        backgroundColor: `${localAccent}10`,
+                        borderColor: `${localAccent}30`,
+                      }
+                    : undefined
+                }
+              >
+                <div
+                  className={cn(
+                    'flex items-center justify-center h-5 w-5 rounded-full border-2 transition-all duration-200',
+                    localDensity === opt.value && 'border-transparent',
+                  )}
+                  style={{
+                    borderColor: localDensity === opt.value ? 'transparent' : 'rgba(255,255,255,0.15)',
+                    backgroundColor: localDensity === opt.value ? localAccent : 'transparent',
+                  }}
+                >
+                  {localDensity === opt.value && (
+                    <Check className="h-3 w-3 text-[#121218]" strokeWidth={3} />
+                  )}
+                </div>
+                <span
+                  className={cn(
+                    'text-xs font-medium transition-colors',
+                    localDensity === opt.value ? 'text-slate-200' : 'text-slate-500',
+                  )}
+                >
+                  {opt.label}
+                </span>
+                <span className="text-[10px] text-slate-600">{opt.desc}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Border Radius Slider ── */}
+        <div
+          className="p-4 rounded-xl"
+          style={{
+            backgroundColor: 'rgba(255,255,255,0.02)',
+            border: '1px solid rgba(255,255,255,0.04)',
+          }}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div
+                className="h-5 w-5 transition-all duration-300"
+                style={{
+                  borderRadius: `${localRadius}px`,
+                  border: `2px solid ${localAccent}`,
+                  backgroundColor: `${localAccent}20`,
+                }}
+              />
+              <span className="text-sm font-semibold text-slate-300">حواف مستديرة</span>
+            </div>
+            <Badge
+              className="text-[11px] px-2.5 py-0.5 rounded-full font-mono"
+              style={{
+                backgroundColor: `${localAccent}15`,
+                color: localAccent,
+                border: `1px solid ${localAccent}25`,
+              }}
+            >
+              {localRadius}px
+            </Badge>
+          </div>
+          <Slider
+            value={[localRadius]}
+            onValueChange={(v) => setLocalRadius(v[0])}
+            min={0}
+            max={24}
+            step={1}
+            className="w-full [&_[data-slot=slider-track]]:h-2 [&_[data-slot=slider-range]]:bg-[var(--preview-accent,#D4A574)] [&_[data-slot=slider-thumb]]:bg-[var(--preview-accent,#D4A574)] [&_[data-slot=slider-thumb]]:border-0 [&_[data-slot=slider-thumb]]:h-5 [&_[data-slot=slider-thumb]]:w-5 [&_[data-slot=slider-thumb]]:shadow-md"
+            style={{ '--preview-accent': localAccent } as React.CSSProperties}
+          />
+          <div className="flex justify-between mt-2 text-[10px] text-slate-600 px-0.5">
+            <span>0px — مربع</span>
+            <span>12px — متوسط</span>
+            <span>24px — دائري</span>
+          </div>
+        </div>
+
+        {/* ── Background Style Toggle ── */}
+        <div
+          className="p-4 rounded-xl"
+          style={{
+            backgroundColor: 'rgba(255,255,255,0.02)',
+            border: '1px solid rgba(255,255,255,0.04)',
+          }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Monitor className="h-4 w-4 text-[#D4A574]" />
+            <span className="text-sm font-semibold text-slate-300">نمط الخلفية</span>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {bgStyleOptions.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setLocalBgStyle(opt.value)}
+                className={cn(
+                  'relative flex flex-col items-center gap-2 rounded-xl p-3 transition-all duration-200 overflow-hidden',
+                  localBgStyle === opt.value ? 'border' : 'border border-transparent hover:bg-white/[0.03]',
+                )}
+                style={
+                  localBgStyle === opt.value
+                    ? {
+                        backgroundColor: `${localAccent}10`,
+                        borderColor: `${localAccent}30`,
+                      }
+                    : undefined
+                }
+              >
+                {/* Mini background preview */}
+                <div
+                  className="h-10 w-full rounded-md overflow-hidden"
+                  style={
+                    opt.value === 'dots'
+                      ? {
+                          backgroundColor: '#121218',
+                          backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px)',
+                          backgroundSize: '6px 6px',
+                        }
+                      : opt.value === 'gradient'
+                        ? {
+                            background: 'linear-gradient(135deg, #121218 0%, #1A1A2E 50%, #1E1E30 100%)',
+                          }
+                        : {
+                            backgroundColor: '#121218',
+                          }
+                  }
+                />
+                <div
+                  className={cn(
+                    'text-xs font-medium transition-colors',
+                    localBgStyle === opt.value ? 'text-slate-200' : 'text-slate-500',
+                  )}
+                >
+                  {opt.label}
+                </div>
+                {localBgStyle === opt.value && (
+                  <div
+                    className="absolute top-2 left-2"
+                    style={{ color: localAccent }}
+                  >
+                    <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Action Buttons ── */}
+        <div className="flex items-center justify-between gap-3 pt-2">
+          <Button
+            onClick={handleResetTheme}
+            variant="outline"
+            className="gap-2 text-slate-400 border-white/[0.08] hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-colors rounded-lg text-xs h-8"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            إعادة تعيين
+          </Button>
+          <Button
+            onClick={handleSaveTheme}
+            disabled={!hasChanges}
+            className={cn(
+              'gap-2 font-semibold rounded-lg px-5 h-8 text-xs transition-all duration-300',
+              hasChanges
+                ? 'btn-shine'
+                : 'opacity-40 cursor-not-allowed',
+            )}
+            style={
+              hasChanges
+                ? { backgroundColor: localAccent, color: '#121218' }
+                : { backgroundColor: localAccent, color: '#121218' }
+            }
+          >
+            <Save className="h-3.5 w-3.5" />
+            حفظ التخصيص
+          </Button>
+        </div>
+      </div>
+    </SettingCard>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Main component                                                     */
 /* ------------------------------------------------------------------ */
 export default function SettingsSection() {
@@ -238,10 +731,12 @@ export default function SettingsSection() {
     setSchoolName('AuraLab Academy');
     setAcademicYear('2024-2025');
     setSaved(false);
+    toast.success('تم إعادة تعيين جميع الإعدادات');
   };
 
   const handleSave = () => {
     setSaved(true);
+    toast.success('تم حفظ إعدادات النظام بنجاح');
     setTimeout(() => setSaved(false), 3000);
   };
 
@@ -325,7 +820,12 @@ export default function SettingsSection() {
       </SettingCard>
 
       {/* ============================================================ */}
-      {/* Section 3 – الإشعارات                                        */}
+      {/* Section 3 – تخصيص المظهر (Theme Customizer)                  */}
+      {/* ============================================================ */}
+      <ThemeCustomizerCard />
+
+      {/* ============================================================ */}
+      {/* Section 4 – الإشعارات                                        */}
       {/* ============================================================ */}
       <SettingCard
         title="الإشعارات"
@@ -363,7 +863,7 @@ export default function SettingsSection() {
       </SettingCard>
 
       {/* ============================================================ */}
-      {/* Section 4 – النظام                                           */}
+      {/* Section 5 – النظام                                           */}
       {/* ============================================================ */}
       <SettingCard
         title="النظام"

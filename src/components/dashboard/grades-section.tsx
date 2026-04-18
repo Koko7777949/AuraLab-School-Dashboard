@@ -733,6 +733,231 @@ function DeleteGradeDialog({
 }
 
 // ---------------------------------------------------------------------------
+// Pure helper: compute class averages for performance comparison chart
+// ---------------------------------------------------------------------------
+
+function computeClassAverages(grades: GradeRecord[]): { className: string; average: number; count: number }[] {
+  const classMap = new Map<string, { totalWeighted: number; totalWeight: number; count: number }>();
+  for (const grade of grades) {
+    const className = grade.className ?? grade.classId ?? 'غير محدد';
+    const existing = classMap.get(className) ?? { totalWeighted: 0, totalWeight: 0, count: 0 };
+    const eps = 0.001;
+    const pct = (grade.score / Math.max(eps, grade.maxScore)) * 100;
+    classMap.set(className, {
+      totalWeighted: existing.totalWeighted + (pct * grade.weight),
+      totalWeight: existing.totalWeight + grade.weight,
+      count: existing.count + 1,
+    });
+  }
+  const result: { className: string; average: number; count: number }[] = [];
+  classMap.forEach((val, key) => {
+    result.push({
+      className: key,
+      average: val.totalWeight > 0 ? Math.round(val.totalWeighted / val.totalWeight) : 0,
+      count: val.count,
+    });
+  });
+  return result.sort((a, b) => b.average - a.average);
+}
+
+// ---------------------------------------------------------------------------
+// Pure helper: compute grade distribution counts
+// ---------------------------------------------------------------------------
+
+function computeGradeDistribution(grades: GradeRecord[]): { excellent: number; veryGood: number; good: number; weak: number } {
+  const eps = 0.001;
+  let excellent = 0;
+  let veryGood = 0;
+  let good = 0;
+  let weak = 0;
+  for (const grade of grades) {
+    const pct = (grade.score / Math.max(eps, grade.maxScore)) * 100;
+    if (pct >= 90) excellent++;
+    else if (pct >= 75) veryGood++;
+    else if (pct >= 60) good++;
+    else weak++;
+  }
+  return { excellent, veryGood, good, weak };
+}
+
+// ---------------------------------------------------------------------------
+// Class Performance Comparison Chart
+// ---------------------------------------------------------------------------
+
+function getBarColor(pct: number): string {
+  if (pct >= 90) return '#34D399';
+  if (pct >= 75) return '#D4A574';
+  if (pct >= 60) return '#38BDF8';
+  return '#F472B6';
+}
+
+function ClassPerformanceChart({ classData }: { classData: { className: string; average: number; count: number }[] }) {
+  const [animated, setAnimated] = useState(false);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    const timer = requestAnimationFrame(() => setAnimated(true));
+    return () => cancelAnimationFrame(timer);
+  }, []);
+
+  if (classData.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-10">
+        <BarChart3 className="h-10 w-10 text-[#8B8B9E]/40 mb-3" />
+        <p className="text-sm text-[#8B8B9E]">لا توجد بيانات كافية لعرض المقارنة</p>
+      </div>
+    );
+  }
+
+  const maxAvg = Math.max(...classData.map((c) => c.average), 1);
+  const eps = 0.001;
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Chart */}
+      <div className="flex flex-col gap-3">
+        {classData.map((item, idx) => {
+          const barWidth = Math.max(eps, (item.average / maxAvg) * 100);
+          const color = getBarColor(item.average);
+          const isHovered = hoveredIndex === idx;
+
+          return (
+            <div
+              key={item.className}
+              className="group relative flex items-center gap-3 cursor-default"
+              onMouseEnter={() => setHoveredIndex(idx)}
+              onMouseLeave={() => setHoveredIndex(null)}
+            >
+              {/* Class name label */}
+              <div className="w-36 sm:w-44 shrink-0 text-left">
+                <span className={cn(
+                  'text-sm font-medium transition-colors duration-200',
+                  isHovered ? 'text-[#E8E8ED]' : 'text-[#C4C4D4]'
+                )}>
+                  {item.className}
+                </span>
+              </div>
+
+              {/* Bar */}
+              <div className="flex-1 h-8 rounded-lg overflow-hidden relative" style={{ backgroundColor: 'rgba(255,255,255,0.04)' }}>
+                <svg
+                  className="absolute inset-0 w-full h-full"
+                  viewBox="0 0 100 32"
+                  preserveAspectRatio="none"
+                >
+                  <rect
+                    x="100"
+                    y="0"
+                    width={barWidth}
+                    height="32"
+                    rx="6"
+                    fill={color}
+                    fillOpacity={isHovered ? 0.35 : 0.22}
+                    style={{
+                      transform: `translateX(-${barWidth}%) scaleX(${animated ? 1 : 0})`,
+                      transformOrigin: 'left center',
+                      transition: `transform 0.8s cubic-bezier(0.22, 1, 0.36, 1) ${idx * 80}ms, fill-opacity 0.2s ease`,
+                    }}
+                  />
+                </svg>
+                <div
+                  className="absolute inset-y-0 right-0 rounded-lg transition-all duration-200"
+                  style={{
+                    width: animated ? `${barWidth}%` : '0%',
+                    backgroundColor: color,
+                    opacity: isHovered ? 0.9 : 0.7,
+                    transition: `width 0.8s cubic-bezier(0.22, 1, 0.36, 1) ${idx * 80}ms, opacity 0.2s ease`,
+                  }}
+                />
+              </div>
+
+              {/* Score label */}
+              <div className="w-16 shrink-0 text-left">
+                <span className={cn(
+                  'text-sm font-bold tabular-nums transition-colors duration-200',
+                  isHovered ? 'text-[#E8E8ED]' : 'text-[#C4C4D4]'
+                )}>
+                  {item.average}%
+                </span>
+              </div>
+
+              {/* Tooltip on hover */}
+              {isHovered && (
+                <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-10 px-3 py-1.5 rounded-lg text-xs font-medium text-[#E8E8ED] whitespace-nowrap animate-fade-in"
+                  style={{
+                    backgroundColor: 'rgba(26,26,36,0.95)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    backdropFilter: 'blur(8px)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                  }}
+                >
+                  <span>{item.className}: </span>
+                  <span style={{ color }}>{item.average}%</span>
+                  <span className="text-[#8B8B9E]"> ({item.count} سجل)</span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Legend */}
+      <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-white/[0.04]">
+        {[
+          { label: 'ممتاز ≥90%', color: '#34D399' },
+          { label: 'جيد جداً ≥75%', color: '#D4A574' },
+          { label: 'جيد ≥60%', color: '#38BDF8' },
+          { label: 'ضعيف <60%', color: '#F472B6' },
+        ].map((item) => (
+          <div key={item.label} className="flex items-center gap-1.5">
+            <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+            <span className="text-[11px] text-[#8B8B9E]">{item.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Grade Distribution Summary Pills
+// ---------------------------------------------------------------------------
+
+function GradeDistributionPills({ distribution, total }: { distribution: { excellent: number; veryGood: number; good: number; weak: number }; total: number }) {
+  const pills = [
+    { label: 'ممتاز', count: distribution.excellent, color: '#34D399', bgColor: 'rgba(52,211,153,0.1)', borderColor: 'rgba(52,211,153,0.2)' },
+    { label: 'جيد جداً', count: distribution.veryGood, color: '#D4A574', bgColor: 'rgba(212,165,116,0.1)', borderColor: 'rgba(212,165,116,0.2)' },
+    { label: 'جيد', count: distribution.good, color: '#38BDF8', bgColor: 'rgba(56,189,248,0.1)', borderColor: 'rgba(56,189,248,0.2)' },
+    { label: 'ضعيف', count: distribution.weak, color: '#F472B6', bgColor: 'rgba(244,114,182,0.1)', borderColor: 'rgba(244,114,182,0.2)' },
+  ];
+
+  const eps = 0.001;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {pills.map((pill) => {
+        const pct = total > 0 ? Math.round((pill.count / Math.max(eps, total)) * 100) : 0;
+        return (
+          <div
+            key={pill.label}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 hover:scale-105"
+            style={{
+              backgroundColor: pill.bgColor,
+              border: `1px solid ${pill.borderColor}`,
+              color: pill.color,
+            }}
+          >
+            <span>{pill.label}</span>
+            <span className="font-bold tabular-nums">{pill.count}</span>
+            <span className="opacity-60 tabular-nums">({pct}%)</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Pure helper: compute subject averages for report card
 // ---------------------------------------------------------------------------
 
@@ -970,6 +1195,12 @@ export default function GradesSection() {
     };
   }, [grades]);
 
+  // Class averages for comparison chart
+  const classAverages = useMemo(() => computeClassAverages(grades), [grades]);
+
+  // Grade distribution for summary pills
+  const gradeDistribution = useMemo(() => computeGradeDistribution(grades), [grades]);
+
   // Filtered grades
   const filteredGrades = useMemo(() => {
     let result = [...grades];
@@ -1157,6 +1388,43 @@ export default function GradesSection() {
           subtext="سجل درجة"
           accentClass="bg-sky-500/15"
         />
+      </div>
+
+      {/* ── Class Performance Comparison ── */}
+      <div className="glass-card-elevated rounded-xl p-5 animate-fade-in-up relative overflow-hidden">
+        {/* Corner accent decoration */}
+        <div className="corner-accent pointer-events-none" />
+
+        {/* Card header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-[#D4A574]/10 border border-[#D4A574]/15">
+              <BarChart3 className="h-5 w-5 text-[#D4A574]" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-[#F1F1F6]">مقارنة أداء الصفوف</h3>
+              <p className="text-[11px] text-[#8B8B9E]">المتوسط المرجح لكل صف</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <TrendingUp className="h-3.5 w-3.5 text-[#34D399]" />
+            <span className="text-xs text-[#8B8B9E]">
+              {classAverages.length} صفوف
+            </span>
+          </div>
+        </div>
+
+        {/* Chart */}
+        <ClassPerformanceChart classData={classAverages} />
+
+        {/* Grade Distribution Summary Pills */}
+        <div className="mt-5 pt-4 border-t border-white/[0.04]">
+          <div className="flex items-center gap-2 mb-3">
+            <Award className="h-4 w-4 text-[#D4A574]" />
+            <span className="text-xs font-semibold text-[#C4C4D4]">توزيع الدرجات</span>
+          </div>
+          <GradeDistributionPills distribution={gradeDistribution} total={grades.length} />
+        </div>
       </div>
 
       {/* ── Action Bar ── */}

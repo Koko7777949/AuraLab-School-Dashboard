@@ -292,7 +292,7 @@ function TeacherCard({
 }) {
   return (
     <div
-      className="group rounded-xl p-5 transition-all duration-200 hover:bg-white/[0.04]"
+      className="group card-interactive rounded-xl p-5 transition-all duration-200 hover:bg-white/[0.04] hover-glow-amber"
       style={{
         backgroundColor: 'rgba(255,255,255,0.02)',
         border: '1px solid rgba(255,255,255,0.06)',

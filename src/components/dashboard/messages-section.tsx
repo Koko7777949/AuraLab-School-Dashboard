@@ -152,6 +152,36 @@ const RECIPIENT_OPTIONS = [
   { id: 'r8', name: 'مريم الحربي', role: 'parent' },
 ];
 
+const GROUP_RECIPIENT_OPTIONS = [
+  { id: 'all-teachers', name: 'جميع المعلمين', role: 'teacher' as const, isGroup: true },
+  { id: 'all-parents', name: 'جميع أولياء الأمور', role: 'parent' as const, isGroup: true },
+  { id: 'class-1a', name: 'فصل الأول أ', role: 'student' as const, isGroup: true },
+  { id: 'class-1b', name: 'فصل الأول ب', role: 'student' as const, isGroup: true },
+  { id: 'class-2a', name: 'فصل الثاني أ', role: 'student' as const, isGroup: true },
+  { id: 'class-3a', name: 'فصل الثالث أ', role: 'student' as const, isGroup: true },
+  { id: 'class-4a', name: 'فصل الرابع أ', role: 'student' as const, isGroup: true },
+  { id: 'class-5a', name: 'فصل الخامس أ', role: 'student' as const, isGroup: true },
+];
+
+type RecipientOption = {
+  id: string;
+  name: string;
+  role: string;
+  isGroup?: boolean;
+};
+
+function formatFullDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('ar-SA', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 /* ------------------------------------------------------------------ */
 /*  Mock data                                                          */
 /* ------------------------------------------------------------------ */
@@ -624,6 +654,7 @@ function MessageDetail({
   onDelete,
   onArchive,
   onForward,
+  onReplyViaDialog,
   onStarToggle,
 }: {
   message: Message;
@@ -632,6 +663,7 @@ function MessageDetail({
   onDelete: () => void;
   onArchive: () => void;
   onForward: () => void;
+  onReplyViaDialog: () => void;
   onStarToggle: () => void;
 }) {
   const [replyText, setReplyText] = useState('');
@@ -648,70 +680,49 @@ function MessageDetail({
 
   return (
     <div className="flex flex-col h-full animate-fade-in-up">
-      {/* Header */}
+      {/* Header with action buttons row */}
       <div className="flex-shrink-0 p-5 border-b border-white/[0.06]">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-3 min-w-0">
-            {/* Avatar */}
-            <div
-              className="shrink-0 h-12 w-12 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-lg mt-0.5"
-              style={{ background: senderConfig.gradient }}
+        {/* Top action bar */}
+        <div className="flex items-center justify-between gap-2 mb-4">
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs text-slate-300 border-white/[0.08] hover:bg-[#D4A574]/10 hover:text-[#D4A574] hover:border-[#D4A574]/40 rounded-lg"
+              onClick={onReplyViaDialog}
             >
-              {getInitials(message.senderName)}
-            </div>
-            <div className="min-w-0 space-y-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-bold text-white text-base">
-                  {message.senderName}
-                </span>
-                <span
-                  className={cn(
-                    'text-[11px] font-medium px-2 py-0.5 rounded-full',
-                    senderConfig.color,
-                    senderConfig.bgColor,
-                  )}
-                >
-                  {senderConfig.label}
-                </span>
-                <span
-                  className={cn(
-                    'text-[11px] font-medium px-2 py-0.5 rounded-full',
-                    priorityConfig.color,
-                    priorityConfig.bgColor,
-                  )}
-                >
-                  {priorityConfig.label}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>إلى: {message.recipientName}</span>
-                <span
-                  className={cn(
-                    'text-[10px] font-medium px-1.5 py-0 rounded-full',
-                    recipientConfig.color,
-                    recipientConfig.bgColor,
-                  )}
-                >
-                  {recipientConfig.label}
-                </span>
-              </div>
-              <div className="flex items-center gap-3 text-xs text-slate-500">
-                <span className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  {relativeTime(message.createdAt)}
-                </span>
-                {message.hasAttachment && (
-                  <span className="flex items-center gap-1">
-                    <Paperclip className="h-3 w-3" />
-                    مرفقات
-                  </span>
-                )}
-              </div>
-            </div>
+              <Reply className="h-3.5 w-3.5" />
+              رد
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs text-slate-300 border-white/[0.08] hover:bg-white/[0.05] hover:text-slate-200 rounded-lg"
+              onClick={onForward}
+            >
+              <Forward className="h-3.5 w-3.5" />
+              إعادة توجيه
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs text-slate-300 border-white/[0.08] hover:bg-white/[0.05] hover:text-slate-200 rounded-lg"
+              onClick={onArchive}
+            >
+              <Archive className="h-3.5 w-3.5" />
+              أرشفة
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs text-red-400 border-red-400/20 hover:bg-red-400/10 hover:text-red-300 hover:border-red-400/40 rounded-lg"
+              onClick={onDelete}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              حذف
+            </Button>
           </div>
-
-          {/* Actions */}
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex items-center gap-1">
             <button
               onClick={onStarToggle}
               className={cn(
@@ -731,8 +742,73 @@ function MessageDetail({
           </div>
         </div>
 
-        {/* Subject */}
-        <h2 className="mt-4 text-lg font-bold text-white">{message.subject}</h2>
+        {/* Sender info */}
+        <div className="flex items-start gap-3 min-w-0">
+          {/* Avatar */}
+          <div
+            className="shrink-0 h-12 w-12 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-lg mt-0.5"
+            style={{ background: senderConfig.gradient }}
+          >
+            {getInitials(message.senderName)}
+          </div>
+          <div className="min-w-0 space-y-1 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-bold text-white text-base">
+                {message.senderName}
+              </span>
+              <span
+                className={cn(
+                  'text-[11px] font-medium px-2 py-0.5 rounded-full',
+                  senderConfig.color,
+                  senderConfig.bgColor,
+                )}
+              >
+                {senderConfig.label}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>إلى: {message.recipientName}</span>
+              <span
+                className={cn(
+                  'text-[10px] font-medium px-1.5 py-0 rounded-full',
+                  recipientConfig.color,
+                  recipientConfig.bgColor,
+                )}
+              >
+                {recipientConfig.label}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Subject + metadata row */}
+        <div className="mt-3 flex items-start justify-between gap-3">
+          <h2 className="text-lg font-bold text-white leading-snug">{message.subject}</h2>
+          <div className="flex items-center gap-2 shrink-0 mt-1">
+            <span
+              className={cn(
+                'text-[11px] font-medium px-2 py-0.5 rounded-full',
+                priorityConfig.color,
+                priorityConfig.bgColor,
+              )}
+            >
+              {priorityConfig.label}
+            </span>
+            {message.hasAttachment && (
+              <span className="flex items-center gap-1 text-[11px] text-slate-500">
+                <Paperclip className="h-3 w-3" />
+                مرفقات
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Date/time */}
+        <div className="mt-1.5 flex items-center gap-1 text-[11px] text-slate-500">
+          <Clock className="h-3 w-3" />
+          <span>{formatFullDate(message.createdAt)}</span>
+          <span className="text-slate-700 mr-1">({relativeTime(message.createdAt)})</span>
+        </div>
       </div>
 
       {/* Thread + Content */}
@@ -781,7 +857,7 @@ function MessageDetail({
 
         {/* Main content */}
         <div
-          className="rounded-xl p-4 text-sm leading-relaxed whitespace-pre-wrap text-slate-200"
+          className="rounded-xl p-5 text-sm leading-[1.9] whitespace-pre-wrap text-slate-200"
           style={{
             backgroundColor: 'rgba(255,255,255,0.02)',
             border: '1px solid rgba(255,255,255,0.05)',
@@ -834,59 +910,15 @@ function MessageDetail({
         )}
       </div>
 
-      {/* Reply area */}
+      {/* Quick reply area */}
       <div className="flex-shrink-0 p-4 border-t border-white/[0.06]">
-        {/* Action buttons */}
-        <div className="flex items-center gap-2 mb-3">
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5 text-xs text-slate-300 border-white/[0.08] hover:bg-[#D4A574]/10 hover:text-[#D4A574] hover:border-[#D4A574]/40 rounded-lg"
-            onClick={() => {
-              const el = document.getElementById('reply-textarea');
-              if (el) el.focus();
-            }}
-          >
-            <Reply className="h-3.5 w-3.5" />
-            رد
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5 text-xs text-slate-300 border-white/[0.08] hover:bg-white/[0.05] hover:text-slate-200 rounded-lg"
-            onClick={onForward}
-          >
-            <Forward className="h-3.5 w-3.5" />
-            إعادة توجيه
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5 text-xs text-slate-300 border-white/[0.08] hover:bg-white/[0.05] hover:text-slate-200 rounded-lg"
-            onClick={onArchive}
-          >
-            <Archive className="h-3.5 w-3.5" />
-            أرشفة
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5 text-xs text-red-400 border-red-400/20 hover:bg-red-400/10 hover:text-red-300 hover:border-red-400/40 rounded-lg"
-            onClick={onDelete}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            حذف
-          </Button>
-        </div>
-
-        {/* Reply input */}
         <div className="flex items-end gap-2">
           <div className="flex-1 relative">
             <Textarea
               id="reply-textarea"
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
-              placeholder="اكتب ردك هنا..."
+              placeholder="اكتب رد سريع هنا..."
               className="min-h-[60px] max-h-[120px] resize-none rounded-lg text-sm bg-white/[0.03] border-white/[0.08] text-white placeholder:text-slate-600 focus-visible:ring-[#D4A574]/40 focus-visible:border-[#D4A574]/30"
               dir="rtl"
             />
@@ -917,10 +949,19 @@ function MessageDetail({
 /* ------------------------------------------------------------------ */
 /*  Compose dialog                                                     */
 /* ------------------------------------------------------------------ */
+
+type ComposeInitialValues = {
+  recipientId?: string;
+  subject?: string;
+  content?: string;
+  priority?: Message['priority'];
+};
+
 function ComposeDialog({
   open,
   onOpenChange,
   onSend,
+  initialValues,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -932,22 +973,41 @@ function ComposeDialog({
     content: string;
     priority: Message['priority'];
   }) => void;
+  initialValues?: ComposeInitialValues;
 }) {
-  const [recipientId, setRecipientId] = useState('');
-  const [subject, setSubject] = useState('');
-  const [content, setContent] = useState('');
-  const [priority, setPriority] = useState<Message['priority']>('normal');
+  /* Derive initial state from initialValues */
+  const initRecipientId = initialValues?.recipientId ?? '';
+  const initRecipientSearch = (() => {
+    if (initialValues?.recipientId) {
+      const found = RECIPIENT_OPTIONS.find((r) => r.id === initialValues.recipientId)
+        ?? GROUP_RECIPIENT_OPTIONS.find((r) => r.id === initialValues.recipientId);
+      return found ? found.name : '';
+    }
+    return '';
+  })();
+
+  const [recipientId, setRecipientId] = useState(initRecipientId);
+  const [subject, setSubject] = useState(initialValues?.subject ?? '');
+  const [content, setContent] = useState(initialValues?.content ?? '');
+  const [priority, setPriority] = useState<Message['priority']>(initialValues?.priority ?? 'normal');
   const [isSending, setIsSending] = useState(false);
-  const [recipientSearch, setRecipientSearch] = useState('');
+  const [recipientSearch, setRecipientSearch] = useState(initRecipientSearch);
+  const [showGroupSelector, setShowGroupSelector] = useState(false);
+
+  const allRecipients = useMemo<RecipientOption[]>(
+    () => [...GROUP_RECIPIENT_OPTIONS, ...RECIPIENT_OPTIONS.map((r) => ({ ...r, isGroup: false }))],
+    [],
+  );
 
   const filteredRecipients = useMemo(() => {
-    if (!recipientSearch.trim()) return RECIPIENT_OPTIONS;
-    return RECIPIENT_OPTIONS.filter((r) =>
-      r.name.includes(recipientSearch.trim()),
-    );
-  }, [recipientSearch]);
+    if (!recipientSearch.trim()) {
+      return showGroupSelector ? GROUP_RECIPIENT_OPTIONS : RECIPIENT_OPTIONS.map((r) => ({ ...r, isGroup: false }));
+    }
+    const q = recipientSearch.trim();
+    return allRecipients.filter((r) => r.name.includes(q));
+  }, [recipientSearch, showGroupSelector, allRecipients]);
 
-  const selectedRecipient = RECIPIENT_OPTIONS.find(
+  const selectedRecipient = allRecipients.find(
     (r) => r.id === recipientId,
   );
 
@@ -958,7 +1018,7 @@ function ComposeDialog({
 
     // Simulate send delay
     setTimeout(() => {
-      const recipient = RECIPIENT_OPTIONS.find((r) => r.id === recipientId);
+      const recipient = allRecipients.find((r) => r.id === recipientId);
       if (recipient) {
         onSend({
           recipientId,
@@ -975,9 +1035,10 @@ function ComposeDialog({
       setContent('');
       setPriority('normal');
       setRecipientSearch('');
+      setShowGroupSelector(false);
       onOpenChange(false);
     }, 800);
-  }, [recipientId, subject, content, priority, onSend, onOpenChange]);
+  }, [recipientId, subject, content, priority, onSend, onOpenChange, allRecipients]);
 
   const canSend = recipientId && subject.trim() && content.trim() && !isSending;
 
@@ -995,19 +1056,45 @@ function ComposeDialog({
             <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#D4A574]/10">
               <Plus className="h-4 w-4 text-[#D4A574]" />
             </div>
-            رسالة جديدة
+            {initialValues ? 'إرسال رسالة' : 'رسالة جديدة'}
           </DialogTitle>
         </DialogHeader>
 
         <div className="p-6 space-y-4">
-          {/* Recipient */}
+          {/* Recipient type toggle */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-300">
               المرسل إليه
             </label>
+            <div className="flex gap-2 mb-2">
+              <button
+                type="button"
+                onClick={() => setShowGroupSelector(false)}
+                className={cn(
+                  'text-xs font-medium px-3 py-1.5 rounded-lg transition-all duration-200',
+                  !showGroupSelector
+                    ? 'bg-[#D4A574] text-white shadow-[0_2px_12px_rgba(212,165,116,0.3)]'
+                    : 'bg-white/[0.04] text-slate-400 hover:bg-white/[0.08] hover:text-slate-200 border border-white/[0.06]',
+                )}
+              >
+                فرد
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowGroupSelector(true)}
+                className={cn(
+                  'text-xs font-medium px-3 py-1.5 rounded-lg transition-all duration-200',
+                  showGroupSelector
+                    ? 'bg-[#D4A574] text-white shadow-[0_2px_12px_rgba(212,165,116,0.3)]'
+                    : 'bg-white/[0.04] text-slate-400 hover:bg-white/[0.08] hover:text-slate-200 border border-white/[0.06]',
+                )}
+              >
+                مجموعة
+              </button>
+            </div>
             <div className="relative">
               <Input
-                placeholder="ابحث عن المرسل إليه..."
+                placeholder={showGroupSelector ? 'ابحث عن فصل أو مجموعة...' : 'ابحث عن المرسل إليه...'}
                 value={selectedRecipient ? selectedRecipient.name : recipientSearch}
                 onChange={(e) => {
                   if (selectedRecipient) {
@@ -1054,7 +1141,14 @@ function ComposeDialog({
                         }}
                         className="w-full text-right px-4 py-2.5 text-sm transition-colors hover:bg-[rgba(212,165,116,0.06)] flex items-center justify-between"
                       >
-                        <span className="text-slate-200">{r.name}</span>
+                        <span className="flex items-center gap-2">
+                          {r.isGroup && (
+                            <span className="flex items-center justify-center h-5 w-5 rounded bg-[#D4A574]/15">
+                              <MessageSquare className="h-3 w-3 text-[#D4A574]" />
+                            </span>
+                          )}
+                          <span className="text-slate-200">{r.name}</span>
+                        </span>
                         <span
                           className={cn(
                             'text-[10px] font-medium px-2 py-0.5 rounded-full',
@@ -1067,6 +1161,18 @@ function ComposeDialog({
                       </button>
                     );
                   })}
+                </div>
+              )}
+              {/* No results */}
+              {!selectedRecipient && recipientSearch && filteredRecipients.length === 0 && (
+                <div
+                  className="absolute top-full right-0 left-0 mt-1 rounded-lg overflow-hidden z-50 p-4 text-center"
+                  style={{
+                    backgroundColor: '#1A1A24',
+                    border: '1px solid rgba(255, 255, 255, 0.06)',
+                  }}
+                >
+                  <p className="text-sm text-slate-500">لا توجد نتائج</p>
                 </div>
               )}
             </div>
@@ -1094,7 +1200,7 @@ function ComposeDialog({
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="اكتب رسالتك هنا..."
-              className="min-h-[140px] rounded-lg text-sm bg-white/[0.03] border-white/[0.08] text-white placeholder:text-slate-600 focus-visible:ring-[#D4A574]/40 focus-visible:border-[#D4A574]/30 resize-none"
+              className="min-h-[120px] rounded-lg text-sm bg-white/[0.03] border-white/[0.08] text-white placeholder:text-slate-600 focus-visible:ring-[#D4A574]/40 focus-visible:border-[#D4A574]/30 resize-none leading-relaxed"
               dir="rtl"
             />
           </div>
@@ -1135,7 +1241,10 @@ function ComposeDialog({
           <Button
             onClick={handleSend}
             disabled={!canSend}
-            className="flex-1 gap-2 rounded-lg text-white font-medium"
+            className={cn(
+              'flex-1 gap-2 rounded-lg text-white font-medium',
+              canSend && 'btn-shine',
+            )}
             style={{
               background: canSend
                 ? 'linear-gradient(135deg, #D4A574 0%, #B07D4F 100%)'
@@ -1230,6 +1339,7 @@ export default function MessagesSection() {
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [composeOpen, setComposeOpen] = useState(false);
+  const [composeInitialValues, setComposeInitialValues] = useState<ComposeInitialValues | undefined>(undefined);
   const [mobileShowDetail, setMobileShowDetail] = useState(false);
 
   /* Seed mock data on mount if store is empty */
@@ -1348,8 +1458,24 @@ export default function MessagesSection() {
   }, [selectedMessage, archiveMessage]);
 
   const handleForward = useCallback(() => {
-    toast.info('تم نسخ الرسالة - اختر المرسل إليه لإعادة التوجيه');
-  }, []);
+    if (!selectedMessage) return;
+    setComposeInitialValues({
+      subject: `إعادة توجيه: ${selectedMessage.subject}`,
+      content: `--- رسالة مُعاد توجيهها ---\n\n${selectedMessage.content}`,
+      priority: selectedMessage.priority,
+    });
+    setComposeOpen(true);
+  }, [selectedMessage]);
+
+  const handleReplyViaDialog = useCallback(() => {
+    if (!selectedMessage) return;
+    setComposeInitialValues({
+      recipientId: selectedMessage.senderId,
+      subject: `رد: ${selectedMessage.subject}`,
+      priority: 'normal',
+    });
+    setComposeOpen(true);
+  }, [selectedMessage]);
 
   const handleReply = useCallback(
     (content: string) => {
@@ -1587,6 +1713,7 @@ export default function MessagesSection() {
               onDelete={handleDelete}
               onArchive={handleArchive}
               onForward={handleForward}
+              onReplyViaDialog={handleReplyViaDialog}
               onStarToggle={() => {
                 if (selectedMessage) {
                   toggleMessageStar(selectedMessage.id);
@@ -1608,9 +1735,14 @@ export default function MessagesSection() {
 
       {/* Compose dialog */}
       <ComposeDialog
+        key={composeOpen ? (composeInitialValues ? `fwd-${composeInitialValues.subject}` : 'new') : 'closed'}
         open={composeOpen}
-        onOpenChange={setComposeOpen}
+        onOpenChange={(val) => {
+          setComposeOpen(val);
+          if (!val) setComposeInitialValues(undefined);
+        }}
         onSend={handleComposeSend}
+        initialValues={composeInitialValues}
       />
     </div>
   );

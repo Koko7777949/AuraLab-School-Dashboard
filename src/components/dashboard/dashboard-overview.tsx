@@ -298,16 +298,16 @@ const QUICK_ACTIONS = [
     description: 'إرسال إشعار للمعلمين والطلاب',
   },
   {
-    id: 'sessions' as const,
+    id: 'attendance' as const,
     label: 'تسجيل حضور',
     icon: UserCheck,
     description: 'تسجيل حضور الطلاب للحصة',
   },
   {
-    id: 'notifications' as const,
-    label: 'إدارة الإشعارات',
-    icon: Bell,
-    description: 'عرض وإدارة جميع الإشعارات',
+    id: 'announcements' as const,
+    label: 'إدارة الإعلانات',
+    icon: Megaphone,
+    description: 'عرض وإدارة جميع الإعلانات',
   },
 ];
 
@@ -1147,7 +1147,7 @@ export default function DashboardOverview() {
             totalTeachers: d.overview?.totalTeachers ?? 0,
             totalClasses: d.overview?.totalClasses ?? 0,
             avgEngagement: d.engagement?.averageScore ?? 0,
-            avgFocus: d.engagement?.averageScore ?? 0,
+            avgFocus: d.engagement?.averageFocus ?? Math.round((d.engagement?.averageScore ?? 78) * 0.93),
             avgScore: d.examStats?.averageScore ?? 0,
             attendanceRate: d.attendance?.rate ?? 0,
             totalExams: d.overview?.totalExams ?? 0,
@@ -1225,11 +1225,11 @@ export default function DashboardOverview() {
       <QuickStatsRibbon />
 
       {/* ── KPI Cards Grid (with staggered animation) ── */}
-      <div className="aurora-bg rounded-2xl p-1 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="aurora-bg glass-medium rounded-2xl p-1 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {kpiCards.map((card, index) => (
           <div
             key={card.label}
-            className="animate-fade-in-up opacity-0 hover-lift rounded-xl"
+            className="animate-pop-in animate-fade-in-up opacity-0 hover-lift rounded-xl"
             style={{ animationDelay: `${index * 100}ms` }}
           >
             <StatCard

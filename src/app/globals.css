@@ -3042,3 +3042,628 @@ html {
 .section-enter-left {
   animation: section-enter-left 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
+/* ===================================================================
+   77. HOVER CARD GLOW VARIANTS
+   Colored box-shadow glow on hover for interactive cards.
+   =================================================================== */
+.hover-glow-amber {
+  transition: box-shadow 0.35s ease, transform 0.35s ease;
+  will-change: box-shadow, transform;
+}
+.hover-glow-amber:hover {
+  box-shadow: 0 0 20px rgba(212, 165, 116, 0.3),
+              0 0 40px rgba(212, 165, 116, 0.1);
+}
+
+.hover-glow-emerald {
+  transition: box-shadow 0.35s ease, transform 0.35s ease;
+  will-change: box-shadow, transform;
+}
+.hover-glow-emerald:hover {
+  box-shadow: 0 0 20px rgba(74, 222, 128, 0.3),
+              0 0 40px rgba(74, 222, 128, 0.1);
+}
+
+.hover-glow-rose {
+  transition: box-shadow 0.35s ease, transform 0.35s ease;
+  will-change: box-shadow, transform;
+}
+.hover-glow-rose:hover {
+  box-shadow: 0 0 20px rgba(251, 113, 133, 0.3),
+              0 0 40px rgba(251, 113, 133, 0.1);
+}
+
+.hover-glow-sky {
+  transition: box-shadow 0.35s ease, transform 0.35s ease;
+  will-change: box-shadow, transform;
+}
+.hover-glow-sky:hover {
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.3),
+              0 0 40px rgba(56, 189, 248, 0.1);
+}
+
+/* ===================================================================
+   78. TEXT GRADIENT ANIMATIONS
+   Animated gradient text with shimmer, sweep, and pulse effects.
+   =================================================================== */
+@keyframes text-gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes text-gradient-pulse-key {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.text-gradient-animate {
+  background: linear-gradient(
+    90deg,
+    #D4A574 0%,
+    #FBBF24 25%,
+    #E8C9A8 50%,
+    #FBBF24 75%,
+    #D4A574 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: text-gradient-shift 3s linear infinite;
+  will-change: background-position;
+}
+
+.text-gradient-shimmer {
+  background: linear-gradient(
+    120deg,
+    #D4A574 0%,
+    #FBBF24 40%,
+    #E8C9A8 60%,
+    #D4A574 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: text-gradient-shift 2s ease-in-out infinite;
+  will-change: background-position;
+}
+
+.text-gradient-pulse {
+  background: linear-gradient(135deg, #D4A574, #FBBF24, #E8C9A8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: text-gradient-pulse-key 2s ease-in-out infinite;
+  will-change: opacity;
+}
+
+/* ===================================================================
+   79. CARD INNER SHADOW VARIANTS
+   Inset glow shadows for card depth effects.
+   =================================================================== */
+.inner-shadow-amber {
+  box-shadow: inset 0 1px 20px rgba(212, 165, 116, 0.1);
+}
+
+.inner-shadow-top {
+  box-shadow: inset 0 8px 16px -8px rgba(0, 0, 0, 0.25),
+              inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+}
+
+.inner-shadow-bottom {
+  box-shadow: inset 0 -8px 16px -8px rgba(0, 0, 0, 0.25),
+              inset 0 -1px 0 0 rgba(255, 255, 255, 0.03);
+}
+
+/* ===================================================================
+   80. INTERACTIVE TOGGLE SWITCH
+   Custom toggle with amber track, smooth transitions.
+   =================================================================== */
+.toggle-amber {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 44px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  position: relative;
+  cursor: pointer;
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  will-change: background-color, border-color;
+  outline: none;
+}
+.toggle-amber::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #8888A0;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+.toggle-amber:checked {
+  background-color: rgba(212, 165, 116, 0.2);
+  border-color: rgba(212, 165, 116, 0.3);
+  box-shadow: 0 0 8px rgba(212, 165, 116, 0.15);
+}
+.toggle-amber:checked::after {
+  transform: translateX(-20px);
+  background-color: #D4A574;
+  box-shadow: 0 0 8px rgba(212, 165, 116, 0.4);
+}
+.toggle-amber:focus-visible {
+  box-shadow: 0 0 0 2px rgba(212, 165, 116, 0.3);
+}
+
+/* ===================================================================
+   81. NOTIFICATION BADGE STYLES
+   Count badge, ping animation, and dot indicator.
+   =================================================================== */
+@keyframes badge-count-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  75%, 100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+.badge-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background-color: #D4A574;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  will-change: transform;
+}
+
+.badge-count-ping {
+  position: relative;
+}
+.badge-count-ping::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-color: #D4A574;
+  animation: badge-count-ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+  z-index: -1;
+}
+
+.badge-dot {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #D4A574;
+  box-shadow: 0 0 6px rgba(212, 165, 116, 0.4);
+}
+.badge-dot::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 1px solid rgba(212, 165, 116, 0.3);
+  animation: badge-count-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* ===================================================================
+   82. PROGRESS BAR VARIANTS
+   Colored gradient progress bars with optional shine/stripe effects.
+   =================================================================== */
+@keyframes progress-shine {
+  0% { left: -100%; }
+  100% { left: 200%; }
+}
+
+@keyframes progress-stripe-move {
+  0% { background-position: 0 0; }
+  100% { background-position: 40px 0; }
+}
+
+.progress-amber {
+  background: linear-gradient(90deg, #B8895A, #D4A574, #FBBF24);
+  border-radius: 9999px;
+  position: relative;
+  overflow: hidden;
+}
+.progress-amber::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+  animation: progress-shine 2s ease-in-out infinite;
+}
+
+.progress-emerald {
+  background: linear-gradient(90deg, #059669, #10b981, #34d399);
+  border-radius: 9999px;
+  position: relative;
+  overflow: hidden;
+}
+.progress-emerald::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+  animation: progress-shine 2s ease-in-out infinite;
+}
+
+.progress-rose {
+  background: linear-gradient(90deg, #e11d48, #f43f5e, #fb7185);
+  border-radius: 9999px;
+  position: relative;
+  overflow: hidden;
+}
+.progress-rose::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+  animation: progress-shine 2s ease-in-out infinite;
+}
+
+.progress-striped {
+  position: relative;
+  overflow: hidden;
+}
+.progress-striped::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.08) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.08) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 40px 40px;
+  animation: progress-stripe-move 1s linear infinite;
+}
+
+/* ===================================================================
+   83. SKELETON LOADING VARIANTS
+   Fast shimmer, pulse, and wave loading animations.
+   =================================================================== */
+@keyframes skeleton-shimmer-fast-key {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+@keyframes skeleton-pulse-key {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes skeleton-wave-key {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+.skeleton-shimmer-fast {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 0%,
+    rgba(255, 255, 255, 0.1) 20%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.1) 80%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  background-size: 800px 100%;
+  animation: skeleton-shimmer-fast-key 1s ease-in-out infinite;
+  border-radius: var(--radius);
+  will-change: background-position;
+}
+
+.skeleton-pulse {
+  background: rgba(255, 255, 255, 0.06);
+  animation: skeleton-pulse-key 1.5s ease-in-out infinite;
+  border-radius: var(--radius);
+  will-change: opacity;
+}
+
+.skeleton-wave {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius);
+  will-change: transform;
+}
+.skeleton-wave::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.06) 50%,
+    transparent 100%
+  );
+  animation: skeleton-wave-key 1.5s ease-in-out infinite;
+}
+
+/* ===================================================================
+   84. GLASSMORPHISM DEPTH LEVELS
+   Three tiers of glass effect: light, medium, heavy.
+   =================================================================== */
+.glass-light {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius);
+}
+
+.glass-medium {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.glass-heavy {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius);
+  box-shadow:
+    0 0 0 1px rgba(212, 165, 116, 0.05),
+    0 8px 32px rgba(0, 0, 0, 0.25),
+    0 0 24px rgba(212, 165, 116, 0.06);
+}
+
+/* ===================================================================
+   85. ANIMATION CHOREOGRAPHY
+   Stagger, cascade, pop-in, and slide-in-stack effects.
+   =================================================================== */
+@keyframes pop-in-overshoot {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-in-stagger > *:nth-child(1)  { animation-delay: 0ms; }
+.animate-in-stagger > *:nth-child(2)  { animation-delay: 80ms; }
+.animate-in-stagger > *:nth-child(3)  { animation-delay: 160ms; }
+.animate-in-stagger > *:nth-child(4)  { animation-delay: 240ms; }
+.animate-in-stagger > *:nth-child(5)  { animation-delay: 320ms; }
+.animate-in-stagger > *:nth-child(6)  { animation-delay: 400ms; }
+.animate-in-stagger > *:nth-child(7)  { animation-delay: 480ms; }
+.animate-in-stagger > *:nth-child(8)  { animation-delay: 560ms; }
+.animate-in-stagger > *:nth-child(9)  { animation-delay: 640ms; }
+.animate-in-stagger > *:nth-child(10) { animation-delay: 720ms; }
+.animate-in-stagger > *:nth-child(11) { animation-delay: 800ms; }
+.animate-in-stagger > *:nth-child(12) { animation-delay: 880ms; }
+
+.animate-in-cascade > *:nth-child(1)  { animation-delay: 0ms; }
+.animate-in-cascade > *:nth-child(2)  { animation-delay: 50ms; }
+.animate-in-cascade > *:nth-child(3)  { animation-delay: 100ms; }
+.animate-in-cascade > *:nth-child(4)  { animation-delay: 150ms; }
+.animate-in-cascade > *:nth-child(5)  { animation-delay: 200ms; }
+.animate-in-cascade > *:nth-child(6)  { animation-delay: 250ms; }
+.animate-in-cascade > *:nth-child(7)  { animation-delay: 300ms; }
+.animate-in-cascade > *:nth-child(8)  { animation-delay: 350ms; }
+.animate-in-cascade > *:nth-child(9)  { animation-delay: 400ms; }
+.animate-in-cascade > *:nth-child(10) { animation-delay: 450ms; }
+.animate-in-cascade > *:nth-child(11) { animation-delay: 500ms; }
+.animate-in-cascade > *:nth-child(12) { animation-delay: 550ms; }
+
+.animate-pop-in {
+  animation: pop-in-overshoot 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  will-change: transform, opacity;
+}
+
+.animate-slide-in-stack > *:nth-child(1)  { animation-delay: 0ms; }
+.animate-slide-in-stack > *:nth-child(2)  { animation-delay: 120ms; }
+.animate-slide-in-stack > *:nth-child(3)  { animation-delay: 240ms; }
+.animate-slide-in-stack > *:nth-child(4)  { animation-delay: 360ms; }
+.animate-slide-in-stack > *:nth-child(5)  { animation-delay: 480ms; }
+.animate-slide-in-stack > *:nth-child(6)  { animation-delay: 600ms; }
+.animate-slide-in-stack > *:nth-child(7)  { animation-delay: 720ms; }
+.animate-slide-in-stack > *:nth-child(8)  { animation-delay: 840ms; }
+.animate-slide-in-stack > *:nth-child(9)  { animation-delay: 960ms; }
+.animate-slide-in-stack > *:nth-child(10) { animation-delay: 1080ms; }
+.animate-slide-in-stack > *:nth-child(11) { animation-delay: 1200ms; }
+.animate-slide-in-stack > *:nth-child(12) { animation-delay: 1320ms; }
+
+/* ===================================================================
+   86. BORDER ANIMATION
+   Rotating conic-gradient border and pulsing border glow.
+   =================================================================== */
+@keyframes border-glow-pulse-key {
+  0%, 100% {
+    border-color: rgba(255, 255, 255, 0.06);
+  }
+  50% {
+    border-color: rgba(212, 165, 116, 0.3);
+  }
+}
+
+@keyframes conic-rotate {
+  0% { --conic-angle: 0deg; }
+  100% { --conic-angle: 360deg; }
+}
+
+.border-spin {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: none;
+  padding: 1px;
+}
+
+.border-spin::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--conic-angle, 0deg),
+    #D4A574,
+    #FBBF24,
+    #E8C9A8,
+    transparent,
+    #D4A574
+  );
+  animation: conic-rotate 3s linear infinite;
+  z-index: -1;
+  /* Fallback for browsers without @property support */
+  background: conic-gradient(
+    #D4A574,
+    #FBBF24,
+    #E8C9A8,
+    transparent,
+    #D4A574
+  );
+  animation: conic-rotate 3s linear infinite;
+  filter: blur(4px);
+  opacity: 0.6;
+}
+
+@supports (background: conic-gradient(from 0deg, red, blue)) {
+  .border-spin::before {
+    background: conic-gradient(
+      from var(--conic-angle, 0deg),
+      #D4A574,
+      #FBBF24,
+      #E8C9A8,
+      transparent,
+      #D4A574
+    );
+  }
+}
+
+@property --conic-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.border-glow-pulse {
+  animation: border-glow-pulse-key 3s ease-in-out infinite;
+  will-change: border-color;
+}
+
+/* ===================================================================
+   87. SCROLL-LINKED EFFECTS
+   Fade-in and scale-in when scrolled into view.
+   Uses CSS scroll-driven animations where supported, falls back
+   to intersection observer pattern.
+   =================================================================== */
+@keyframes scroll-fade-in-key {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scroll-scale-in-key {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.scroll-fade-in {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+.scroll-fade-in.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.scroll-scale-in {
+  opacity: 0;
+  transform: scale(0.92);
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+.scroll-scale-in.is-visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Scroll-driven animation support (Chrome 115+) */
+@supports (animation-timeline: view()) {
+  .scroll-fade-in {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: scroll-fade-in-key linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 40%;
+  }
+  .scroll-fade-in.is-visible {
+    opacity: unset;
+    transform: unset;
+  }
+
+  .scroll-scale-in {
+    opacity: 0;
+    transform: scale(0.92);
+    animation: scroll-scale-in-key linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 40%;
+  }
+  .scroll-scale-in.is-visible {
+    opacity: unset;
+    transform: unset;
+  }
+}

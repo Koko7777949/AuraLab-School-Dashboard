@@ -89,6 +89,7 @@ interface AppState {
   updateMessage: (id: string, data: Partial<Message>) => void;
   deleteMessage: (id: string) => void;
   archiveMessage: (id: string) => void;
+  unarchiveMessage: (id: string) => void;
   toggleMessageStar: (id: string) => void;
   markMessageRead: (id: string) => void;
 
@@ -105,6 +106,16 @@ interface AppState {
   addLibraryBook: (book: LibraryBook) => void;
   updateLibraryBook: (id: string, data: Partial<LibraryBook>) => void;
   deleteLibraryBook: (id: string) => void;
+
+  // Theme Customizer
+  accentColor: string;
+  setAccentColor: (color: string) => void;
+  uiDensity: 'compact' | 'default' | 'comfortable';
+  setUiDensity: (density: 'compact' | 'default' | 'comfortable') => void;
+  borderRadius: number;
+  setBorderRadius: (radius: number) => void;
+  backgroundStyle: 'solid' | 'gradient' | 'dots';
+  setBackgroundStyle: (style: 'solid' | 'gradient' | 'dots') => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -192,6 +203,31 @@ export const useAppStore = create<AppState>((set) => ({
               patch.exams = [...state.exams, data as Exam];
             }
             break;
+          case 'grade':
+            if (!state.grades.find((g) => g.id === data.id)) {
+              patch.grades = [...state.grades, data as GradeRecord];
+            }
+            break;
+          case 'message':
+            if (!state.messages.find((m) => m.id === data.id)) {
+              patch.messages = [...state.messages, data as Message];
+            }
+            break;
+          case 'behavior':
+            if (!state.behaviors.find((b) => b.id === data.id)) {
+              patch.behaviors = [...state.behaviors, data as BehaviorRecord];
+            }
+            break;
+          case 'schedule':
+            if (!state.scheduleBlocks.find((b) => b.id === data.id)) {
+              patch.scheduleBlocks = [...state.scheduleBlocks, data as ScheduleBlock];
+            }
+            break;
+          case 'library-book':
+            if (!state.libraryBooks.find((b) => b.id === data.id)) {
+              patch.libraryBooks = [...state.libraryBooks, data as LibraryBook];
+            }
+            break;
         }
       } catch {
         // dataJson parse failed — still remove from trash
@@ -269,7 +305,12 @@ export const useAppStore = create<AppState>((set) => ({
   })),
   archiveMessage: (id) => set((state) => ({
     messages: state.messages.map((m) =>
-      m.id === id ? { ...m, isArchived: !m.isArchived } : m
+      m.id === id ? { ...m, isArchived: true } : m
+    ),
+  })),
+  unarchiveMessage: (id) => set((state) => ({
+    messages: state.messages.map((m) =>
+      m.id === id ? { ...m, isArchived: false } : m
     ),
   })),
   toggleMessageStar: (id) => set((state) => ({
@@ -304,4 +345,14 @@ export const useAppStore = create<AppState>((set) => ({
   deleteLibraryBook: (id) => set((state) => ({
     libraryBooks: state.libraryBooks.filter((b) => b.id !== id),
   })),
+
+  // Theme Customizer
+  accentColor: '#D4A574',
+  setAccentColor: (color) => set({ accentColor: color }),
+  uiDensity: 'default',
+  setUiDensity: (density) => set({ uiDensity: density }),
+  borderRadius: 8,
+  setBorderRadius: (radius) => set({ borderRadius: radius }),
+  backgroundStyle: 'dots',
+  setBackgroundStyle: (style) => set({ backgroundStyle: style }),
 }));

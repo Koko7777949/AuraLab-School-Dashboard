@@ -198,7 +198,7 @@ function ClassCard({
 
   return (
     <div
-      className="group rounded-xl p-5 transition-all duration-200 hover:bg-white/[0.04]"
+      className="group card-interactive rounded-xl p-5 transition-all duration-200 hover:bg-white/[0.04]"
       style={{
         backgroundColor: 'rgba(255,255,255,0.02)',
         border: '1px solid rgba(255,255,255,0.06)',
@@ -635,7 +635,7 @@ export default function ClassesSection() {
     <div className="flex flex-col gap-6" dir="rtl">
       {/* ── Page Title ── */}
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 inner-shadow-top rounded-xl p-4">
           <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-[#D4A574]/10">
             <School className="h-5 w-5 text-[#D4A574]" />
           </div>

@@ -78,7 +78,7 @@ export interface Session {
 
 export interface TrashItem {
   id: string;
-  itemType: 'student' | 'teacher' | 'class' | 'exam';
+  itemType: 'student' | 'teacher' | 'class' | 'exam' | 'grade' | 'message' | 'behavior' | 'schedule' | 'library-book';
   itemId: string;
   itemName: string;
   deletedBy: string;

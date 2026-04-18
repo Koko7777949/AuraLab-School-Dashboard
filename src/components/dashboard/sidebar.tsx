@@ -181,7 +181,7 @@ export default function Sidebar() {
           {/* App Logo (visible when open) */}
           <div
             className={`
-              flex items-center gap-2.5 overflow-hidden whitespace-nowrap
+              flex items-center gap-2.5 overflow-hidden whitespace-nowrap border-glow-pulse rounded-lg
               transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
               ${sidebarOpen ? 'opacity-100' : 'pointer-events-none absolute opacity-0'}
             `}

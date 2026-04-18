@@ -190,7 +190,7 @@ export default function AiAssistant() {
 
   /* ══════════════════════════════════════════════════════════ */
   return (
-    <div className="flex flex-col h-full rounded-2xl border border-white/10 bg-[#18181B] overflow-hidden">
+    <div className="flex flex-col h-full rounded-2xl border border-white/10 bg-[#18181B] overflow-hidden glass-heavy">
       {/* ═══════════════════════════════════════════════════════
           HEADER
           ═══════════════════════════════════════════════════════ */}
@@ -313,7 +313,7 @@ export default function AiAssistant() {
           return (
             <div
               key={msg.id}
-              className={`flex items-end gap-2.5 ${
+              className={`flex items-end gap-2.5 scroll-fade-in ${
                 isUser ? 'flex-row' : 'flex-row-reverse'
               }`}
               style={{ marginBottom: showAvatar ? '12px' : '4px', marginTop: showAvatar ? '8px' : '0' }}
