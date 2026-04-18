@@ -1,0 +1,161 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Student {
+  id             String   @id @default(cuid())
+  name           String
+  studentId      String   @unique
+  classId        String?
+  status         String   @default("active") // active, inactive, graduated
+  notes          String   @default("")
+  psychBackground String  @default("")
+  avatar         String   @default("")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  class    Class?  @relation(fields: [classId], references: [id])
+  exams    Exam[]
+  sessions Session[]
+  analytics Analytics[]
+}
+
+model Teacher {
+  id         String   @id @default(cuid())
+  name       String
+  subject    String   @default("")
+  status     String   @default("active")
+  permissions String  @default("teacher") // admin, teacher, supervisor
+  avatar     String   @default("")
+  email      String   @default("")
+  phone      String   @default("")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  classes    TeacherClass[]
+  exams      Exam[]
+  sessions   Session[]
+}
+
+model Class {
+  id          String   @id @default(cuid())
+  name        String
+  grade       String   @default("")
+  room        String   @default("")
+  notes       String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  students    Student[]
+  teachers    TeacherClass[]
+  sessions    Session[]
+}
+
+model TeacherClass {
+  id         String   @id @default(cuid())
+  teacherId  String
+  classId    String
+  createdAt  DateTime @default(now())
+
+  teacher    Teacher @relation(fields: [teacherId], references: [id])
+  class      Class   @relation(fields: [classId], references: [id])
+
+  @@unique([teacherId, classId])
+}
+
+model Exam {
+  id         String   @id @default(cuid())
+  title      String
+  subject    String   @default("")
+  studentId  String?
+  classId    String?
+  teacherId  String?
+  score      Float?
+  maxScore   Float    @default(100)
+  date       DateTime @default(now())
+  notes      String   @default("")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  student    Student?  @relation(fields: [studentId], references: [id])
+  teacher    Teacher?  @relation(fields: [teacherId], references: [id])
+}
+
+model Session {
+  id            String   @id @default(cuid())
+  classId       String?
+  teacherId     String?
+  date          DateTime @default(now())
+  startTime     DateTime?
+  endTime       DateTime?
+  engagementAvg Float?
+  topic         String   @default("")
+  notes         String   @default("")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  class         Class?   @relation(fields: [classId], references: [id])
+  teacher       Teacher? @relation(fields: [teacherId], references: [id])
+  students      Student[]
+  analytics     Analytics[]
+}
+
+model Analytics {
+  id              String   @id @default(cuid())
+  studentId       String?
+  sessionId       String?
+  engagementScore Float?
+  emotionScore    Float?
+  focusScore      Float?
+  codeSwitchCount Int      @default(0)
+  gestureAlerts   Int      @default(0)
+  notes           String   @default("")
+  createdAt       DateTime @default(now())
+
+  student         Student?  @relation(fields: [studentId], references: [id])
+  session         Session?  @relation(fields: [sessionId], references: [id])
+}
+
+model TrashItem {
+  id          String   @id @default(cuid())
+  itemType    String   // student, teacher, class, exam
+  itemId      String
+  itemName    String
+  deletedBy   String   @default("")
+  dataJson    String   @default("") // JSON serialized original data
+  restoredAt  DateTime?
+  createdAt   DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  title     String
+  message   String
+  type      String   @default("info") // info, warning, success, error
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model SystemSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @default("")
+  updatedAt DateTime @updatedAt
+}
+
+model Attendance {
+  id        String   @id @default(cuid())
+  studentId String
+  classId   String?
+  date      DateTime @default(now())
+  status    String   @default("present") // present, absent, late, excused
+  notes     String   @default("")
+  createdAt DateTime @default(now())
+
+  @@unique([studentId, date])
+}

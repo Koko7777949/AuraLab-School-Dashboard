@@ -1,0 +1,150 @@
+// ============================================================
+// AuraLab - Types & Interfaces
+// ============================================================
+
+export interface Student {
+  id: string;
+  name: string;
+  studentId: string;
+  classId: string | null;
+  status: 'active' | 'inactive' | 'graduated';
+  notes: string;
+  psychBackground: string;
+  avatar: string;
+  createdAt: string;
+  updatedAt: string;
+  className?: string;
+}
+
+export interface Teacher {
+  id: string;
+  name: string;
+  subject: string;
+  status: 'active' | 'inactive';
+  permissions: 'admin' | 'teacher' | 'supervisor';
+  avatar: string;
+  email: string;
+  phone: string;
+  createdAt: string;
+  updatedAt: string;
+  classNames?: string[];
+}
+
+export interface ClassRoom {
+  id: string;
+  name: string;
+  grade: string;
+  room: string;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+  studentCount?: number;
+  teacherNames?: string[];
+}
+
+export interface Exam {
+  id: string;
+  title: string;
+  subject: string;
+  studentId: string | null;
+  classId: string | null;
+  teacherId: string | null;
+  score: number | null;
+  maxScore: number;
+  date: string;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+  studentName?: string;
+  teacherName?: string;
+  className?: string;
+}
+
+export interface Session {
+  id: string;
+  classId: string | null;
+  teacherId: string | null;
+  date: string;
+  startTime: string | null;
+  endTime: string | null;
+  engagementAvg: number | null;
+  topic: string;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+  className?: string;
+  teacherName?: string;
+}
+
+export interface TrashItem {
+  id: string;
+  itemType: 'student' | 'teacher' | 'class' | 'exam';
+  itemId: string;
+  itemName: string;
+  deletedBy: string;
+  dataJson: string;
+  restoredAt: string | null;
+  createdAt: string;
+}
+
+export interface AppNotification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'warning' | 'success' | 'error';
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface SystemSetting {
+  id: string;
+  key: string;
+  value: string;
+  updatedAt: string;
+}
+
+export type ActiveSection = 
+  | 'dashboard' 
+  | 'students' 
+  | 'teachers' 
+  | 'classes' 
+  | 'exams' 
+  | 'sessions'
+  | 'analytics' 
+  | 'notifications' 
+  | 'trash' 
+  | 'settings' 
+  | 'ai-assistant';
+
+export interface KpiData {
+  label: string;
+  value: string | number;
+  percentage?: number;
+  status: 'stable' | 'improved' | 'needs-attention' | 'active' | 'completed' | 'critical';
+  icon: string;
+  color: string;
+  trend?: 'up' | 'down' | 'neutral';
+  subtext?: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+}
+
+export interface DashboardStats {
+  totalStudents: number;
+  activeStudents: number;
+  totalTeachers: number;
+  totalClasses: number;
+  avgEngagement: number;
+  avgFocus: number;
+  avgScore: number;
+  attendanceRate: number;
+  totalExams: number;
+  totalSessions: number;
+  alertsCount: number;
+  topStudents: Student[];
+}
