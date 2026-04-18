@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState, useRef, useEffect } from 'react';
+import { useCallback, useState, useRef, useEffect, useMemo } from 'react';
 import {
   Search,
   FileDown,
@@ -13,6 +13,8 @@ import {
   Bell,
   User,
   LogOut,
+  Clock,
+  Keyboard,
 } from 'lucide-react';
 import {
   Tooltip,
@@ -85,6 +87,27 @@ export default function Header() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [filteredSuggestions, setFilteredSuggestions] = useState<typeof SEARCH_SUGGESTIONS>([]);
   const searchRef = useRef<HTMLDivElement>(null);
+
+  // Live clock
+  const [currentTime, setCurrentTime] = useState('');
+  const [currentDate, setCurrentDate] = useState('');
+
+  useEffect(() => {
+    const updateClock = () => {
+      const now = new Date();
+      setCurrentTime(now.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+      setCurrentDate(now.toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }));
+    };
+    updateClock();
+    const interval = setInterval(updateClock, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const timeParts = useMemo(() => {
+    if (!currentTime) return { time: '', seconds: '' };
+    const parts = currentTime.split(':');
+    return { time: `${parts[0]}:${parts[1]}`, seconds: parts[2] || '' };
+  }, [currentTime]);
 
   const toggleLang = useCallback(() => {
     setLang((prev) => (prev === 'AR' ? 'EN' : 'AR'));
@@ -214,10 +237,21 @@ export default function Header() {
         </div>
 
         {/* ----------------------------------------------------------------- */}
-        {/* Center — App name with amber gradient */}
+        {/* Center — Live Clock + App name */}
         {/* ----------------------------------------------------------------- */}
-        <div className="hidden items-center justify-center sm:flex">
-          <h1 className="text-xl font-bold tracking-tight select-none">
+        <div className="hidden sm:flex flex-col items-center justify-center gap-0.5 min-w-0">
+          {/* Live clock */}
+          <div className="flex items-center gap-2 select-none">
+            <Clock size={13} strokeWidth={1.8} className="text-[#D4A574]/60" />
+            <span className="text-sm font-semibold tabular-nums tracking-wider text-[#C4C4D4]" dir="ltr">
+              {timeParts.time}
+            </span>
+            <span className="text-xs font-medium tabular-nums text-[#8B8B9E] min-w-[18px] text-center" dir="ltr">
+              {timeParts.seconds}
+            </span>
+          </div>
+          {/* App name */}
+          <h1 className="text-sm font-bold tracking-tight select-none">
             <span
               className="bg-clip-text text-transparent"
               style={{
@@ -228,6 +262,10 @@ export default function Header() {
               AuraLab
             </span>
           </h1>
+          {/* Date */}
+          <span className="text-[10px] text-[#5A5A6E] truncate max-w-[180px]">
+            {currentDate}
+          </span>
         </div>
 
         {/* ----------------------------------------------------------------- */}

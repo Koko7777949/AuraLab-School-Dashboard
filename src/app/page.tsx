@@ -15,6 +15,7 @@ import NotificationsSection from '@/components/dashboard/notifications-section';
 import AiAssistant from '@/components/dashboard/ai-assistant';
 import TrashSection from '@/components/dashboard/trash-section';
 import SettingsSection from '@/components/dashboard/settings-section';
+import KeyboardShortcuts from '@/components/dashboard/keyboard-shortcuts';
 import type { ActiveSection } from '@/lib/types';
 
 function SectionRenderer({ section }: { section: ActiveSection }) {
@@ -132,7 +133,12 @@ export default function Home() {
       {/* Loading overlay */}
       {!isStoreReady && <LoadingOverlay />}
 
-      <div className="min-h-screen bg-background flex">
+      <div className="min-h-screen bg-background flex relative overflow-hidden">
+        {/* Floating Ambient Orbs - decorative background elements */}
+        <div className="ambient-orb-1 pointer-events-none" aria-hidden="true" />
+        <div className="ambient-orb-2 pointer-events-none" aria-hidden="true" />
+        <div className="ambient-orb-3 pointer-events-none" aria-hidden="true" />
+        
         {/* Sidebar */}
         <Sidebar />
 
@@ -235,6 +241,9 @@ export default function Home() {
           </footer>
         </div>
       </div>
+
+      {/* Keyboard Shortcuts Overlay (global) */}
+      <KeyboardShortcuts />
     </>
   );
 }

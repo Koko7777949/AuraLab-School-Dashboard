@@ -10,11 +10,13 @@ import {
   Search,
   Award,
   TrendingUp,
+  Download,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import type { Exam } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { exportToCSV, formatCsvDate } from '@/lib/csv-export';
 
 // shadcn/ui
 import { Button } from '@/components/ui/button';
@@ -925,6 +927,28 @@ export default function ExamsSection() {
     setDeleteOpen(true);
   };
 
+  const handleExportExams = () => {
+    const exportData = exams.map((e) => ({
+      title: e.title,
+      subject: e.subject,
+      score: e.score !== null ? String(e.score) : '',
+      maxScore: String(e.maxScore),
+      percentage: e.score !== null ? `${Math.round((e.score / e.maxScore) * 100)}%` : '',
+      date: formatCsvDate(e.date),
+      notes: e.notes || '',
+    }));
+    exportToCSV(exportData, 'exams', [
+      { key: 'title', label: 'العنوان' },
+      { key: 'subject', label: 'المادة' },
+      { key: 'score', label: 'الدرجة' },
+      { key: 'maxScore', label: 'الدرجة القصوى' },
+      { key: 'percentage', label: 'النسبة' },
+      { key: 'date', label: 'التاريخ' },
+      { key: 'notes', label: 'الملاحظات' },
+    ]);
+    toast.success('تم تصدير بيانات الامتحانات بنجاح');
+  };
+
   return (
     <div className="flex flex-col gap-6" dir="rtl">
       {/* ── Page Title ── */}
@@ -980,14 +1004,24 @@ export default function ExamsSection() {
           border: '1px solid rgba(255,255,255,0.06)',
         }}
       >
-        {/* Add button */}
-        <Button
-          onClick={handleAdd}
-          className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold gap-2 rounded-lg px-5 h-10"
-        >
-          <Plus className="h-4 w-4" />
-          إضافة امتحان جديد
-        </Button>
+        {/* Add & Export buttons */}
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={handleAdd}
+            className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold gap-2 rounded-lg px-5 h-10"
+          >
+            <Plus className="h-4 w-4" />
+            إضافة امتحان جديد
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleExportExams}
+            className="border-[#D4A574]/30 text-[#D4A574] hover:bg-[#D4A574]/10 gap-2 rounded-lg px-4 h-10"
+          >
+            <Download className="h-4 w-4" />
+            تصدير CSV
+          </Button>
+        </div>
 
         {/* Search & Filters */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">

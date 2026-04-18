@@ -29,6 +29,7 @@ import {
 import StatCard from './stat-card';
 import SectionCard from './section-card';
 import SessionTimer from './session-timer';
+import CalendarWidget from './calendar-widget';
 import { useAppStore } from '@/lib/store';
 import type { DashboardStats } from '@/lib/types';
 
@@ -1171,12 +1172,19 @@ export default function DashboardOverview() {
         >
           <AttendanceDistribution />
         </SectionCard>
+      </div>
+
+      {/* ── Calendar + Upcoming Events Row ── */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 animate-fade-in-up opacity-0" style={{ animationDelay: '1100ms' }}>
+        {/* Calendar Widget */}
+        <div className="flex items-start justify-center">
+          <CalendarWidget />
+        </div>
 
         {/* Upcoming Events */}
         <SectionCard
           title="الأحداث القادمة"
           icon={<Calendar className="h-4 w-4" />}
-          className="md:col-span-2 lg:col-span-1"
           action={
             <span className="flex items-center gap-1.5 text-xs font-medium text-sky-400">
               <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />

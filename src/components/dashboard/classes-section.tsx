@@ -10,11 +10,13 @@ import {
   Trash2,
   Plus,
   Search,
+  Download,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import type { ClassRoom } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { exportToCSV, formatCsvDate } from '@/lib/csv-export';
 
 // shadcn/ui
 import { Button } from '@/components/ui/button';
@@ -611,6 +613,24 @@ export default function ClassesSection() {
     setDeleteOpen(true);
   };
 
+  const handleExportClasses = () => {
+    const exportData = classes.map((c) => ({
+      name: c.name,
+      grade: c.grade,
+      room: c.room,
+      notes: c.notes || '',
+      createdAt: formatCsvDate(c.createdAt),
+    }));
+    exportToCSV(exportData, 'classes', [
+      { key: 'name', label: 'اسم الصف' },
+      { key: 'grade', label: 'المرحلة' },
+      { key: 'room', label: 'القاعة' },
+      { key: 'notes', label: 'الملاحظات' },
+      { key: 'createdAt', label: 'تاريخ الإنشاء' },
+    ]);
+    toast.success('تم تصدير بيانات الصفوف بنجاح');
+  };
+
   return (
     <div className="flex flex-col gap-6" dir="rtl">
       {/* ── Page Title ── */}
@@ -641,14 +661,24 @@ export default function ClassesSection() {
           border: '1px solid rgba(255,255,255,0.06)',
         }}
       >
-        {/* Add button */}
-        <Button
-          onClick={handleAdd}
-          className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold gap-2 rounded-lg px-5 h-10"
-        >
-          <Plus className="h-4 w-4" />
-          إضافة صف جديد
-        </Button>
+        {/* Add & Export buttons */}
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={handleAdd}
+            className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold gap-2 rounded-lg px-5 h-10"
+          >
+            <Plus className="h-4 w-4" />
+            إضافة صف جديد
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleExportClasses}
+            className="border-[#D4A574]/30 text-[#D4A574] hover:bg-[#D4A574]/10 gap-2 rounded-lg px-4 h-10"
+          >
+            <Download className="h-4 w-4" />
+            تصدير CSV
+          </Button>
+        </div>
 
         {/* Search & Filter */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">

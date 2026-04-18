@@ -11,12 +11,16 @@ import {
   Calendar,
   GraduationCap,
   Activity,
-  BookOpen,
-  Clock,
+  PieChart,
+  Target,
+  LineChart,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import SectionCard from './section-card';
 import StatCard from './stat-card';
+import DonutChart from '@/components/charts/donut-chart';
+import RadarChart from '@/components/charts/radar-chart';
+import AreaChart from '@/components/charts/area-chart';
 import { cn } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
@@ -95,6 +99,36 @@ const TOP_STUDENTS: TopStudent[] = [
   { rank: 3, name: 'فاطمة أحمد حسن', score: 93, trend: 'neutral' },
   { rank: 4, name: 'محمد عبدالرحمن الدوسري', score: 91, trend: 'up' },
   { rank: 5, name: 'لطيفة عايض الحربي', score: 89, trend: 'down' },
+];
+
+const STATUS_DISTRIBUTION = [
+  { label: 'نشط', value: 72, color: '#10b981' },
+  { label: 'غير نشط', value: 18, color: '#f59e0b' },
+  { label: 'متخرّج', value: 10, color: '#0ea5e9' },
+];
+
+const PERFORMANCE_RADAR = [
+  { label: 'التحصيل', value: 78 },
+  { label: 'التفاعل', value: 85 },
+  { label: 'الحضور', value: 92 },
+  { label: 'المشاركة', value: 70 },
+  { label: 'السلوك', value: 88 },
+  { label: 'المهارات', value: 75 },
+];
+
+const MONTHLY_PERFORMANCE = [
+  { label: 'محرم', value: 68 },
+  { label: 'صفر', value: 72 },
+  { label: 'ربيع أول', value: 65 },
+  { label: 'ربيع ثاني', value: 78 },
+  { label: 'جمادى أول', value: 82 },
+  { label: 'جمادى ثاني', value: 75 },
+  { label: 'رجب', value: 88 },
+  { label: 'شعبان', value: 85 },
+  { label: 'رمضان', value: 70 },
+  { label: 'شوال', value: 92 },
+  { label: 'ذو القعدة', value: 86 },
+  { label: 'ذو الحجة', value: 80 },
 ];
 
 const PERFORMANCE_ALERTS: PerformanceAlert[] = [
@@ -450,6 +484,84 @@ export default function AnalyticsSection() {
                 delay={400 + index * 100}
               />
             ))}
+          </div>
+        </SectionCard>
+      </div>
+
+      {/* ── SVG Charts Row ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Status Donut Chart */}
+        <SectionCard
+          title="توزيع الحالات"
+          icon={<PieChart className="h-4 w-4" />}
+          action={
+            <span className="text-xs text-muted-foreground bg-white/[0.04] px-3 py-1.5 rounded-lg">
+              إجمالي: 120 طالب
+            </span>
+          }
+        >
+          <div className="flex flex-col items-center py-2">
+            <DonutChart
+              segments={STATUS_DISTRIBUTION}
+              size={170}
+              strokeWidth={22}
+              centerLabel="إجمالي"
+              centerValue="120"
+            />
+            <div className="flex items-center justify-between w-full mt-4 pt-3 border-t border-white/[0.04]">
+              {STATUS_DISTRIBUTION.map((seg) => (
+                <div key={seg.label} className="flex flex-col items-center gap-1">
+                  <span className="text-lg font-bold text-white tabular-nums">
+                    {seg.value}
+                  </span>
+                  <span className="text-[10px] text-slate-500">{seg.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </SectionCard>
+
+        {/* Radar Chart - Performance Indicators */}
+        <SectionCard
+          title="مؤشرات الأداء الشامل"
+          icon={<Target className="h-4 w-4" />}
+          action={
+            <span className="text-xs text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5">
+              <TrendingUp className="h-3.5 w-3.5" />
+              متوسط: 81%
+            </span>
+          }
+        >
+          <div className="flex flex-col items-center py-1">
+            <RadarChart
+              points={PERFORMANCE_RADAR}
+              size={210}
+              color="#D4A574"
+              maxValue={100}
+            />
+          </div>
+        </SectionCard>
+
+        {/* Area Chart - Monthly Performance */}
+        <SectionCard
+          title="الاتجاه الشهري للأداء"
+          icon={<LineChart className="h-4 w-4" />}
+          action={
+            <span className="text-xs text-[#D4A574] bg-[#D4A574]/10 px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5">
+              <TrendingUp className="h-3.5 w-3.5" />
+              +12% عن العام الماضي
+            </span>
+          }
+        >
+          <div className="py-1">
+            <AreaChart
+              data={MONTHLY_PERFORMANCE}
+              width={420}
+              height={200}
+              color="#D4A574"
+              showDots={true}
+              animate={true}
+            />
           </div>
         </SectionCard>
       </div>

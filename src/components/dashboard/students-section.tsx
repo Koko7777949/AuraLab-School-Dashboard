@@ -12,11 +12,13 @@ import {
   ChevronLeft,
   ChevronRight,
   BookOpen,
+  Download,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import type { Student } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { exportToCSV, formatCsvDate } from '@/lib/csv-export';
 
 // shadcn/ui
 import { Button } from '@/components/ui/button';
@@ -756,6 +758,26 @@ export default function StudentsSection() {
     setDeleteOpen(true);
   };
 
+  const handleExportStudents = () => {
+    const exportData = students.map((s) => ({
+      name: s.name,
+      studentId: s.studentId,
+      classId: getClassName(s.classId),
+      status: STATUS_MAP[s.status].label,
+      notes: s.notes || '',
+      createdAt: formatCsvDate(s.createdAt),
+    }));
+    exportToCSV(exportData, 'students', [
+      { key: 'name', label: 'الاسم' },
+      { key: 'studentId', label: 'الرقم التعريفي' },
+      { key: 'classId', label: 'الفصل' },
+      { key: 'status', label: 'الحالة' },
+      { key: 'notes', label: 'الملاحظات' },
+      { key: 'createdAt', label: 'تاريخ التسجيل' },
+    ]);
+    toast.success('تم تصدير بيانات الطلاب بنجاح');
+  };
+
   const handlePrevPage = () => {
     setCurrentPage((p) => Math.max(1, p - 1));
   };
@@ -794,14 +816,24 @@ export default function StudentsSection() {
           border: '1px solid rgba(255,255,255,0.06)',
         }}
       >
-        {/* Add button */}
-        <Button
-          onClick={handleAdd}
-          className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold gap-2 rounded-lg px-5 h-10"
-        >
-          <UserPlus className="h-4 w-4" />
-          إضافة طالب جديد
-        </Button>
+        {/* Add & Export buttons */}
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={handleAdd}
+            className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold gap-2 rounded-lg px-5 h-10"
+          >
+            <UserPlus className="h-4 w-4" />
+            إضافة طالب جديد
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleExportStudents}
+            className="border-[#D4A574]/30 text-[#D4A574] hover:bg-[#D4A574]/10 gap-2 rounded-lg px-4 h-10"
+          >
+            <Download className="h-4 w-4" />
+            تصدير CSV
+          </Button>
+        </div>
 
         {/* Search & Filter */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
