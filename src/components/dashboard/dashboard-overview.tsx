@@ -314,7 +314,7 @@ function NotificationItem({
   status: keyof typeof notificationStatusStyles;
 }) {
   return (
-    <div className="flex items-start gap-3 py-3 transition-colors duration-200 hover:bg-white/[0.02] rounded-lg px-2 -mx-2">
+    <div className="flex items-start gap-3 py-3 transition-colors duration-200 hover:bg-white/[0.02] rounded-lg px-2 -mx-2 data-row-hover">
       {/* Status dot */}
       <div className="mt-1.5 shrink-0">
         <span
@@ -1063,6 +1063,9 @@ export default function DashboardOverview() {
         </div>
       </div>
 
+      {/* ── Ornamental Divider ── */}
+      <div className="divider-ornament animate-fade-in opacity-0" style={{ animationDelay: '650ms' }} />
+
       {/* ── Quick Actions Row (expanded to 6) ── */}
       <div className="animate-fade-in-up opacity-0" style={{ animationDelay: '700ms' }}>
         <h3 className="text-sm font-semibold text-muted-foreground mb-3 smooth-underline cursor-pointer" onClick={() => setActiveSection('students')}>إجراءات سريعة</h3>
@@ -1119,6 +1122,9 @@ export default function DashboardOverview() {
         </SectionCard>
       </div>
 
+      {/* ── Ornamental Divider ── */}
+      <div className="divider-ornament animate-fade-in opacity-0" style={{ animationDelay: '850ms' }} />
+
       {/* ── Today's Schedule + Student Performance Row ── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 animate-fade-in-up opacity-0" style={{ animationDelay: '900ms' }}>
         {/* Today's Schedule Widget */}
@@ -1153,6 +1159,9 @@ export default function DashboardOverview() {
           </div>
         </SectionCard>
       </div>
+
+      {/* ── Ornamental Divider ── */}
+      <div className="divider-ornament animate-fade-in opacity-0" style={{ animationDelay: '950ms' }} />
 
       {/* ── Bottom Row: Classroom Map + Attendance + Upcoming Events ── */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 animate-fade-in-up opacity-0" style={{ animationDelay: '1000ms' }}>

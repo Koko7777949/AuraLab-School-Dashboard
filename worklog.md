@@ -686,3 +686,202 @@ Current Project Status Assessment (Round 5):
 5. **MEDIUM**: Real-time WebSocket updates for live dashboard
 6. **LOW**: PWA configuration for mobile access
 7. **LOW**: Predictive analytics with ML models
+
+---
+Task ID: 6c
+Agent: CSS Styling Expert (Frontend Styling Sub-Agent)
+Task: Major CSS styling enhancements — append new utility classes to globals.css
+
+Work Log:
+- Read worklog.md to understand full project context (5 prior rounds, 1483 lines of CSS)
+- Read globals.css (sections 1-48, ~1483 lines) to identify existing patterns and avoid conflicts
+- Read sidebar.tsx, stat-card.tsx, section-card.tsx, header.tsx to understand component CSS class usage patterns
+- Identified existing classes to avoid duplicating: .noise-overlay (section 38), .shimmer-loading, .shimmer-card, .glass-card, .glass-card-elevated, .glass-card-hover, .glass-card-gradient, .card-hover, .card-tilt
+- Confirmed color palette: amber (#D4A574), charcoal (#121218), card (#1A1A24), text (#E8E8ED), muted (#6B6B76)
+
+### CSS Additions (sections 49-62, ~1114 new lines appended):
+
+**49. Enhanced Card Styles (5 classes):**
+- `.card-spotlight` — CSS-only radial gradient spotlight using CSS custom properties (--spotlight-x, --spotlight-y) for mouse-tracking position, appears on hover with amber glow
+- `.card-gradient-hover` — Gradient border pseudo-element that fades from opacity 0→1 on hover with smooth 0.5s transition
+- `.card-glass-subtle` — Lighter glass morphism with 8px blur, subtle border, and hover enhancement
+- `.card-elevated` — Multi-layer shadow (3 layers) with 3px hover lift and additional shadow layer
+- `.card-interactive` — Scale 1.015 on hover with amber border glow, scale 0.985 on active for press feedback
+
+**50. Button Enhancements (4 classes + 2 keyframes):**
+- `.btn-amber-glow` — Amber gradient button with continuous glow pulse animation (2.5s)
+- `.btn-shine` — Diagonal shine sweep effect using skewed pseudo-element that slides on hover
+- `.btn-press` — 3D press-down with layered shadows (lift on hover, press on active)
+- `.btn-gradient-border` — Animated gradient border using mask-composite technique (4s shift animation)
+
+**51. Data Display Enhancements (4 classes + 1 keyframe):**
+- `.data-row-hover` — Table row with transparent→amber right border on hover (RTL right-side accent)
+- `.data-cell-highlight` — Cell with amber glow on `.highlight-active` and `.glow-once` (0.8s fade animation)
+- `.data-badge-pulse` — Gentle scale 1→1.06→1 pulse with opacity variation (2.5s)
+- `.data-empty-state` + sub-classes — Complete empty state system with icon, title, description, and action button
+
+**52. Navigation Enhancements (3 component systems):**
+- `.nav-breadcrumb` — Flexbox breadcrumb with amber dot separators (4px circles), hover color change, active state
+- `.nav-tab-indicator` — Tab bar system with sliding track indicator (position+width transition), glow effect
+- `.nav-step` — Multi-step form indicator with circle states (pending/active/completed), connecting lines, labels
+
+**53. Form Enhancements (4 classes + 1 keyframe):**
+- `.form-input-enhanced` — Float label pattern using :not(:placeholder-shown), amber focus ring with glow
+- `.form-group` — Flex column with consistent gap, includes label (.form-group-label) and hint (.form-group-hint)
+- `.form-select-custom` — Custom select with amber SVG chevron arrow, dark option background
+- `.form-error` — Red border + red focus ring, `.shake` variant with 0.4s horizontal shake animation
+
+**54. Loading & Transition States (5 classes + 4 keyframes):**
+- `.skeleton-glass` — Glass-morphism skeleton with backdrop blur and moving shimmer
+- `.skeleton-text` + `.skeleton-text-line` — Multi-line text skeleton with decreasing widths (100%→60%)
+- `.skeleton-card` + sub-classes — Card-shaped skeleton with header, body lines, circle avatar placeholder
+- `.transition-page` — Fade + scale(0.98→1) page transition (0.35s)
+- `.transition-slide-rtl` + `-exit` — RTL-aware slide from right (translateX 24px→0) with exit variant
+
+**55. Decorative Elements (3 classes):**
+- `.divider-ornament` + `.divider-ornament-diamond` — Horizontal divider with amber gradient lines and center diamond
+- `.corner-accent` — Amber L-shaped corner marks at top-right and bottom-left (RTL-aware)
+- `.dot-pattern` — 16px spacing dot grid background pattern
+
+**56. Scroll Enhancements (3 classes + 2 keyframes):**
+- `.scroll-shadow-top` — Sticky gradient fade at top of scroll container
+- `.scroll-shadow-bottom` — Sticky gradient fade at bottom of scroll container
+- `.scroll-indicator` + `.scroll-indicator-dot` — Three-dot animated pulse indicator with bounce
+
+**57. Tooltip Enhancements (2 classes + 2 keyframes):**
+- `.tooltip-amber` — Amber gradient tooltip with CSS arrow (data-side attribute support)
+- `.tooltip-dark` — Dark glass tooltip with 20px backdrop blur and subtle amber border
+
+**58. Animation Utility Classes (18 classes + 4 keyframes):**
+- `.animate-fade-in-delay-1` through `-5` — Staggered fade-in (100ms increments)
+- `.animate-scale-in-delay-1` through `-5` — Staggered scale-in (100ms increments)
+- `.animate-slide-up-delay-1` through `-5` — Staggered slide-up (100ms increments)
+- `.animate-bounce-subtle` — Reduced-amplitude bounce (6px height, 1.2s)
+- `.animate-pulse-slow` — 3s opacity pulse (1→0.6→1)
+- `.animate-spin-slow` — 4s full rotation
+- `.animate-wiggle` — Multi-step rotation wiggle (±3°→±0.5°, 0.8s)
+
+**59. Responsive Helpers (5 classes):**
+- `.hide-scrollbar` — Cross-browser scrollbar hiding (Chrome + Firefox + IE)
+- `.text-balance` — CSS text-wrap: balance for headings
+- `.scroll-snap-x` — Horizontal scroll snap with mandatory snapping
+- `.clamp-lines-2` — -webkit-line-clamp: 2 with ellipsis
+- `.clamp-lines-3` — -webkit-line-clamp: 3 with ellipsis
+
+**60-62. Suppleme---
+
+Task ID: 6a
+Agent: Student Profile Builder
+Task: Create comprehensive Student Profile Detail View component
+
+Work Log:
+- Read worklog.md, types.ts, store.ts, students-section.tsx to understand project context
+- Created `/src/components/dashboard/student-profile.tsx` (~1100 lines) with full profile view
+- Updated `/src/components/dashboard/students-section.tsx` to integrate StudentProfile dialog
+- Fixed React Compiler lint errors (refs-during-render → useState lazy initializers)
+
+### Student Profile Component Features:
+
+**1. Profile Header:**
+- Large avatar circle with student initials, colored based on status (emerald/amber/sky gradient)
+- Student name (large), studentId badge (mono font), status badge with colored dot
+- Class name and registration date with icons
+- Action buttons: إرسال رسالة (Send), إضافة ملاحظة (Add Note), Print button
+- Close button (top-left, RTL aware)
+
+**2. Tab Navigation (4 tabs with amber active styling):**
+- المعلومات الشخصية (Personal Info) - User icon
+- الدرجات والأداء (Grades & Performance) - TrendingUp icon
+- الحضور (Attendance) - CheckCircle2 icon
+- ملاحظات نفسية (Psychological Notes) - Brain icon
+
+**3. Tab 1 - Personal Info:**
+- 6 read-only info fields in 2-column grid (name, studentId, class, status, registration date, last update)
+- Each field has icon container with amber background
+- Editable textareas for notes and psych background (disabled when not editing)
+- Edit/Save/Cancel buttons with amber accent
+- Saves to Zustand store via updateStudent
+
+**4. Tab 2 - Grades & Performance:**
+- 4 summary stat cards: Average GPA, Highest Score, Lowest Score, Exam Count
+- Color-coded values (amber for average, emerald for highest, rose for lowest, sky for count)
+- Grade distribution bar (5 segments: ممتاز/جيد جداً/جيد/مقبول/ضعيف) with colored segments and legend
+- Sparkline chart (pure SVG, Catmull-Rom curves, gradient fill, end dot with glow)
+- Grades table with subject, exam type, score/maxScore, percentage badge (color-coded), date
+- Table has alternating row colors and hover effects
+- Export grades button (CSV download via exportToCSV utility)
+- Empty state with icon when no grades exist
+
+**5. Tab 3 - Attendance:**
+- 4 summary cards: Attendance Rate (with progress bar), Absent Days, Late Days, Excused Days
+- Each card has icon, count, and contextual subtitle
+- Mini heatmap (last 30 days, color-coded cells by status)
+- Weekend days shown as empty cells
+- Legend showing all 4 status colors
+- Detailed attendance table with date, status badge, day name (Arabic)
+- Mock data generated with 22 records (skipping weekends)
+
+**6. Tab 4 - Psychological Notes:**
+- Confidential warning banner (amber-tinted with ShieldCheck icon)
+- General psych background display section
+- Add new note form (textarea + submit button)
+- Notes timeline view with vertical line, colored dots (amber for newest)
+- Each note shows date, author badge, and content in bordered card
+- Empty state when no notes
+
+### Technical Details:
+- Uses `Dialog` from shadcn/ui as full-screen modal (max-w-4xl, 95vw, 92vh max height)
+- Mock data seeded via `useState` lazy initializer (React Compiler compatible)
+- Grades fetched from `useAppStore().grades` and filtered by studentId
+- All handlers wrapped in `useCallback` with stable dependencies
+- All text in Arabic (RTL)
+- Uses glass-card-elevated class for sub-cards
+- Consistent amber (#D4A574) accent, dark theme (#121218 bg)
+- No external chart libraries — pure SVG for sparkline and grade distribution bar
+- CSV export for grades using existing csv-export utility
+
+### Integration Changes (students-section.tsx):
+- Added import for StudentProfile component
+- Added `useCallback` import
+- Added `handleCloseProfile` callback
+- Replaced `ViewStudentDialog` with conditional `StudentProfile` render
+- Existing add/edit/delete dialogs kept intact
+
+### Verification:
+- ESLint: 0 errors, 1 warning (pre-existing font warning in layout.tsx)
+- Dev server: compiles successfully, GET / returns HTTP 200
+
+Stage Summary:
+- 1 new component file created (student-profile.tsx, ~1100 lines)
+- 1 existing file modified (students-section.tsx — 3 additions: import, callback, dialog replacement)
+- Student view action now opens comprehensive profile instead of simple dialog
+- 4-tab layout with personal info, grades, attendance, psychological notes
+- Pure SVG visualizations (sparkline, grade distribution bar, attendance heatmap)
+- React Compiler compatible (no refs-during-render, no set-state-in-effect)
+- All features functional with mock data; grades tab dynamically reads from store
+
+**(Referenced by existing components — previously appended utility animations):**
+- `.animate-sidebar-slide-in` — Sidebar mobile slide-in from right (already used in sidebar.tsx)
+- `.animate-logo-gradient` — Logo background-position shift (already used in sidebar.tsx)
+- `.animate-indicator-glow` — Active indicator glow pulse (already used in sidebar.tsx)
+
+### Technical Notes:
+- All animations use cubic-bezier or ease timing functions (no linear except existing scroll-progress)
+- Color palette strictly adhered to: amber (#D4A574), charcoal (#121218), card (#1A1A24), text (#E8E8ED), muted (#6B6B76)
+- All keyframes placed at end of file or immediately after their usage class
+- Zero modifications to existing CSS rules — strictly append-only
+- No JS dependencies required — all effects are CSS-only
+- .noise-overlay was already present (section 38), so .dot-pattern was created as a standalone variant with 16px spacing
+- Sidebar animation keyframes (60-62) were already referenced in sidebar.tsx but previously defined in JS — now formalized in CSS
+
+### Verification:
+- ESLint: 0 errors, 1 pre-existing warning (@next/next/no-page-custom-font — unrelated)
+- File size: 1483 → ~2597 lines (~1114 new lines appended)
+- All 70+ new CSS classes and 20+ new keyframes compile cleanly
+- No conflicts with existing 48 CSS sections
+
+Stage Summary:
+- 14 new CSS sections appended (sections 49-62) with 70+ utility classes
+- 11 categories of enhancements: cards, buttons, data display, navigation, forms, loading/transitions, decorative elements, scroll, tooltips, animations, responsive helpers, and supplementary utilities
+- Comprehensive design system additions ready for immediate use across all dashboard components
+- Zero breaking changes — fully backward compatible with existing 1483 lines

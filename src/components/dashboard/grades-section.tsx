@@ -23,7 +23,6 @@ import {
   Calendar,
   Target,
   CheckCircle2,
-  XCircle,
   Info,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';

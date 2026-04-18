@@ -13,6 +13,7 @@ import SessionsSection from '@/components/dashboard/sessions-section';
 import AttendanceSection from '@/components/dashboard/attendance-section';
 import GradesSection from '@/components/dashboard/grades-section';
 import AnalyticsSection from '@/components/dashboard/analytics-section';
+import ReportsSection from '@/components/dashboard/reports-section';
 import AnnouncementsSection from '@/components/dashboard/announcements-section';
 import MessagesSection from '@/components/dashboard/messages-section';
 import NotificationsSection from '@/components/dashboard/notifications-section';
@@ -42,6 +43,8 @@ function SectionRenderer({ section }: { section: ActiveSection }) {
       return <GradesSection />;
     case 'analytics':
       return <AnalyticsSection />;
+    case 'reports':
+      return <ReportsSection />;
     case 'announcements':
       return <AnnouncementsSection />;
     case 'messages':
@@ -217,7 +220,7 @@ export default function Home() {
                 </nav>
 
                 {/* Version */}
-                <p className="text-xs text-muted-foreground/50">الإصدار 2.2.0</p>
+                <p className="text-xs text-muted-foreground/50">الإصدار 2.3.0</p>
               </div>
 
               {/* Mobile layout: stacked */}
@@ -247,7 +250,7 @@ export default function Home() {
                   ))}
                 </nav>
 
-                <p className="text-[11px] text-muted-foreground/40">الإصدار 2.2.0</p>
+                <p className="text-[11px] text-muted-foreground/40">الإصدار 2.3.0</p>
               </div>
             </div>
           </footer>

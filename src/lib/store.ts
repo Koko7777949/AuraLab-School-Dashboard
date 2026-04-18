@@ -81,6 +81,7 @@ interface AppState {
   addMessage: (message: Message) => void;
   updateMessage: (id: string, data: Partial<Message>) => void;
   deleteMessage: (id: string) => void;
+  archiveMessage: (id: string) => void;
   toggleMessageStar: (id: string) => void;
   markMessageRead: (id: string) => void;
 }
@@ -141,9 +142,42 @@ export const useAppStore = create<AppState>((set) => ({
   trashItems: [],
   setTrashItems: (items) => set({ trashItems: items }),
   addToTrash: (item) => set((state) => ({ trashItems: [...state.trashItems, item] })),
-  restoreFromTrash: (id) => set((state) => ({
-    trashItems: state.trashItems.filter((t) => t.id !== id),
-  })),
+  restoreFromTrash: (id) => set((state) => {
+    const item = state.trashItems.find((t) => t.id === id);
+    const patch: Record<string, unknown> = {
+      trashItems: state.trashItems.filter((t) => t.id !== id),
+    };
+    if (item) {
+      try {
+        const data = JSON.parse(item.dataJson);
+        switch (item.itemType) {
+          case 'student':
+            if (!state.students.find((s) => s.id === data.id)) {
+              patch.students = [...state.students, data as Student];
+            }
+            break;
+          case 'teacher':
+            if (!state.teachers.find((t) => t.id === data.id)) {
+              patch.teachers = [...state.teachers, data as Teacher];
+            }
+            break;
+          case 'class':
+            if (!state.classes.find((c) => c.id === data.id)) {
+              patch.classes = [...state.classes, data as ClassRoom];
+            }
+            break;
+          case 'exam':
+            if (!state.exams.find((e) => e.id === data.id)) {
+              patch.exams = [...state.exams, data as Exam];
+            }
+            break;
+        }
+      } catch {
+        // dataJson parse failed — still remove from trash
+      }
+    }
+    return patch;
+  }),
   removeFromTrash: (id) => set((state) => ({
     trashItems: state.trashItems.filter((t) => t.id !== id),
   })),
@@ -200,6 +234,11 @@ export const useAppStore = create<AppState>((set) => ({
   })),
   deleteMessage: (id) => set((state) => ({
     messages: state.messages.filter((m) => m.id !== id),
+  })),
+  archiveMessage: (id) => set((state) => ({
+    messages: state.messages.map((m) =>
+      m.id === id ? { ...m, isArchived: !m.isArchived } : m
+    ),
   })),
   toggleMessageStar: (id) => set((state) => ({
     messages: state.messages.map((m) =>

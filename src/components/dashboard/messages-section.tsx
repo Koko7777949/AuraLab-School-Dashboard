@@ -27,7 +27,6 @@ import {
   MessageSquare,
   Send,
   Star,
-  StarOff,
   Archive,
   Trash2,
   Reply,
@@ -36,13 +35,9 @@ import {
   Search,
   Plus,
   Mail,
-  MailOpen,
   Clock,
-  Filter,
   X,
   Inbox,
-  AlertCircle,
-  CheckCircle2,
   Loader2,
 } from 'lucide-react';
 
@@ -176,6 +171,7 @@ const MOCK_MESSAGES: Message[] = [
     hasAttachment: false,
     priority: 'normal',
     parentId: null,
+    isArchived: false,
     createdAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
   },
   {
@@ -193,6 +189,7 @@ const MOCK_MESSAGES: Message[] = [
     hasAttachment: true,
     priority: 'high',
     parentId: null,
+    isArchived: false,
     createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
   },
   {
@@ -210,6 +207,7 @@ const MOCK_MESSAGES: Message[] = [
     hasAttachment: false,
     priority: 'normal',
     parentId: null,
+    isArchived: false,
     createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
   },
   {
@@ -227,6 +225,7 @@ const MOCK_MESSAGES: Message[] = [
     hasAttachment: false,
     priority: 'high',
     parentId: null,
+    isArchived: false,
     createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
   },
   {
@@ -244,6 +243,7 @@ const MOCK_MESSAGES: Message[] = [
     hasAttachment: true,
     priority: 'normal',
     parentId: null,
+    isArchived: false,
     createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
   },
   {
@@ -261,6 +261,7 @@ const MOCK_MESSAGES: Message[] = [
     hasAttachment: false,
     priority: 'urgent',
     parentId: null,
+    isArchived: false,
     createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
   },
   {
@@ -295,6 +296,7 @@ const MOCK_MESSAGES: Message[] = [
     hasAttachment: false,
     priority: 'low',
     parentId: null,
+    isArchived: false,
     createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
   },
   {
@@ -312,6 +314,7 @@ const MOCK_MESSAGES: Message[] = [
     hasAttachment: false,
     priority: 'normal',
     parentId: null,
+    isArchived: false,
     createdAt: new Date(Date.now() - 10 * 60 * 60 * 1000).toISOString(),
   },
   {
@@ -329,6 +332,7 @@ const MOCK_MESSAGES: Message[] = [
     hasAttachment: false,
     priority: 'normal',
     parentId: null,
+    isArchived: false,
     createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
   },
   {
@@ -346,6 +350,7 @@ const MOCK_MESSAGES: Message[] = [
     hasAttachment: false,
     priority: 'high',
     parentId: null,
+    isArchived: false,
     createdAt: new Date(Date.now() - 1.5 * 24 * 60 * 60 * 1000).toISOString(),
   },
   {
@@ -363,6 +368,7 @@ const MOCK_MESSAGES: Message[] = [
     hasAttachment: false,
     priority: 'low',
     parentId: null,
+    isArchived: false,
     createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
   },
   {
@@ -397,6 +403,7 @@ const MOCK_MESSAGES: Message[] = [
     hasAttachment: true,
     priority: 'high',
     parentId: null,
+    isArchived: false,
     createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
   },
   {
@@ -431,6 +438,7 @@ const MOCK_MESSAGES: Message[] = [
     hasAttachment: true,
     priority: 'normal',
     parentId: null,
+    isArchived: false,
     createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
   },
 ];
@@ -1213,6 +1221,7 @@ export default function MessagesSection() {
     setMessages,
     addMessage,
     deleteMessage,
+    archiveMessage,
     toggleMessageStar,
     markMessageRead,
   } = useAppStore();
@@ -1264,8 +1273,7 @@ export default function MessagesSection() {
         result = result.filter((m) => m.senderRole === 'admin');
         break;
       case 'archived':
-        // For now, show messages with low priority as "archived"
-        result = result.filter((m) => m.priority === 'low');
+        result = result.filter((m) => m.isArchived);
         break;
     }
 
@@ -1333,8 +1341,11 @@ export default function MessagesSection() {
 
   const handleArchive = useCallback(() => {
     if (!selectedMessage) return;
-    toast.success('تم أرشفة الرسالة');
-  }, [selectedMessage]);
+    archiveMessage(selectedMessage.id);
+    setSelectedId(null);
+    setMobileShowDetail(false);
+    toast.success(selectedMessage.isArchived ? 'تم إلغاء أرشفة الرسالة' : 'تم أرشفة الرسالة');
+  }, [selectedMessage, archiveMessage]);
 
   const handleForward = useCallback(() => {
     toast.info('تم نسخ الرسالة - اختر المرسل إليه لإعادة التوجيه');
@@ -1355,6 +1366,7 @@ export default function MessagesSection() {
         content,
         isRead: true,
         isStarred: false,
+        isArchived: false,
         hasAttachment: false,
         priority: 'normal',
         parentId: selectedMessage.parentId ?? selectedMessage.id,
@@ -1387,6 +1399,7 @@ export default function MessagesSection() {
         content: data.content,
         isRead: true,
         isStarred: false,
+        isArchived: false,
         hasAttachment: false,
         priority: data.priority,
         parentId: null,

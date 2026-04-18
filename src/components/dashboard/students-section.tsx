@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   UserPlus,
   Pencil,
@@ -22,6 +22,7 @@ import { toast } from 'sonner';
 import { exportToCSV, formatCsvDate } from '@/lib/csv-export';
 import { STUDENT_IMPORT_COLUMNS } from '@/lib/csv-import';
 import ImportDialog from '@/components/dashboard/import-dialog';
+import StudentProfile from '@/components/dashboard/student-profile';
 
 // shadcn/ui
 import { Button } from '@/components/ui/button';
@@ -691,7 +692,7 @@ function DeleteStudentDialog({
 // ---------------------------------------------------------------------------
 
 export default function StudentsSection() {
-  const { students, setStudents } = useAppStore();
+  const { students, setStudents, addStudent } = useAppStore();
 
   // Local UI state
   const [localSearch, setLocalSearch] = useState('');
@@ -756,6 +757,11 @@ export default function StudentsSection() {
     setSelectedStudent(student);
     setViewOpen(true);
   };
+
+  const handleCloseProfile = useCallback(() => {
+    setViewOpen(false);
+    setSelectedStudent(null);
+  }, []);
 
   const handleDelete = (student: Student) => {
     setSelectedStudent(student);
@@ -1108,11 +1114,13 @@ export default function StudentsSection() {
         editingStudent={selectedStudent}
       />
 
-      <ViewStudentDialog
-        student={selectedStudent}
-        open={viewOpen}
-        onOpenChange={setViewOpen}
-      />
+      {/* Student Profile Dialog (replaces simple ViewStudentDialog) */}
+      {viewOpen && selectedStudent && (
+        <StudentProfile
+          student={selectedStudent}
+          onClose={handleCloseProfile}
+        />
+      )}
 
       <DeleteStudentDialog
         student={selectedStudent}

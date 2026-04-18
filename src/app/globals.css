@@ -1481,3 +1481,1116 @@ html {
   z-index: 9999;
   transition: width 0.1s linear;
 }
+
+/* ===================================================================
+   49. ENHANCED CARD STYLES
+   Premium card variants with spotlight, gradient borders, glass, elevation
+   =================================================================== */
+
+/* --- .card-spotlight --- CSS-only radial gradient spotlight on hover --- */
+.card-spotlight {
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
+}
+.card-spotlight::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    600px circle at var(--spotlight-x, 50%) var(--spotlight-y, 50%),
+    rgba(212, 165, 116, 0.06),
+    transparent 40%
+  );
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+  z-index: 1;
+  border-radius: inherit;
+}
+.card-spotlight:hover::before {
+  opacity: 1;
+}
+.card-spotlight:hover {
+  border-color: rgba(212, 165, 116, 0.18);
+  box-shadow: 0 0 30px rgba(212, 165, 116, 0.06);
+}
+
+/* --- .card-gradient-hover --- Gradient border that fades in on hover --- */
+.card-gradient-hover {
+  position: relative;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  transition: box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.card-gradient-hover::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    rgba(212, 165, 116, 0.5),
+    rgba(212, 165, 116, 0.05) 40%,
+    transparent 50%,
+    rgba(212, 165, 116, 0.05) 60%,
+    rgba(212, 165, 116, 0.3)
+  );
+  opacity: 0;
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: -1;
+  pointer-events: none;
+}
+.card-gradient-hover:hover::before {
+  opacity: 1;
+}
+.card-gradient-hover:hover {
+  box-shadow:
+    0 0 20px rgba(212, 165, 116, 0.08),
+    0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+/* --- .card-glass-subtle --- Lighter glass effect with very subtle blur --- */
+.card-glass-subtle {
+  background: rgba(26, 26, 36, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.card-glass-subtle:hover {
+  border-color: rgba(212, 165, 116, 0.12);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+
+/* --- .card-elevated --- Multi-layer shadow with hover lift --- */
+.card-elevated {
+  background: #1A1A24;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.2),
+    0 4px 12px rgba(0, 0, 0, 0.15),
+    0 8px 24px rgba(0, 0, 0, 0.1);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease;
+}
+.card-elevated:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.25),
+    0 8px 20px rgba(0, 0, 0, 0.2),
+    0 16px 40px rgba(0, 0, 0, 0.15),
+    0 0 0 1px rgba(212, 165, 116, 0.06);
+}
+
+/* --- .card-interactive --- Scale, shadow, and border glow on hover --- */
+.card-interactive {
+  background: #1A1A24;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+}
+.card-interactive:hover {
+  transform: scale(1.015);
+  border-color: rgba(212, 165, 116, 0.25);
+  box-shadow:
+    0 0 0 1px rgba(212, 165, 116, 0.08),
+    0 0 20px rgba(212, 165, 116, 0.1),
+    0 8px 32px rgba(0, 0, 0, 0.25);
+}
+.card-interactive:active {
+  transform: scale(0.985);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* ===================================================================
+   50. BUTTON ENHANCEMENTS
+   Premium button variants with glow, shine, press, and gradient border
+   =================================================================== */
+
+/* --- .btn-amber-glow --- Amber button with animated glow pulse --- */
+.btn-amber-glow {
+  background: linear-gradient(135deg, #D4A574, #B8895A);
+  color: #121218;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1.25rem;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.3s ease;
+  box-shadow: 0 0 12px rgba(212, 165, 116, 0.2);
+  animation: btn-glow-pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+.btn-amber-glow:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 20px rgba(212, 165, 116, 0.35), 0 4px 16px rgba(212, 165, 116, 0.2);
+}
+.btn-amber-glow:active {
+  transform: translateY(0);
+}
+
+@keyframes btn-glow-pulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(212, 165, 116, 0.2); }
+  50% { box-shadow: 0 0 20px rgba(212, 165, 116, 0.35), 0 0 40px rgba(212, 165, 116, 0.1); }
+}
+
+/* --- .btn-shine --- Moving shine/shimmer effect on hover --- */
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+}
+.btn-shine::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -60%;
+  width: 40%;
+  height: 200%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.15),
+    transparent
+  );
+  transform: skewX(-20deg);
+  transition: left 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+.btn-shine:hover::after {
+  left: 120%;
+}
+
+/* --- .btn-press --- 3D press-down effect --- */
+.btn-press {
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+.btn-press:hover {
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2);
+  transform: translateY(-1px);
+}
+.btn-press:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* --- .btn-gradient-border --- Button with animated gradient border --- */
+.btn-gradient-border {
+  position: relative;
+  z-index: 0;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1.25rem;
+  cursor: pointer;
+  background: transparent;
+  color: #E8E8ED;
+  font-weight: 500;
+}
+.btn-gradient-border::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(135deg, #D4A574, #B8895A, #E8C9A8, #D4A574);
+  background-size: 300% 300%;
+  animation: btn-gradient-shift 4s ease infinite;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+.btn-gradient-border > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes btn-gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* ===================================================================
+   51. DATA DISPLAY ENHANCEMENTS
+   Table row hover, cell highlight, badge pulse, empty state
+   =================================================================== */
+
+/* --- .data-row-hover --- Subtle background shift + right border accent on hover --- */
+.data-row-hover {
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  border-right: 3px solid transparent;
+}
+.data-row-hover:hover {
+  background-color: rgba(212, 165, 116, 0.04);
+  border-right-color: rgba(212, 165, 116, 0.4);
+}
+
+/* --- .data-cell-highlight --- Amber glow when value changes --- */
+.data-cell-highlight {
+  transition: background-color 0.15s ease, box-shadow 0.3s ease;
+  border-radius: 4px;
+}
+.data-cell-highlight.highlight-active {
+  background-color: rgba(212, 165, 116, 0.12);
+  box-shadow: 0 0 12px rgba(212, 165, 116, 0.15);
+}
+
+@keyframes cell-glow {
+  0% { background-color: rgba(212, 165, 116, 0.2); box-shadow: 0 0 16px rgba(212, 165, 116, 0.25); }
+  100% { background-color: transparent; box-shadow: none; }
+}
+.data-cell-highlight.glow-once {
+  animation: cell-glow 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* --- .data-badge-pulse --- Badge with gentle pulse --- */
+.data-badge-pulse {
+  animation: data-badge-pulse-anim 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@keyframes data-badge-pulse-anim {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.06); opacity: 0.9; }
+}
+
+/* --- .data-empty-state --- Styled empty state container --- */
+.data-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 3rem 2rem;
+  text-align: center;
+  color: #6B6B76;
+  background: rgba(26, 26, 36, 0.5);
+  border: 1px dashed rgba(107, 107, 118, 0.25);
+  border-radius: 1rem;
+}
+.data-empty-state-icon {
+  width: 3.5rem;
+  height: 3.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(212, 165, 116, 0.08);
+  color: #D4A574;
+  opacity: 0.6;
+}
+.data-empty-state-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #8B8B9E;
+}
+.data-empty-state-desc {
+  font-size: 0.8rem;
+  color: #6B6B76;
+  max-width: 280px;
+  line-height: 1.6;
+}
+.data-empty-state-action {
+  margin-top: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #121218;
+  background: linear-gradient(135deg, #D4A574, #B8895A);
+  cursor: pointer;
+  border: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.data-empty-state-action:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(212, 165, 116, 0.3);
+}
+
+/* ===================================================================
+   52. NAVIGATION ENHANCEMENTS
+   Breadcrumbs, tab indicators, step indicators
+   =================================================================== */
+
+/* --- .nav-breadcrumb --- Styled breadcrumb with amber separator dots --- */
+.nav-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  font-size: 0.8rem;
+  color: #6B6B76;
+}
+.nav-breadcrumb-item {
+  color: #6B6B76;
+  transition: color 0.2s ease;
+  white-space: nowrap;
+}
+.nav-breadcrumb-item:hover {
+  color: #D4A574;
+}
+.nav-breadcrumb-item.active {
+  color: #E8E8ED;
+  font-weight: 600;
+}
+.nav-breadcrumb-separator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+.nav-breadcrumb-separator::before {
+  content: "";
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(212, 165, 116, 0.35);
+}
+
+/* --- .nav-tab-indicator --- Animated tab bar with sliding indicator --- */
+.nav-tab-indicator {
+  position: relative;
+  display: flex;
+  gap: 0.25rem;
+}
+.nav-tab-indicator-item {
+  position: relative;
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  color: #6B6B76;
+  cursor: pointer;
+  transition: color 0.25s ease;
+  white-space: nowrap;
+  z-index: 1;
+}
+.nav-tab-indicator-item:hover {
+  color: #B0B0BE;
+}
+.nav-tab-indicator-item.active {
+  color: #E8E8ED;
+  font-weight: 600;
+}
+.nav-tab-indicator-track {
+  position: absolute;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #D4A574, #E8C9A8);
+  border-radius: 1px;
+  transition: left 0.35s cubic-bezier(0.16, 1, 0.3, 1), width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 0 8px rgba(212, 165, 116, 0.3);
+}
+
+/* --- .nav-step --- Step indicator (circle + line + label) for multi-step forms --- */
+.nav-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  width: 100%;
+}
+.nav-step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  position: relative;
+}
+.nav-step-circle {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  z-index: 2;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+}
+.nav-step-circle.pending {
+  background: rgba(107, 107, 118, 0.15);
+  color: #6B6B76;
+  border: 2px solid rgba(107, 107, 118, 0.2);
+}
+.nav-step-circle.active {
+  background: linear-gradient(135deg, #D4A574, #B8895A);
+  color: #121218;
+  border: 2px solid transparent;
+  box-shadow: 0 0 12px rgba(212, 165, 116, 0.3);
+}
+.nav-step-circle.completed {
+  background: rgba(74, 222, 128, 0.15);
+  color: #4ADE80;
+  border: 2px solid rgba(74, 222, 128, 0.3);
+}
+.nav-step-label {
+  font-size: 0.72rem;
+  color: #6B6B76;
+  text-align: center;
+  transition: color 0.25s ease;
+  white-space: nowrap;
+}
+.nav-step-item.active .nav-step-label,
+.nav-step-item.completed .nav-step-label {
+  color: #C4C4D4;
+}
+.nav-step-line {
+  flex: 1;
+  height: 2px;
+  background: rgba(107, 107, 118, 0.15);
+  margin-top: 1rem;
+  transition: background 0.3s ease;
+}
+.nav-step-line.completed {
+  background: linear-gradient(90deg, rgba(74, 222, 128, 0.4), rgba(212, 165, 116, 0.3));
+}
+
+/* ===================================================================
+   53. FORM ENHANCEMENTS
+   Input with float label, form groups, custom select, error states
+   =================================================================== */
+
+/* --- .form-input-enhanced --- Input with amber focus ring and subtle float label --- */
+.form-input-enhanced {
+  position: relative;
+}
+.form-input-enhanced input,
+.form-input-enhanced textarea {
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  padding-top: 1.35rem;
+  background: rgba(26, 26, 36, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.5rem;
+  color: #E8E8ED;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.form-input-enhanced input::placeholder,
+.form-input-enhanced textarea::placeholder {
+  color: transparent;
+}
+.form-input-enhanced label {
+  position: absolute;
+  top: 50%;
+  right: 0.9rem;
+  transform: translateY(-50%);
+  font-size: 0.85rem;
+  color: #6B6B76;
+  pointer-events: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: right center;
+}
+.form-input-enhanced input:focus,
+.form-input-enhanced textarea:focus {
+  border-color: rgba(212, 165, 116, 0.5);
+  box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.1), 0 0 16px rgba(212, 165, 116, 0.06);
+}
+.form-input-enhanced input:focus ~ label,
+.form-input-enhanced input:not(:placeholder-shown) ~ label,
+.form-input-enhanced textarea:focus ~ label,
+.form-input-enhanced textarea:not(:placeholder-shown) ~ label {
+  top: 0.65rem;
+  transform: translateY(0) scale(0.75);
+  color: #D4A574;
+  font-weight: 500;
+}
+.form-input-enhanced textarea ~ label {
+  top: 1.35rem;
+  transform: translateY(-50%) scale(0.75);
+  transform-origin: right center;
+}
+
+/* --- .form-group --- Labeled form group with consistent spacing --- */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.form-group-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #C4C4D4;
+  padding-right: 0.15rem;
+}
+.form-group-hint {
+  font-size: 0.72rem;
+  color: #6B6B76;
+  padding-right: 0.15rem;
+}
+
+/* --- .form-select-custom --- Custom styled select with amber accent --- */
+.form-select-custom {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  padding: 0.6rem 2.5rem 0.6rem 0.9rem;
+  background: rgba(26, 26, 36, 0.8) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23D4A574' d='M2 4l4 4 4-4'/%3E%3C/svg%3E") no-repeat left 0.9rem center;
+  background-size: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.5rem;
+  color: #E8E8ED;
+  font-size: 0.875rem;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.form-select-custom:focus {
+  border-color: rgba(212, 165, 116, 0.5);
+  box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.1), 0 0 16px rgba(212, 165, 116, 0.06);
+}
+.form-select-custom option {
+  background: #1A1A24;
+  color: #E8E8ED;
+}
+
+/* --- .form-error --- Error state with red border and shake animation --- */
+.form-error {
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+}
+.form-error-message {
+  font-size: 0.75rem;
+  color: #EF4444;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding-right: 0.15rem;
+  margin-top: 0.25rem;
+}
+.form-error.shake {
+  animation: form-shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+@keyframes form-shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
+  20%, 40%, 60%, 80% { transform: translateX(3px); }
+}
+
+/* ===================================================================
+   54. LOADING & TRANSITION STATES
+   Glass skeleton, text/card skeletons, page transitions, RTL slide
+   =================================================================== */
+
+/* --- .skeleton-glass --- Glass-morphism skeleton with shimmer blur --- */
+.skeleton-glass {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(4px);
+  border-radius: var(--radius);
+  position: relative;
+  overflow: hidden;
+}
+.skeleton-glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.06) 30%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.06) 70%,
+    transparent 100%
+  );
+  background-size: 400px 100%;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+  border-radius: inherit;
+}
+@keyframes skeleton-shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+/* --- .skeleton-text --- Multi-line text skeleton with varying widths --- */
+.skeleton-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.skeleton-text-line {
+  height: 0.875rem;
+  border-radius: 0.25rem;
+  background: rgba(255, 255, 255, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+.skeleton-text-line::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.06),
+    transparent
+  );
+  background-size: 400px 100%;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+}
+.skeleton-text-line:nth-child(1) { width: 100%; }
+.skeleton-text-line:nth-child(2) { width: 85%; }
+.skeleton-text-line:nth-child(3) { width: 70%; }
+.skeleton-text-line:nth-child(4) { width: 90%; }
+.skeleton-text-line:nth-child(5) { width: 60%; }
+
+/* --- .skeleton-card --- Card-shaped skeleton with rounded corners --- */
+.skeleton-card {
+  background: rgba(26, 26, 36, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.skeleton-card-header {
+  height: 1rem;
+  width: 40%;
+  border-radius: 0.25rem;
+  background: rgba(255, 255, 255, 0.05);
+}
+.skeleton-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.skeleton-card-line {
+  height: 0.75rem;
+  border-radius: 0.2rem;
+  background: rgba(255, 255, 255, 0.04);
+}
+.skeleton-card-line:nth-child(1) { width: 100%; }
+.skeleton-card-line:nth-child(2) { width: 75%; }
+.skeleton-card-line:nth-child(3) { width: 88%; }
+.skeleton-card-line:nth-child(4) { width: 50%; }
+.skeleton-card-circle {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  flex-shrink: 0;
+}
+
+/* --- .transition-page --- Page transition with fade + scale --- */
+.transition-page {
+  animation: page-transition-enter 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes page-transition-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* --- .transition-slide-rtl --- Slide from right to left (RTL-aware) --- */
+.transition-slide-rtl {
+  animation: slide-rtl-enter 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes slide-rtl-enter {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.transition-slide-rtl-exit {
+  animation: slide-rtl-exit 0.2s ease-in both;
+}
+@keyframes slide-rtl-exit {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+}
+
+/* ===================================================================
+   55. DECORATIVE ELEMENTS
+   Divider ornament, corner accent marks, dot pattern background
+   =================================================================== */
+
+/* --- .divider-ornament --- Ornamental divider with center diamond/dot --- */
+.divider-ornament {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.5rem 0;
+  color: #6B6B76;
+}
+.divider-ornament::before,
+.divider-ornament::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+}
+.divider-ornament::before {
+  background: linear-gradient(to left, rgba(212, 165, 116, 0.2), transparent);
+}
+.divider-ornament::after {
+  background: linear-gradient(to right, rgba(212, 165, 116, 0.2), transparent);
+}
+.divider-ornament-diamond {
+  width: 8px;
+  height: 8px;
+  background: rgba(212, 165, 116, 0.35);
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+
+/* --- .corner-accent --- Amber corner accent marks on cards --- */
+.corner-accent {
+  position: relative;
+  overflow: hidden;
+}
+.corner-accent::before,
+.corner-accent::after {
+  content: "";
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  pointer-events: none;
+  z-index: 2;
+}
+/* Top-right corner (RTL start) */
+.corner-accent::before {
+  top: 8px;
+  right: 8px;
+  border-top: 2px solid rgba(212, 165, 116, 0.3);
+  border-right: 2px solid rgba(212, 165, 116, 0.3);
+  border-top-right-radius: 6px;
+}
+/* Bottom-left corner (RTL end) */
+.corner-accent::after {
+  bottom: 8px;
+  left: 8px;
+  border-bottom: 2px solid rgba(212, 165, 116, 0.3);
+  border-left: 2px solid rgba(212, 165, 116, 0.3);
+  border-bottom-left-radius: 6px;
+}
+
+/* --- .dot-pattern --- Subtle dot grid pattern background --- */
+.dot-pattern {
+  background-image: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.04) 1px,
+    transparent 1px
+  );
+  background-size: 16px 16px;
+}
+
+/* ===================================================================
+   56. SCROLL ENHANCEMENTS
+   Scroll shadow indicators at top/bottom, animated scroll arrows
+   =================================================================== */
+
+/* --- .scroll-shadow-top --- Shadow at top of scrollable container --- */
+.scroll-shadow-top {
+  position: relative;
+}
+.scroll-shadow-top::before {
+  content: "";
+  position: sticky;
+  top: 0;
+  display: block;
+  height: 24px;
+  background: linear-gradient(to bottom, rgba(18, 18, 24, 0.9), transparent);
+  z-index: 5;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* --- .scroll-shadow-bottom --- Shadow at bottom of scrollable container --- */
+.scroll-shadow-bottom {
+  position: relative;
+}
+.scroll-shadow-bottom::after {
+  content: "";
+  position: sticky;
+  bottom: 0;
+  display: block;
+  height: 24px;
+  background: linear-gradient(to top, rgba(18, 18, 24, 0.9), transparent);
+  z-index: 5;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* --- .scroll-indicator --- Animated scroll indicator arrows --- */
+.scroll-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  animation: scroll-indicator-bounce 1.8s ease-in-out infinite;
+}
+.scroll-indicator-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(212, 165, 116, 0.4);
+}
+.scroll-indicator-dot:nth-child(1) {
+  animation: scroll-dot-pulse 1.8s ease-in-out infinite 0s;
+}
+.scroll-indicator-dot:nth-child(2) {
+  animation: scroll-dot-pulse 1.8s ease-in-out infinite 0.15s;
+}
+.scroll-indicator-dot:nth-child(3) {
+  animation: scroll-dot-pulse 1.8s ease-in-out infinite 0.3s;
+}
+@keyframes scroll-dot-pulse {
+  0%, 100% { opacity: 0.2; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+@keyframes scroll-indicator-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(4px); }
+}
+
+/* ===================================================================
+   57. TOOLTIP ENHANCEMENTS
+   Amber-styled tooltip and dark glass tooltip with blur
+   =================================================================== */
+
+/* --- .tooltip-amber --- Amber-styled tooltip with arrow --- */
+.tooltip-amber {
+  position: relative;
+  background: linear-gradient(135deg, rgba(212, 165, 116, 0.95), rgba(184, 137, 90, 0.95));
+  color: #121218;
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(212, 165, 116, 0.25);
+  animation: tooltip-amber-enter 0.15s cubic-bezier(0.16, 1, 0.3, 1) both;
+  z-index: 100;
+  white-space: nowrap;
+}
+.tooltip-amber[data-side="bottom"]::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  right: 50%;
+  transform: translateX(50%) rotate(45deg);
+  width: 8px;
+  height: 8px;
+  background: rgba(212, 165, 116, 0.95);
+}
+.tooltip-amber[data-side="top"]::before {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  right: 50%;
+  transform: translateX(50%) rotate(45deg);
+  width: 8px;
+  height: 8px;
+  background: rgba(212, 165, 116, 0.95);
+}
+@keyframes tooltip-amber-enter {
+  from { opacity: 0; transform: scale(0.94) translateY(2px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* --- .tooltip-dark --- Dark glass tooltip with blur backdrop --- */
+.tooltip-dark {
+  position: relative;
+  background: rgba(18, 18, 24, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: #E8E8ED;
+  font-size: 0.78rem;
+  font-weight: 400;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(212, 165, 116, 0.04);
+  animation: tooltip-dark-enter 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+  z-index: 100;
+}
+@keyframes tooltip-dark-enter {
+  from { opacity: 0; transform: scale(0.95) translateY(3px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ===================================================================
+   58. ANIMATION UTILITY CLASSES
+   Staggered delays (fade-in, scale-in, slide-up), special animations
+   =================================================================== */
+
+/* --- Staggered fade-in delays (100ms increments) --- */
+.animate-fade-in-delay-1 { animation: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 100ms; }
+.animate-fade-in-delay-2 { animation: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 200ms; }
+.animate-fade-in-delay-3 { animation: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 300ms; }
+.animate-fade-in-delay-4 { animation: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 400ms; }
+.animate-fade-in-delay-5 { animation: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 500ms; }
+
+/* --- Staggered scale-in delays (100ms increments) --- */
+.animate-scale-in-delay-1 { animation: scale-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 100ms; }
+.animate-scale-in-delay-2 { animation: scale-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 200ms; }
+.animate-scale-in-delay-3 { animation: scale-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 300ms; }
+.animate-scale-in-delay-4 { animation: scale-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 400ms; }
+.animate-scale-in-delay-5 { animation: scale-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 500ms; }
+
+/* --- Staggered slide-up delays (100ms increments) --- */
+.animate-slide-up-delay-1 { animation: slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 100ms; }
+.animate-slide-up-delay-2 { animation: slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 200ms; }
+.animate-slide-up-delay-3 { animation: slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 300ms; }
+.animate-slide-up-delay-4 { animation: slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 400ms; }
+.animate-slide-up-delay-5 { animation: slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 500ms; }
+
+/* --- .animate-bounce-subtle --- Subtle bounce (less aggressive) --- */
+@keyframes bounce-subtle {
+  0%, 100% { transform: translateY(0); animation-timing-function: cubic-bezier(0.33, 0, 0.66, 0); }
+  35% { transform: translateY(-6px); animation-timing-function: cubic-bezier(0.33, 1.66, 0.66, 1); }
+  55% { transform: translateY(-2px); animation-timing-function: cubic-bezier(0.33, 1.66, 0.66, 1); }
+}
+.animate-bounce-subtle {
+  animation: bounce-subtle 1.2s cubic-bezier(0.33, 1, 0.66, 1) both;
+}
+
+/* --- .animate-pulse-slow --- Very slow pulse (3s duration) --- */
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+.animate-pulse-slow {
+  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* --- .animate-spin-slow --- Slow spin (4s duration) --- */
+.animate-spin-slow {
+  animation: spin 4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* --- .animate-wiggle --- Gentle wiggle/shake animation --- */
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  15% { transform: rotate(3deg); }
+  30% { transform: rotate(-3deg); }
+  45% { transform: rotate(2deg); }
+  60% { transform: rotate(-2deg); }
+  75% { transform: rotate(1deg); }
+  90% { transform: rotate(-0.5deg); }
+}
+.animate-wiggle {
+  animation: wiggle 0.8s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+/* ===================================================================
+   59. RESPONSIVE HELPERS
+   Hide scrollbar, text balance, scroll snap, line clamping
+   =================================================================== */
+
+/* --- .hide-scrollbar --- Hide scrollbar but keep scroll functionality --- */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* --- .text-balance --- CSS text-wrap balance for headings --- */
+.text-balance {
+  text-wrap: balance;
+}
+
+/* --- .scroll-snap-x --- Horizontal scroll snap container --- */
+.scroll-snap-x {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  gap: 1rem;
+}
+.scroll-snap-x > * {
+  scroll-snap-align: start;
+  flex-shrink: 0;
+}
+
+/* --- .clamp-lines-2 --- Clamp text to 2 lines with ellipsis --- */
+.clamp-lines-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- .clamp-lines-3 --- Clamp text to 3 lines with ellipsis --- */
+.clamp-lines-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ===================================================================
+   60. SIDEBAR MOBILE SLIDE-IN ANIMATION
+   =================================================================== */
+@keyframes sidebar-slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.animate-sidebar-slide-in {
+  animation: sidebar-slide-in-right 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ===================================================================
+   61. ANIMATED LOGO GRADIENT
+   =================================================================== */
+@keyframes logo-gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.animate-logo-gradient {
+  animation: logo-gradient-shift 3s ease-in-out infinite;
+}
+
+/* ===================================================================
+   62. INDICATOR GLOW (sidebar active indicator)
+   =================================================================== */
+@keyframes indicator-glow {
+  0%, 100% { box-shadow: 0 0 4px rgba(212, 165, 116, 0.3); }
+  50% { box-shadow: 0 0 8px rgba(212, 165, 116, 0.6); }
+}
+.animate-indicator-glow {
+  animation: indicator-glow 2s ease-in-out infinite;
+}

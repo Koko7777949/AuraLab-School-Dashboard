@@ -148,6 +148,7 @@ export type ActiveSection =
   | 'grades'
   | 'messages'
   | 'analytics' 
+  | 'reports'
   | 'announcements'
   | 'notifications' 
   | 'trash' 
@@ -159,7 +160,7 @@ export interface KpiData {
   value: string | number;
   percentage?: number;
   status: 'stable' | 'improved' | 'needs-attention' | 'active' | 'completed' | 'critical';
-  icon: string;
+  icon: React.ComponentType<{ className?: string }>;
   color: string;
   trend?: 'up' | 'down' | 'neutral';
   subtext?: string;
@@ -209,6 +210,7 @@ export interface Message {
   content: string;
   isRead: boolean;
   isStarred: boolean;
+  isArchived: boolean;
   hasAttachment: boolean;
   priority: 'low' | 'normal' | 'high' | 'urgent';
   parentId: string | null;
