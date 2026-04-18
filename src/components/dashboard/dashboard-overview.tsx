@@ -1,6 +1,6 @@
 'use client';
 
-
+import { useEffect, useState, useCallback } from 'react';
 import {
   BookOpen,
   Eye,
@@ -12,11 +12,16 @@ import {
   Map,
   UserCheck,
   BookMarked,
+  UserPlus,
+  FileText,
+  BarChart3,
+  X,
 } from 'lucide-react';
 import StatCard from './stat-card';
 import SectionCard from './section-card';
 import SessionTimer from './session-timer';
 import { useAppStore } from '@/lib/store';
+import type { DashboardStats } from '@/lib/types';
 
 // ---------------------------------------------------------------------------
 // Mock Data
@@ -47,7 +52,7 @@ const notificationsData = [
   },
   {
     id: 3,
-    text: 'نتائج اختبار العلون متاحة الآن للمراجعة',
+    text: 'نتائج اختبار العلوم متاحة الآن للمراجعة',
     time: 'منذ ساعة',
     status: 'info' as const,
   },
@@ -77,6 +82,37 @@ const notificationStatusStyles = {
   info: 'bg-sky-500',
   neutral: 'bg-slate-500',
 };
+
+// ---------------------------------------------------------------------------
+// Quick action buttons config
+// ---------------------------------------------------------------------------
+
+const QUICK_ACTIONS = [
+  {
+    id: 'students' as const,
+    label: 'إضافة طالب جديد',
+    icon: UserPlus,
+    description: 'تسجيل طالب جديد في النظام',
+  },
+  {
+    id: 'exams' as const,
+    label: 'إنشاء امتحان',
+    icon: FileText,
+    description: 'إعداد امتحان جديد للطلاب',
+  },
+  {
+    id: 'analytics' as const,
+    label: 'عرض التقارير',
+    icon: BarChart3,
+    description: 'مراجعة التقارير والتحليلات',
+  },
+  {
+    id: 'notifications' as const,
+    label: 'إرسال إشعار',
+    icon: Bell,
+    description: 'إرسال إشعار للمعلمين والطلاب',
+  },
+];
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -287,25 +323,288 @@ function CurrentLessonDetails() {
 }
 
 // ---------------------------------------------------------------------------
+// Loading skeleton placeholder
+// ---------------------------------------------------------------------------
+
+function DashboardSkeleton() {
+  return (
+    <div className="flex flex-col gap-8 animate-pulse" dir="rtl">
+      {/* Title skeleton */}
+      <div className="flex flex-col gap-3">
+        <div className="h-8 w-56 rounded-lg bg-white/[0.06]" />
+        <div className="h-5 w-80 rounded-lg bg-white/[0.04]" />
+      </div>
+      {/* KPI cards skeleton */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div
+            key={i}
+            className="rounded-xl bg-[#1A1A24] border border-white/[0.06] p-5"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="h-10 w-10 rounded-full bg-white/[0.06]" />
+              <div className="h-5 w-16 rounded-full bg-white/[0.04]" />
+            </div>
+            <div className="h-8 w-20 rounded-lg bg-white/[0.06] mb-2" />
+            <div className="h-4 w-32 rounded bg-white/[0.04]" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Welcome Banner
+// ---------------------------------------------------------------------------
+
+function WelcomeBanner({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <div
+      className="relative overflow-hidden rounded-xl p-5 animate-fade-in-up"
+      style={{
+        background: 'linear-gradient(135deg, rgba(212,165,116,0.15) 0%, rgba(212,165,116,0.05) 100%)',
+        borderRight: '4px solid rgba(212,165,116,0.5)',
+        border: '1px solid rgba(212,165,116,0.15)',
+        borderRight: '4px solid rgba(212,165,116,0.6)',
+      }}
+    >
+      {/* Dismiss button */}
+      <button
+        onClick={onDismiss}
+        aria-label="إغلاق"
+        className="absolute top-3 left-3 flex h-7 w-7 items-center justify-center rounded-md text-[#8B8B9E] transition-colors duration-200 hover:bg-white/[0.06] hover:text-white"
+      >
+        <X size={16} strokeWidth={2} />
+      </button>
+
+      {/* Content */}
+      <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-4">
+        <div>
+          <h2 className="text-lg font-bold text-white">
+            مرحباً، أحمد محمد 👋
+          </h2>
+          <p className="text-sm text-[#C4C4D4] mt-1">
+            يوم دراسي جديد — لديك 3 حصص اليوم و 12 تنبيه جديد
+          </p>
+        </div>
+      </div>
+
+      {/* Decorative gradient orb */}
+      <div
+        className="absolute -bottom-6 -left-6 h-24 w-24 rounded-full opacity-20 pointer-events-none"
+        style={{ background: 'radial-gradient(circle, #D4A574, transparent 70%)' }}
+      />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Quick Action Button
+// ---------------------------------------------------------------------------
+
+function QuickActionButton({
+  label,
+  description,
+  icon: Icon,
+  onClick,
+}: {
+  label: string;
+  description: string;
+  icon: React.ElementType;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="group flex items-center gap-4 rounded-xl border border-white/[0.06] bg-[#1A1A24] p-4 text-right
+        transition-all duration-300 ease-out
+        hover:border-[#D4A574]/20 hover:bg-[#1E1E2A] hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(0,0,0,0.25)]
+        active:translate-y-0 active:shadow-none
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A574]/50"
+    >
+      {/* Icon */}
+      <div
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-all duration-300 group-hover:scale-110"
+        style={{ backgroundColor: 'rgba(212,165,116,0.1)' }}
+      >
+        <Icon className="h-5 w-5 text-[#D4A574]" size={20} strokeWidth={1.8} />
+      </div>
+
+      {/* Text */}
+      <div className="flex flex-col gap-0.5 min-w-0">
+        <span className="text-sm font-semibold text-white group-hover:text-[#D4A574] transition-colors duration-200">
+          {label}
+        </span>
+        <span className="text-xs text-muted-foreground/60 truncate">
+          {description}
+        </span>
+      </div>
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// KPI Card Data
+// ---------------------------------------------------------------------------
+
+interface KpiCardConfig {
+  label: string;
+  value: string;
+  percentage?: number;
+  status: 'stable' | 'improved' | 'needs-attention' | 'active' | 'completed' | 'critical';
+  icon: React.ReactNode;
+  color: string;
+  subtext: string;
+}
+
+function buildKpiCards(stats: DashboardStats | null): KpiCardConfig[] {
+  const totalStudents = stats?.totalStudents ?? 320;
+  const topStudentsCount = stats?.topStudents?.length ?? 24;
+
+  return [
+    {
+      label: 'التحصيل الأكاديمي',
+      value: stats ? `${Math.round(stats.avgScore)}%` : '87%',
+      percentage: stats ? Math.round(stats.avgScore) : 87,
+      status: 'stable',
+      icon: <BookOpen className="h-5 w-5" />,
+      color: '#10b981',
+      subtext: 'مقارنة بالفصل السابق',
+    },
+    {
+      label: 'التركيز والانتباه',
+      value: stats ? `${Math.round(stats.avgFocus)}%` : '78%',
+      percentage: stats ? Math.round(stats.avgFocus) : 78,
+      status: 'improved',
+      icon: <Eye className="h-5 w-5" />,
+      color: '#38bdf8',
+      subtext: '+5% عن الأسبوع الماضي',
+    },
+    {
+      label: 'التفاعل الصفي',
+      value: stats ? `${Math.round(stats.avgEngagement)}%` : '65%',
+      percentage: stats ? Math.round(stats.avgEngagement) : 65,
+      status: 'needs-attention',
+      icon: <MessageSquare className="h-5 w-5" />,
+      color: '#f59e0b',
+      subtext: 'يحتاج متابعة إضافية',
+    },
+    {
+      label: 'المشاركة',
+      value: '82%',
+      percentage: 82,
+      status: 'improved',
+      icon: <Users className="h-5 w-5" />,
+      color: '#8b5cf6',
+      subtext: '+3% عن الأسبوع الماضي',
+    },
+    {
+      label: 'الطلاب المتفوقون',
+      value: String(topStudentsCount),
+      status: 'active',
+      icon: <Award className="h-5 w-5" />,
+      color: '#f43f5e',
+      subtext: `من إجمالي ${totalStudents} طالب`,
+    },
+    {
+      label: 'الحصص المسجلة',
+      value: String(stats?.totalSessions ?? 156),
+      status: 'completed',
+      icon: <Video className="h-5 w-5" />,
+      color: '#10b981',
+      subtext: 'منذ بداية الفصل الدراسي',
+    },
+  ];
+}
+
+// ---------------------------------------------------------------------------
 // Main DashboardOverview Component
 // ---------------------------------------------------------------------------
 
 export default function DashboardOverview() {
-  const { students, teachers } = useAppStore();
+  const { students, teachers, setActiveSection } = useAppStore();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showBanner, setShowBanner] = useState(true);
 
-  const totalStudents = students.length || 320;
-  const totalTeachers = teachers.length || 24;
+  const dismissBanner = useCallback(() => setShowBanner(false), []);
+
+  // ── Fetch dashboard stats from API ──
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchStats() {
+      try {
+        const res = await fetch('/api/dashboard/stats');
+        if (!res.ok) throw new Error('فشل في جلب البيانات');
+        const json = await res.json();
+        if (cancelled) return;
+        if (json.success && json.data) {
+          // Map API response to DashboardStats shape
+          const d = json.data;
+          const mapped: DashboardStats = {
+            totalStudents: d.overview?.totalStudents ?? 0,
+            activeStudents: d.studentStats?.byStatus?.active ?? 0,
+            totalTeachers: d.overview?.totalTeachers ?? 0,
+            totalClasses: d.overview?.totalClasses ?? 0,
+            avgEngagement: d.engagement?.averageScore ?? 0,
+            avgFocus: d.engagement?.averageScore ?? 0,
+            avgScore: d.examStats?.averageScore ?? 0,
+            attendanceRate: d.attendance?.rate ?? 0,
+            totalExams: d.overview?.totalExams ?? 0,
+            totalSessions: d.overview?.totalSessions ?? 0,
+            alertsCount: d.overview?.unreadNotifications ?? 0,
+            topStudents: [],
+          };
+          setStats(mapped);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'حدث خطأ غير متوقع');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    fetchStats();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // ── Derived values ──
+  const totalStudents = stats?.totalStudents || students.length || 320;
+  const totalTeachers = stats?.totalTeachers || teachers.length || 24;
+  const kpiCards = buildKpiCards(stats);
+
+  // ── Loading state ──
+  if (loading) {
+    return <DashboardSkeleton />;
+  }
 
   return (
     <div className="flex flex-col gap-8" dir="rtl">
+      {/* ── Welcome Banner ── */}
+      {showBanner && <WelcomeBanner onDismiss={dismissBanner} />}
+
       {/* ── Page Title Area ── */}
-      <div>
+      <div className="animate-fade-in-up" style={{ animationDelay: '0ms', opacity: 0 }}>
         <h1 className="text-2xl font-bold text-white tracking-tight sm:text-3xl">
           لوحة تحكم المدرسة
         </h1>
         <p className="mt-2 text-sm text-muted-foreground sm:text-base">
           نظرة عامة على {totalStudents} طالب و{totalTeachers} معلم — الأسبوع الدراسي الحالي
         </p>
+        {error && (
+          <p className="mt-1 text-xs text-amber-400/80">
+            ⚠️ تعذر تحديث البيانات من الخادم — يتم عرض بيانات محفوظة
+          </p>
+        )}
       </div>
 
       {/* ── Session Timer (centered) ── */}
@@ -313,64 +612,45 @@ export default function DashboardOverview() {
         <SessionTimer />
       </div>
 
-      {/* ── KPI Cards Grid ── */}
+      {/* ── KPI Cards Grid (with staggered animation) ── */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard
-          label="التحصيل الأكاديمي"
-          value="87%"
-          percentage={87}
-          status="stable"
-          icon={<BookOpen className="h-5 w-5" />}
-          color="#10b981"
-          subtext="مقارنة بالفصل السابق"
-        />
-        <StatCard
-          label="التركيز والانتباه"
-          value="78%"
-          percentage={78}
-          status="improved"
-          icon={<Eye className="h-5 w-5" />}
-          color="#38bdf8"
-          subtext="+5% عن الأسبوع الماضي"
-        />
-        <StatCard
-          label="التفاعل الصفي"
-          value="65%"
-          percentage={65}
-          status="needs-attention"
-          icon={<MessageSquare className="h-5 w-5" />}
-          color="#f59e0b"
-          subtext="يحتاج متابعة إضافية"
-        />
-        <StatCard
-          label="المشاركة"
-          value="82%"
-          percentage={82}
-          status="improved"
-          icon={<Users className="h-5 w-5" />}
-          color="#8b5cf6"
-          subtext="+3% عن الأسبوع الماضي"
-        />
-        <StatCard
-          label="الطلاب المتفوقون"
-          value="24"
-          status="active"
-          icon={<Award className="h-5 w-5" />}
-          color="#f43f5e"
-          subtext="من إجمالي 320 طالب"
-        />
-        <StatCard
-          label="الحصص المسجلة"
-          value="156"
-          status="completed"
-          icon={<Video className="h-5 w-5" />}
-          color="#10b981"
-          subtext="منذ بداية الفصل الدراسي"
-        />
+        {kpiCards.map((card, index) => (
+          <div
+            key={card.label}
+            className="animate-fade-in-up opacity-0"
+            style={{ animationDelay: `${index * 100}ms` }}
+          >
+            <StatCard
+              label={card.label}
+              value={card.value}
+              percentage={card.percentage}
+              status={card.status}
+              icon={card.icon}
+              color={card.color}
+              subtext={card.subtext}
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* ── Quick Actions Row ── */}
+      <div className="animate-fade-in-up opacity-0" style={{ animationDelay: '650ms' }}>
+        <h3 className="text-sm font-semibold text-muted-foreground mb-3">إجراءات سريعة</h3>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {QUICK_ACTIONS.map((action) => (
+            <QuickActionButton
+              key={action.id}
+              label={action.label}
+              description={action.description}
+              icon={action.icon}
+              onClick={() => setActiveSection(action.id)}
+            />
+          ))}
+        </div>
       </div>
 
       {/* ── Analytics Row ── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5 animate-fade-in-up opacity-0" style={{ animationDelay: '750ms' }}>
         {/* Weekly Interaction Chart — takes 3 cols */}
         <SectionCard
           title="تحليل التفاعل الأسبوعي"
@@ -409,7 +689,7 @@ export default function DashboardOverview() {
       </div>
 
       {/* ── Bottom Row ── */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 animate-fade-in-up opacity-0" style={{ animationDelay: '850ms' }}>
         {/* Classroom Map */}
         <SectionCard
           title="خريطة الفصل التفاعلية"

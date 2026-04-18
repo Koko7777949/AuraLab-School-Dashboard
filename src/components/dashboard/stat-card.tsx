@@ -129,21 +129,18 @@ export default function StatCard({
 
   return (
     <div
-      className="group relative rounded-xl p-5 transition-all duration-300 ease-out cursor-default"
+      className="group relative rounded-xl bg-[#1A1A24] border border-white/[0.06] p-5 transition-all duration-300 ease-out cursor-default hover:-translate-y-0.5 hover:border-amber-500/20"
       style={{
         backgroundColor: '#1A1A24',
-        border: '1px solid rgba(255,255,255,0.06)',
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = 'translateY(-2px)'
         e.currentTarget.style.boxShadow =
           '0 8px 30px rgba(0,0,0,0.3), 0 0 0 1px rgba(245,158,11,0.15)'
-        e.currentTarget.style.borderColor = 'rgba(245,158,11,0.2)'
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = 'translateY(0)'
         e.currentTarget.style.boxShadow = 'none'
-        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
       }}
     >
       {/* ── Top row: icon + status badge ── */}

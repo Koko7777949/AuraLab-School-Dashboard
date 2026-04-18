@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   UserPlus,
   Pencil,
@@ -294,7 +294,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
       </p>
       <Button
         onClick={onAdd}
-        className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold gap-2 rounded-lg px-6"
+        className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold gap-2 rounded-lg px-6"
       >
         <UserPlus className="h-4 w-4" />
         إضافة طالب جديد
@@ -551,7 +551,7 @@ function StudentFormContent({
       <DialogFooter className="flex-row gap-3 sm:justify-start pt-2">
         <Button
           type="submit"
-          className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold rounded-lg px-6 gap-2"
+          className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold rounded-lg px-6 gap-2"
         >
           {isEditing ? (
             <>
@@ -682,9 +682,10 @@ function DeleteStudentDialog({
 // ---------------------------------------------------------------------------
 
 export default function StudentsSection() {
-  const { students, setStudents, searchQuery, setSearchQuery } = useAppStore();
+  const { students, setStudents } = useAppStore();
 
   // Local UI state
+  const [localSearch, setLocalSearch] = useState('');
   const [formOpen, setFormOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -693,11 +694,13 @@ export default function StudentsSection() {
   const [currentPage, setCurrentPage] = useState(1);
 
   // Initialize mock data once
+  const initialized = useRef(false);
   useEffect(() => {
-    if (students.length === 0) {
+    if (!initialized.current && students.length === 0) {
+      initialized.current = true;
       setStudents(INITIAL_STUDENTS);
     }
-  }, [students.length, setStudents]);
+  }, []);  
 
   // Filtered & searched list
   const filteredStudents = useMemo(() => {
@@ -709,8 +712,8 @@ export default function StudentsSection() {
     }
 
     // Search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.trim().toLowerCase();
+    if (localSearch.trim()) {
+      const query = localSearch.trim().toLowerCase();
       result = result.filter(
         (s) =>
           s.name.toLowerCase().includes(query) ||
@@ -719,7 +722,7 @@ export default function StudentsSection() {
     }
 
     return result;
-  }, [students, statusFilter, searchQuery]);
+  }, [students, statusFilter, localSearch]);
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(filteredStudents.length / ITEMS_PER_PAGE));
@@ -790,7 +793,7 @@ export default function StudentsSection() {
         {/* Add button */}
         <Button
           onClick={handleAdd}
-          className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold gap-2 rounded-lg px-5 h-10"
+          className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold gap-2 rounded-lg px-5 h-10"
         >
           <UserPlus className="h-4 w-4" />
           إضافة طالب جديد
@@ -802,8 +805,8 @@ export default function StudentsSection() {
           <div className="relative">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
             <Input
-              value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              value={localSearch}
+              onChange={(e) => { setLocalSearch(e.target.value); setCurrentPage(1); }}
               placeholder="بحث بالاسم أو الرقم التعريفي..."
               className="pr-10 w-full sm:w-72 bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 h-10"
             />

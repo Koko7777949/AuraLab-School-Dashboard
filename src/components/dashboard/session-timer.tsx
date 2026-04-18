@@ -17,6 +17,59 @@ function formatTime(ms: number): string {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
+/** Session duration: 45 minutes in ms */
+const SESSION_DURATION = 45 * 60 * 1000;
+
+// ---------------------------------------------------------------------------
+// Circular Progress Ring (SVG)
+// ---------------------------------------------------------------------------
+
+function CircularProgress({ progress }: { progress: number }) {
+  const size = 200;
+  const strokeWidth = 4;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const offset = circumference - (progress / 100) * circumference;
+
+  return (
+    <svg
+      width={size}
+      height={size}
+      className="absolute inset-0 pointer-events-none"
+      style={{ transform: 'rotate(-90deg)' }}
+    >
+      {/* Background track */}
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke="rgba(255,255,255,0.06)"
+        strokeWidth={strokeWidth}
+      />
+      {/* Progress arc */}
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke="url(#timerGradient)"
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeDasharray={`${circumference} ${circumference}`}
+        strokeDashoffset={offset}
+        className="transition-all duration-500 ease-out"
+      />
+      <defs>
+        <linearGradient id="timerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#D4A574" />
+          <stop offset="100%" stopColor="#E8C9A0" />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // SessionTimer Component
 // ---------------------------------------------------------------------------
@@ -45,12 +98,14 @@ export default function SessionTimer() {
     return () => clearInterval(interval);
   }, [sessionRunning, sessionStartTime]);
 
+  // ── Progress (capped at 100%) ──
+  const progress = Math.min((elapsed / SESSION_DURATION) * 100, 100);
+
   // ── Handlers ──
 
   const handleStart = useCallback(() => {
     if (sessionRunning) return;
     if (sessionStartTime === null) {
-      // Fresh start
       accumulatedRef.current = 0;
     }
     setSessionStartTime(Date.now());
@@ -92,7 +147,9 @@ export default function SessionTimer() {
     >
       {/* Subtle gradient border wrapper */}
       <div
-        className="absolute -inset-[1px] rounded-2xl"
+        className={`absolute -inset-[1px] rounded-2xl transition-shadow duration-700 ${
+          sessionRunning ? 'animate-timer-glow' : ''
+        }`}
         style={{
           background:
             'linear-gradient(135deg, rgba(212,165,116,0.3) 0%, rgba(212,165,116,0.05) 40%, rgba(212,165,116,0.02) 60%, rgba(212,165,116,0.25) 100%)',
@@ -119,10 +176,11 @@ export default function SessionTimer() {
           </span>
         </div>
 
-        {/* ── Timer display ── */}
-        <div className="select-none" dir="ltr">
+        {/* ── Timer display with circular progress ── */}
+        <div className="relative flex items-center justify-center select-none" dir="ltr">
+          <CircularProgress progress={progress} />
           <span
-            className="text-4xl font-bold tabular-nums tracking-wider"
+            className="relative text-5xl font-extrabold tracking-[0.08em]"
             style={{
               fontFamily:
                 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
@@ -133,17 +191,24 @@ export default function SessionTimer() {
           </span>
         </div>
 
+        {/* ── Session progress label ── */}
+        <span className="text-xs text-muted-foreground/60 font-medium tabular-nums">
+          {Math.round(progress)}% من الحصة (45 دقيقة)
+        </span>
+
         {/* ── Action buttons ── */}
         <div className="flex items-center gap-3">
-          {/* Start — amber */}
+          {/* Start — gradient amber */}
           <Button
             size="sm"
             onClick={handleStart}
             disabled={sessionRunning}
-            className="gap-1.5 rounded-lg px-5 font-medium shadow-none"
+            className="gap-1.5 rounded-lg px-5 font-semibold shadow-none transition-all duration-200 hover:shadow-lg hover:shadow-[#D4A574]/20 active:scale-95 disabled:opacity-50"
             style={{
-              backgroundColor: sessionRunning ? '' : '#D4A574',
-              color: sessionRunning ? '' : '#1A1A24',
+              background: sessionRunning
+                ? undefined
+                : 'linear-gradient(135deg, #D4A574 0%, #E8C9A0 50%, #D4A574 100%)',
+              color: sessionRunning ? undefined : '#1A1A24',
             }}
           >
             <Play size={15} strokeWidth={2.2} />
@@ -175,6 +240,19 @@ export default function SessionTimer() {
           </Button>
         </div>
       </div>
+
+      {/* Pulsing glow animation (only when running) */}
+      {sessionRunning && (
+        <style jsx>{`
+          @keyframes timer-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(212, 165, 116, 0.08), 0 0 60px rgba(212, 165, 116, 0.04); }
+            50% { box-shadow: 0 0 30px rgba(212, 165, 116, 0.18), 0 0 80px rgba(212, 165, 116, 0.08); }
+          }
+          .animate-timer-glow {
+            animation: timer-glow 2.5s ease-in-out infinite;
+          }
+        `}</style>
+      )}
     </div>
   );
 }

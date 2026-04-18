@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   School,
   Users,
@@ -21,7 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Progress } from '@/components/ui/progress';
+
 import {
   Dialog,
   DialogContent,
@@ -167,7 +167,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
       </p>
       <Button
         onClick={onAdd}
-        className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold gap-2 rounded-lg px-6"
+        className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold gap-2 rounded-lg px-6"
       >
         <Plus className="h-4 w-4" />
         إضافة صف جديد
@@ -419,7 +419,7 @@ function ClassFormContent({
       <DialogFooter className="flex-row gap-3 sm:justify-start pt-2">
         <Button
           type="submit"
-          className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold rounded-lg px-6 gap-2"
+          className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold rounded-lg px-6 gap-2"
         >
           {isEditing ? (
             <>
@@ -550,20 +550,23 @@ function DeleteClassDialog({
 // ---------------------------------------------------------------------------
 
 export default function ClassesSection() {
-  const { classes, setClasses, searchQuery, setSearchQuery } = useAppStore();
+  const { classes, setClasses } = useAppStore();
 
   // Local UI state
+  const [localSearch, setLocalSearch] = useState('');
   const [formOpen, setFormOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState<ClassRoom | null>(null);
   const [gradeFilter, setGradeFilter] = useState<string>('all');
 
   // Initialize mock data once
+  const initialized = useRef(false);
   useEffect(() => {
-    if (classes.length === 0) {
+    if (!initialized.current && classes.length === 0) {
+      initialized.current = true;
       setClasses(INITIAL_CLASSES);
     }
-  }, [classes.length, setClasses]);
+  }, []);  
 
   // Filtered & searched list
   const filteredClasses = useMemo(() => {
@@ -575,8 +578,8 @@ export default function ClassesSection() {
     }
 
     // Search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.trim().toLowerCase();
+    if (localSearch.trim()) {
+      const query = localSearch.trim().toLowerCase();
       result = result.filter(
         (c) =>
           c.name.toLowerCase().includes(query) ||
@@ -586,7 +589,7 @@ export default function ClassesSection() {
     }
 
     return result;
-  }, [classes, gradeFilter, searchQuery]);
+  }, [classes, gradeFilter, localSearch]);
 
   // Handlers
   const handleAdd = () => {
@@ -637,7 +640,7 @@ export default function ClassesSection() {
         {/* Add button */}
         <Button
           onClick={handleAdd}
-          className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold gap-2 rounded-lg px-5 h-10"
+          className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold gap-2 rounded-lg px-5 h-10"
         >
           <Plus className="h-4 w-4" />
           إضافة صف جديد
@@ -649,8 +652,8 @@ export default function ClassesSection() {
           <div className="relative">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
             <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={localSearch}
+              onChange={(e) => setLocalSearch(e.target.value)}
               placeholder="بحث بالاسم أو المرحلة أو القاعة..."
               className="pr-10 w-full sm:w-72 bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 h-10"
             />

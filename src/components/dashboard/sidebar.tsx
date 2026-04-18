@@ -91,11 +91,18 @@ export default function Sidebar() {
 
   // -----------------------------------------------------------------------
   return (
+    <>
+    {sidebarOpen && (
+      <div
+        className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm lg:hidden"
+        onClick={toggleSidebar}
+      />
+    )}
     <aside
       dir="rtl"
       className={`
         fixed right-0 top-0 z-40 flex h-screen flex-col
-        border-l border-[#2A2A38] bg-[#16161E]
+        border-l border-[#2A2A38] bg-[#141419]
         transition-all duration-300 ease-in-out
         ${sidebarOpen ? 'w-60' : 'w-[72px]'}
       `}
@@ -134,9 +141,10 @@ export default function Sidebar() {
           aria-label={sidebarOpen ? 'طي القائمة' : 'توسيع القائمة'}
           className={`
             flex h-9 w-9 shrink-0 items-center justify-center rounded-lg
-            text-[#8B8B9E] transition-colors duration-200
+            text-[#8B8B9E] transition-all duration-300 ease-out
             hover:bg-[#1E1E2A] hover:text-[#D4A574]
             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A574]/50
+            active:scale-95
             ${!sidebarOpen ? 'mt-0' : ''}
           `}
         >
@@ -161,15 +169,22 @@ export default function Sidebar() {
                   : 0;
 
             return (
-              <li key={item.id}>
+              <li key={item.id} className="relative">
+                {/* Active indicator bar (right side) */}
+                {isActive && (
+                  <span
+                    className="absolute right-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-l-full bg-[#D4A574] animate-slide-in-right"
+                  />
+                )}
+
                 <button
                   onClick={() => handleNavClick(item.id)}
                   aria-current={isActive ? 'page' : undefined}
                   title={!sidebarOpen ? item.label : undefined}
                   className={`
-                    group flex w-full items-center gap-3 rounded-xl
+                    group relative flex w-full items-center gap-3 rounded-xl
                     px-3 py-2.5 text-sm font-medium
-                    transition-all duration-200
+                    transition-all duration-300 ease-out
                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A574]/50
                     ${
                       isActive
@@ -182,11 +197,15 @@ export default function Sidebar() {
                   {/* Icon */}
                   <span
                     className={`
-                      shrink-0 transition-colors duration-200
+                      shrink-0 transition-all duration-300 ease-out
                       ${isActive ? 'text-[#D4A574]' : 'text-[#8B8B9E] group-hover:text-[#C4C4D4]'}
                     `}
                   >
-                    <Icon size={20} strokeWidth={isActive ? 2 : 1.6} />
+                    <Icon
+                      size={20}
+                      strokeWidth={isActive ? 2 : 1.6}
+                      className={isActive ? 'drop-shadow-[0_0_6px_rgba(212,165,116,0.4)]' : ''}
+                    />
                   </span>
 
                   {/* Label */}
@@ -205,10 +224,10 @@ export default function Sidebar() {
                       className={`
                         mr-auto flex h-5 min-w-[20px] items-center justify-center
                         rounded-full px-1.5 text-xs font-semibold leading-none
-                        transition-all duration-200
+                        transition-all duration-300
                         ${
                           item.isAlert
-                            ? 'bg-red-500/90 text-white'
+                            ? 'bg-red-500/90 text-white shadow-[0_0_8px_rgba(239,68,68,0.3)]'
                             : 'bg-[#D4A574]/15 text-[#D4A574]'
                         }
                       `}
@@ -222,9 +241,10 @@ export default function Sidebar() {
                     <span
                       className={`
                         absolute -left-0.5 top-1 h-2 w-2 rounded-full
+                        transition-all duration-300
                         ${
                           item.isAlert
-                            ? 'bg-red-500'
+                            ? 'bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.5)]'
                             : 'bg-[#D4A574]'
                         }
                       `}
@@ -265,5 +285,6 @@ export default function Sidebar() {
         </div>
       </div>
     </aside>
+    </>
   );
 }

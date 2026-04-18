@@ -21,14 +21,13 @@ export default function SectionCard({
   return (
     <div
       className={cn(
-        'rounded-xl transition-all duration-300 ease-out hover:-translate-y-0.5',
+        'rounded-xl bg-[#1A1A24] border border-white/[0.06] transition-all duration-300 ease-out hover:-translate-y-0.5',
         'hover:shadow-[0_8px_30px_rgba(0,0,0,0.3),0_0_0_1px_rgba(212,165,116,0.15)]',
         'hover:border-[rgba(212,165,116,0.2)]',
         className,
       )}
       style={{
         backgroundColor: '#1A1A24',
-        border: '1px solid rgba(255,255,255,0.06)',
       }}
     >
       {/* ── Header ── */}
