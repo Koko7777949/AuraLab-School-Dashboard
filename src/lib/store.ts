@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ActiveSection, Student, Teacher, ClassRoom, Exam, TrashItem, AppNotification, ChatMessage, GradeRecord, Message, BehaviorRecord } from './types';
+import type { ActiveSection, Student, Teacher, ClassRoom, Exam, TrashItem, AppNotification, ChatMessage, GradeRecord, Message, BehaviorRecord, ScheduleBlock, LibraryBook } from './types';
 
 interface AppState {
   // Navigation
@@ -91,6 +91,20 @@ interface AppState {
   archiveMessage: (id: string) => void;
   toggleMessageStar: (id: string) => void;
   markMessageRead: (id: string) => void;
+
+  // Schedule Blocks
+  scheduleBlocks: ScheduleBlock[];
+  setScheduleBlocks: (blocks: ScheduleBlock[]) => void;
+  addScheduleBlock: (block: ScheduleBlock) => void;
+  updateScheduleBlock: (id: string, data: Partial<ScheduleBlock>) => void;
+  deleteScheduleBlock: (id: string) => void;
+
+  // Library Books
+  libraryBooks: LibraryBook[];
+  setLibraryBooks: (books: LibraryBook[]) => void;
+  addLibraryBook: (book: LibraryBook) => void;
+  updateLibraryBook: (id: string, data: Partial<LibraryBook>) => void;
+  deleteLibraryBook: (id: string) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -267,5 +281,27 @@ export const useAppStore = create<AppState>((set) => ({
     messages: state.messages.map((m) =>
       m.id === id ? { ...m, isRead: true } : m
     ),
+  })),
+
+  // Schedule Blocks
+  scheduleBlocks: [],
+  setScheduleBlocks: (blocks) => set({ scheduleBlocks: blocks }),
+  addScheduleBlock: (block) => set((state) => ({ scheduleBlocks: [...state.scheduleBlocks, block] })),
+  updateScheduleBlock: (id, data) => set((state) => ({
+    scheduleBlocks: state.scheduleBlocks.map((b) => (b.id === id ? { ...b, ...data } : b)),
+  })),
+  deleteScheduleBlock: (id) => set((state) => ({
+    scheduleBlocks: state.scheduleBlocks.filter((b) => b.id !== id),
+  })),
+
+  // Library Books
+  libraryBooks: [],
+  setLibraryBooks: (books) => set({ libraryBooks: books }),
+  addLibraryBook: (book) => set((state) => ({ libraryBooks: [...state.libraryBooks, book] })),
+  updateLibraryBook: (id, data) => set((state) => ({
+    libraryBooks: state.libraryBooks.map((b) => (b.id === id ? { ...b, ...data } : b)),
+  })),
+  deleteLibraryBook: (id) => set((state) => ({
+    libraryBooks: state.libraryBooks.filter((b) => b.id !== id),
   })),
 }));

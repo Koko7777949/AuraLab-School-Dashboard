@@ -22,6 +22,8 @@ import {
   MessageSquare,
   FileBarChart,
   ShieldAlert,
+  BookOpen,
+  CalendarRange,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import type { ActiveSection } from '@/lib/types';
@@ -49,6 +51,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'attendance', label: 'الحضور', icon: ClipboardCheck, showCount: true },
   { id: 'grades', label: 'الدرجات', icon: Trophy, showCount: true },
   { id: 'behavior', label: 'سلوك الطلاب', icon: ShieldAlert, showCount: true },
+  { id: 'timetable', label: 'الجدول الدراسي', icon: CalendarRange },
   { id: 'analytics', label: 'التحليلات', icon: BarChart3 },
   { id: 'reports', label: 'التقارير', icon: FileBarChart },
   { id: 'announcements', label: 'الإعلانات', icon: Megaphone, isAlert: true },
@@ -56,6 +59,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'notifications', label: 'الإشعارات', icon: Bell, isAlert: true },
   { id: 'ai-assistant', label: 'المساعد الذكي', icon: Bot },
   { id: 'trash', label: 'المحذوفات', icon: Trash2, showCount: true },
+  { id: 'library', label: 'المكتبة', icon: BookOpen, showCount: true },
   { id: 'settings', label: 'الإعدادات', icon: Settings },
 ];
 
@@ -76,6 +80,8 @@ export default function Sidebar() {
     messages,
     notifications,
     trashItems,
+    behaviors,
+    libraryBooks,
   } = useAppStore();
 
   // Track mobile state for slide-in animation
@@ -104,11 +110,15 @@ export default function Sidebar() {
       classes: classes.length,
       exams: exams.length,
       grades: grades.length,
+      attendance: 0, // attendance records tracked in separate section
+      behavior: behaviors.length,
+      announcements: 0, // announcements managed with local mock data
       messages: messages.filter((m) => !m.isRead).length,
       notifications: unreadCount,
       trash: trashItems.length,
+      library: libraryBooks.length,
     }),
-    [students, teachers, classes, exams, grades, messages, unreadCount, trashItems],
+    [students, teachers, classes, exams, grades, messages, unreadCount, trashItems, behaviors, libraryBooks],
   );
 
   // Handlers ----------------------------------------------------------------
@@ -404,7 +414,7 @@ export default function Sidebar() {
                 <Sparkles size={10} className="text-[#D4A574]/40" />
               </div>
               <span className="text-[9px] tracking-widest text-[#3E3E4E]">
-                v2.4.0
+                v2.5.0
               </span>
             </div>
           </div>

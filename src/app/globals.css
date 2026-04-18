@@ -2594,3 +2594,451 @@ html {
 .animate-indicator-glow {
   animation: indicator-glow 2s ease-in-out infinite;
 }
+
+/* ===================================================================
+   63. ANIMATED GRADIENT TEXT
+   Text with animated gradient background-clip that sweeps left→right.
+   Usage: <span class="gradient-text-animated">Living Text</span>
+   =================================================================== */
+@keyframes gradient-text-sweep {
+  0% { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+.gradient-text-animated {
+  background: linear-gradient(90deg, #D4A574, #E8C9A0, #D4A574);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-text-sweep 3s linear infinite;
+}
+
+/* ===================================================================
+   64. GLASS CARD — FROST VARIANT
+   Stronger frosted glass with 20px blur, subtle white border glow
+   on hover, and a smooth 0.4s transition.
+   =================================================================== */
+.glass-card-frost {
+  background: rgba(26, 26, 36, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius);
+  transition: all 0.4s ease;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+}
+.glass-card-frost:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    0 0 40px rgba(255, 255, 255, 0.02);
+  background: rgba(26, 26, 36, 0.75);
+}
+
+/* ===================================================================
+   65. ICON BUTTON STYLES
+   Micro-interaction wrappers for icon buttons.
+   =================================================================== */
+
+/* Scale + rotate on hover */
+.icon-btn-hover {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease, filter 0.3s ease;
+}
+.icon-btn-hover:hover {
+  transform: scale(1.15) rotate(5deg);
+}
+
+/* Colored glow matching text color on hover */
+.icon-btn-glow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+.icon-btn-glow:hover {
+  box-shadow: 0 0 14px currentColor;
+  transform: scale(1.05);
+}
+
+/* Bounce on click (scale 0.9 → 1.1 → 1) */
+@keyframes icon-bounce {
+  0% { transform: scale(1); }
+  40% { transform: scale(0.9); }
+  70% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+.icon-btn-bounce {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+.icon-btn-bounce:active {
+  animation: icon-bounce 0.3s ease;
+}
+
+/* ===================================================================
+   66. TEXT REVEAL ANIMATION
+   Text slides up from below with a clip-mask reveal effect.
+   Usage: <h2 class="text-reveal">Revealed Heading</h2>
+   =================================================================== */
+@keyframes text-reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.text-reveal {
+  overflow: hidden;
+  display: inline-block;
+}
+.text-reveal > * {
+  display: inline-block;
+  animation: text-reveal-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ===================================================================
+   67. CARD SHIMMER OVERLAY
+   Moving diagonal shine sweep across card, triggered on hover.
+   Usage: add class "card-shimmer" to any card container.
+   =================================================================== */
+@keyframes card-shimmer-sweep {
+  0% {
+    transform: translateX(-100%) translateY(-100%) rotate(45deg);
+  }
+  100% {
+    transform: translateX(200%) translateY(200%) rotate(45deg);
+  }
+}
+.card-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.card-shimmer::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 60%;
+  height: 200%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.04) 40%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.04) 60%,
+    transparent 100%
+  );
+  transform: translateX(-100%) translateY(-100%) rotate(45deg);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 2;
+}
+.card-shimmer:hover::before {
+  opacity: 1;
+  animation: card-shimmer-sweep 1.5s ease-in-out;
+}
+
+/* ===================================================================
+   68. RIPPLE CLICK EFFECT (CSS-only :active trigger)
+   Enhances existing .ripple-effect class with a pure CSS :active
+   animation trigger — no JS required.
+   =================================================================== */
+.ripple-effect:active::after {
+  top: 50%;
+  left: 50%;
+  margin-top: -50px;
+  margin-left: -50px;
+  animation: ripple 0.4s ease-out;
+}
+
+/* ===================================================================
+   69. NEON BORDER PULSE
+   Amber-colored neon glow border with pulsing animation.
+   =================================================================== */
+@keyframes neon-pulse {
+  0%, 100% {
+    border-color: rgba(212, 165, 116, 0.4);
+    box-shadow:
+      0 0 6px rgba(212, 165, 116, 0.15),
+      0 0 16px rgba(212, 165, 116, 0.08);
+  }
+  50% {
+    border-color: rgba(212, 165, 116, 0.7);
+    box-shadow:
+      0 0 10px rgba(212, 165, 116, 0.3),
+      0 0 28px rgba(212, 165, 116, 0.15),
+      0 0 48px rgba(212, 165, 116, 0.06);
+  }
+}
+.neon-border-pulse {
+  border: 1px solid rgba(212, 165, 116, 0.4);
+  animation: neon-pulse 2s ease-in-out infinite;
+}
+
+/* ===================================================================
+   70. STAGGER CHILDREN ANIMATION
+   Automatically staggers opacity + translateY for up to 10 children
+   using :nth-child selectors. Apply entrance animation class (e.g.
+   .animate-fade-in) to each child for the full effect.
+   =================================================================== */
+.stagger-children > *:nth-child(1)  { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2)  { animation-delay: 80ms; }
+.stagger-children > *:nth-child(3)  { animation-delay: 160ms; }
+.stagger-children > *:nth-child(4)  { animation-delay: 240ms; }
+.stagger-children > *:nth-child(5)  { animation-delay: 320ms; }
+.stagger-children > *:nth-child(6)  { animation-delay: 400ms; }
+.stagger-children > *:nth-child(7)  { animation-delay: 480ms; }
+.stagger-children > *:nth-child(8)  { animation-delay: 560ms; }
+.stagger-children > *:nth-child(9)  { animation-delay: 640ms; }
+.stagger-children > *:nth-child(10) { animation-delay: 720ms; }
+
+/* ===================================================================
+   71. SCROLL-LINKED PROGRESS BAR
+   Thin amber progress bar at the very top of the page.
+   CSS-only: uses a looping @keyframes animation.
+   Pair with JS to set width dynamically, or use the animated
+   decorative version below.
+   =================================================================== */
+@keyframes scroll-progress-fill {
+  0% { width: 0%; }
+  25% { width: 25%; }
+  50% { width: 55%; }
+  75% { width: 80%; }
+  100% { width: 100%; }
+}
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #D4A574, #E8C9A0, #D4A574);
+  background-size: 200% auto;
+  animation: scroll-progress-fill 8s cubic-bezier(0.4, 0, 0.2, 1) infinite,
+             gradient-text-sweep 3s linear infinite;
+  z-index: 9999;
+  border-radius: 0 2px 2px 0;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+/* ===================================================================
+   72. ENHANCED BADGE STYLES
+   Colored badges with glow shadows and luminous text-shadow.
+   =================================================================== */
+.badge-glow-amber {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #D4A574;
+  background: rgba(212, 165, 116, 0.1);
+  border: 1px solid rgba(212, 165, 116, 0.15);
+  box-shadow: 0 0 10px rgba(212, 165, 116, 0.12);
+  text-shadow: 0 0 8px rgba(212, 165, 116, 0.3);
+}
+.badge-glow-emerald {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #4ADE80;
+  background: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.15);
+  box-shadow: 0 0 10px rgba(74, 222, 128, 0.12);
+  text-shadow: 0 0 8px rgba(74, 222, 128, 0.3);
+}
+.badge-glow-rose {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #FB7185;
+  background: rgba(251, 113, 133, 0.1);
+  border: 1px solid rgba(251, 113, 133, 0.15);
+  box-shadow: 0 0 10px rgba(251, 113, 133, 0.12);
+  text-shadow: 0 0 8px rgba(251, 113, 133, 0.3);
+}
+
+/* ===================================================================
+   73. ENHANCED TOOLTIP (.tooltip-modern)
+   Dark glass tooltip with 16px blur, bottom triangle arrow, and
+   a fade + translateY entrance animation.
+   =================================================================== */
+@keyframes tooltip-modern-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.tooltip-modern {
+  position: relative;
+  display: inline-block;
+}
+.tooltip-modern::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(18, 18, 24, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #F1F1F6;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  animation: tooltip-modern-enter 0.2s ease-out both;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  z-index: 100;
+}
+/* Triangle arrow at bottom */
+.tooltip-modern::before {
+  content: "";
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: rgba(18, 18, 24, 0.92);
+  pointer-events: none;
+  opacity: 0;
+  z-index: 101;
+}
+.tooltip-modern:hover::after,
+.tooltip-modern:hover::before {
+  opacity: 1;
+}
+
+/* ===================================================================
+   74. LIST ITEM HOVER
+   Subtle left border appears on hover with background shift.
+   RTL-aware: uses right border in [dir="rtl"] contexts.
+   =================================================================== */
+.list-item-hover {
+  position: relative;
+  transition: background-color 0.25s ease, padding-right 0.25s ease;
+  border-left: 2px solid transparent;
+  padding-right: 12px;
+}
+.list-item-hover:hover {
+  background-color: rgba(255, 255, 255, 0.02);
+  border-left-color: rgba(212, 165, 116, 0.4);
+  padding-right: 16px;
+}
+/* RTL variant: right border instead of left */
+[dir="rtl"] .list-item-hover {
+  border-left: none;
+  border-right: 2px solid transparent;
+  padding-right: 12px;
+  padding-left: 12px;
+}
+[dir="rtl"] .list-item-hover:hover {
+  border-right-color: rgba(212, 165, 116, 0.4);
+  border-left: none;
+  padding-left: 16px;
+}
+
+/* ===================================================================
+   75. INPUT FOCUS RING — ENHANCED AMBER
+   Amber ring (2px) + amber glow shadow on focus.
+   Designed for dark inputs with bg-white/[0.03] backgrounds.
+   =================================================================== */
+.input-focus-amber {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  outline: none;
+}
+.input-focus-amber:focus {
+  border-color: rgba(212, 165, 116, 0.5);
+  box-shadow:
+    0 0 0 2px rgba(212, 165, 116, 0.2),
+    0 0 12px rgba(212, 165, 116, 0.1);
+}
+
+/* ===================================================================
+   76. SECTION ENTRANCE PACK
+   Directional fade+translate entrance animations.
+   =================================================================== */
+@keyframes section-enter-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes section-enter-down {
+  from {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes section-enter-right {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes section-enter-left {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.section-enter-up {
+  animation: section-enter-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.section-enter-down {
+  animation: section-enter-down 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.section-enter-right {
+  animation: section-enter-right 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.section-enter-left {
+  animation: section-enter-left 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}

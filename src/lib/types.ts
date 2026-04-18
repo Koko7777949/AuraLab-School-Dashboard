@@ -154,6 +154,22 @@ export interface BehaviorRecord {
   createdAt: string;
 }
 
+export interface ScheduleBlock {
+  id: string;
+  dayOfWeek: 'sat' | 'sun' | 'mon' | 'tue' | 'wed' | 'thu';
+  period: number;
+  subject: string;
+  teacherId: string | null;
+  teacherName?: string;
+  classId: string | null;
+  className?: string;
+  room: string;
+  startTime: string;
+  endTime: string;
+  color: string;
+  notes: string;
+}
+
 export type ActiveSection = 
   | 'dashboard' 
   | 'students' 
@@ -171,7 +187,9 @@ export type ActiveSection =
   | 'trash' 
   | 'settings' 
   | 'ai-assistant'
-  | 'behavior';
+  | 'behavior'
+  | 'timetable'
+  | 'library';
 
 export interface KpiData {
   label: string;
@@ -242,6 +260,23 @@ export interface MessageThread {
   lastMessageAt: string;
   unreadCount: number;
   subject: string;
+}
+
+export interface LibraryBook {
+  id: string;
+  title: string;
+  author: string;
+  isbn: string;
+  category: string;
+  publisher: string;
+  year: number;
+  totalCopies: number;
+  availableCopies: number;
+  location: string;
+  coverColor: string;
+  description: string;
+  addedBy: string;
+  createdAt: string;
 }
 
 export interface DashboardStats {

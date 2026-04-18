@@ -15,7 +15,6 @@ import {
   Star,
   AlertTriangle,
   CheckCircle2,
-  XCircle,
   Clock,
   Users,
   ChevronLeft,

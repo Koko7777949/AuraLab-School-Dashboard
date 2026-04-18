@@ -13,6 +13,7 @@ import SessionsSection from '@/components/dashboard/sessions-section';
 import AttendanceSection from '@/components/dashboard/attendance-section';
 import GradesSection from '@/components/dashboard/grades-section';
 import BehaviorSection from '@/components/dashboard/behavior-section';
+import TimetableSection from '@/components/dashboard/timetable-section';
 import AnalyticsSection from '@/components/dashboard/analytics-section';
 import ReportsSection from '@/components/dashboard/reports-section';
 import AnnouncementsSection from '@/components/dashboard/announcements-section';
@@ -21,6 +22,7 @@ import NotificationsSection from '@/components/dashboard/notifications-section';
 import AiAssistant from '@/components/dashboard/ai-assistant';
 import TrashSection from '@/components/dashboard/trash-section';
 import SettingsSection from '@/components/dashboard/settings-section';
+import LibrarySection from '@/components/dashboard/library-section';
 import KeyboardShortcuts from '@/components/dashboard/keyboard-shortcuts';
 import type { ActiveSection } from '@/lib/types';
 
@@ -44,6 +46,8 @@ function SectionRenderer({ section }: { section: ActiveSection }) {
       return <GradesSection />;
     case 'behavior':
       return <BehaviorSection />;
+    case 'timetable':
+      return <TimetableSection />;
     case 'analytics':
       return <AnalyticsSection />;
     case 'reports':
@@ -58,6 +62,8 @@ function SectionRenderer({ section }: { section: ActiveSection }) {
       return <AiAssistant />;
     case 'trash':
       return <TrashSection />;
+    case 'library':
+      return <LibrarySection />;
     case 'settings':
       return <SettingsSection />;
     default:
@@ -223,7 +229,7 @@ export default function Home() {
                 </nav>
 
                 {/* Version */}
-                <p className="text-xs text-muted-foreground/50">الإصدار 2.4.0</p>
+                <p className="text-xs text-muted-foreground/50">الإصدار 2.5.0</p>
               </div>
 
               {/* Mobile layout: stacked */}
@@ -253,7 +259,7 @@ export default function Home() {
                   ))}
                 </nav>
 
-                <p className="text-[11px] text-muted-foreground/40">الإصدار 2.4.0</p>
+                <p className="text-[11px] text-muted-foreground/40">الإصدار 2.5.0</p>
               </div>
             </div>
           </footer>
