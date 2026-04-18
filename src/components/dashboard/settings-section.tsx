@@ -443,9 +443,9 @@ function ThemeCustomizerCard() {
                     )}
                     style={{
                       backgroundColor: c.value,
-                      ringColor: localAccent === c.value ? c.value : 'transparent',
+                      '--tw-ring-color': localAccent === c.value ? c.value : 'transparent',
                       boxShadow: localAccent === c.value ? `0 0 12px ${c.value}50` : 'none',
-                    }}
+                    } as React.CSSProperties}
                   >
                     {localAccent === c.value && (
                       <CheckCircle2

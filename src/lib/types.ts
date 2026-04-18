@@ -189,7 +189,8 @@ export type ActiveSection =
   | 'ai-assistant'
   | 'behavior'
   | 'timetable'
-  | 'library';
+  | 'library'
+  | 'fees';
 
 export interface KpiData {
   label: string;
@@ -217,6 +218,22 @@ export interface AttendanceRecord {
   className?: string;
   date: string;
   status: 'present' | 'absent' | 'late' | 'excused';
+  notes: string;
+  createdAt: string;
+}
+
+export interface FeeRecord {
+  id: string;
+  studentId: string;
+  studentName?: string;
+  classId?: string;
+  className?: string;
+  feeType: 'tuition' | 'transportation' | 'books' | 'activities' | 'lab' | 'other';
+  amount: number;
+  paidAmount: number;
+  status: 'paid' | 'partial' | 'unpaid' | 'overdue';
+  dueDate: string;
+  paidDate: string | null;
   notes: string;
   createdAt: string;
 }

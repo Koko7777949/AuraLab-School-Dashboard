@@ -29,6 +29,7 @@ import {
   Megaphone,
   Target,
   Medal,
+  DollarSign,
 } from 'lucide-react';
 import StatCard from './stat-card';
 import SectionCard from './section-card';
@@ -230,14 +231,7 @@ const upcomingEvents = [
   },
 ];
 
-// Quick Stats Ribbon data
-const quickStatsData = [
-  { label: 'طالب', value: '320', icon: GraduationCap, color: '#D4A574' },
-  { label: 'معلم', value: '24', icon: Users, color: '#D4A574' },
-  { label: 'فصل', value: '12', icon: BookOpen, color: '#D4A574' },
-  { label: 'امتحان', value: '156', icon: FileText, color: '#D4A574' },
-  { label: 'حضور', value: '92%', icon: CheckCircle, color: '#D4A574' },
-];
+// (quickStatsData removed — QuickStatsRibbon now builds stats dynamically from store)
 
 // Activity Feed mock data
 const activityFeedData = [
@@ -879,6 +873,20 @@ function QuickActionButton({
 // ---------------------------------------------------------------------------
 
 function QuickStatsRibbon() {
+  const { students, teachers, classes, exams, messages, setActiveSection } = useAppStore();
+
+  const unreadMessages = messages.filter(m => !m.isRead && !m.isArchived).length;
+  const outstandingFees = students.filter(s => s.status === 'inactive').length;
+
+  const statsData = [
+    { label: 'طالب', value: String(students.length || 320), icon: GraduationCap, color: '#D4A574', section: 'students' as const },
+    { label: 'معلم', value: String(teachers.length || 24), icon: Users, color: '#D4A574', section: 'teachers' as const },
+    { label: 'فصل', value: String(classes.length || 12), icon: BookOpen, color: '#D4A574', section: 'classes' as const },
+    { label: 'امتحان', value: String(exams.length || 156), icon: FileText, color: '#D4A574', section: 'exams' as const },
+    { label: 'الرسوم المستحقة', value: String(outstandingFees || 8), icon: DollarSign, color: '#f59e0b', section: 'students' as const },
+    { label: 'الرسائل الجديدة', value: String(unreadMessages || 5), icon: MessageSquare, color: '#38bdf8', section: 'notifications' as const },
+  ];
+
   return (
     <div className="animate-fade-in-up opacity-0" style={{ animationDelay: '550ms' }}>
       <div className="flex items-center gap-2 mb-3">
@@ -886,17 +894,18 @@ function QuickStatsRibbon() {
         <h3 className="text-sm font-semibold text-muted-foreground">إحصائيات سريعة</h3>
       </div>
       <div className="scroll-snap-x hide-scrollbar flex gap-3 overflow-x-auto pb-2">
-        {quickStatsData.map((stat) => {
+        {statsData.map((stat) => {
           const StatIcon = stat.icon;
           return (
-            <div
+            <button
               key={stat.label}
-              className="scroll-snap-x shrink-0 w-[130px] sm:w-auto sm:shrink sm:flex-1 rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-3 flex flex-col items-center gap-2 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/[0.05] hover:border-white/[0.1] cursor-default"
+              onClick={() => setActiveSection(stat.section)}
+              className="scroll-snap-x shrink-0 w-[130px] sm:w-auto sm:shrink sm:flex-1 rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-3 flex flex-col items-center gap-2 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/[0.05] hover:border-white/[0.1] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A574]/50"
             >
               <StatIcon className="h-5 w-5" style={{ color: stat.color }} />
               <span className="text-lg font-bold text-white tabular-nums">{stat.value}</span>
               <span className="text-[11px] text-muted-foreground font-medium">{stat.label}</span>
-            </div>
+            </button>
           );
         })}
       </div>
@@ -1037,6 +1046,154 @@ function StudentLeaderboard() {
 }
 
 // ---------------------------------------------------------------------------
+// NEW: Recent Students Data Table
+// ---------------------------------------------------------------------------
+
+const studentStatusConfig = {
+  active: { label: 'نشط', bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30' },
+  inactive: { label: 'غير نشط', bg: 'bg-amber-500/15', text: 'text-amber-400', border: 'border-amber-500/30' },
+  graduated: { label: 'متخرّج', bg: 'bg-sky-500/15', text: 'text-sky-400', border: 'border-sky-500/30' },
+};
+
+function RecentStudentsTable({ students, onViewAll }: { students: { id: string; name: string; className?: string; status: 'active' | 'inactive' | 'graduated'; createdAt: string }[]; onViewAll: () => void }) {
+  const recentStudents = [...students]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 5);
+
+  if (recentStudents.length === 0) {
+    return (
+      <div className="data-empty-state flex flex-col items-center justify-center py-10">
+        <Users className="h-10 w-10 text-muted-foreground/30 mb-3" />
+        <p className="text-sm text-muted-foreground">لا يوجد طلاب مسجلين بعد</p>
+        <button
+          onClick={onViewAll}
+          className="mt-3 text-xs font-medium text-[#D4A574] hover:text-[#E8C9A8] transition-colors duration-200 cursor-pointer"
+        >
+          إضافة طالب جديد
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="overflow-x-auto hide-scrollbar">
+        <table className="w-full min-w-[480px]">
+          <thead>
+            <tr className="border-b border-white/[0.06]">
+              <th className="text-right text-[11px] font-semibold text-muted-foreground pb-3 pr-2">الاسم</th>
+              <th className="text-right text-[11px] font-semibold text-muted-foreground pb-3 pr-2">الفصل</th>
+              <th className="text-right text-[11px] font-semibold text-muted-foreground pb-3 pr-2">الحالة</th>
+              <th className="text-left text-[11px] font-semibold text-muted-foreground pb-3 pl-2">تاريخ التسجيل</th>
+            </tr>
+          </thead>
+          <tbody>
+            {recentStudents.map((student) => {
+              const status = studentStatusConfig[student.status];
+              return (
+                <tr key={student.id} className="data-row-hover transition-colors duration-200">
+                  <td className="py-2.5 pr-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#D4A574]/15 text-[10px] font-bold text-[#D4A574]">
+                        {student.name.charAt(0)}
+                      </div>
+                      <span className="text-sm font-medium text-white truncate max-w-[140px]">{student.name}</span>
+                    </div>
+                  </td>
+                  <td className="py-2.5 pr-2 text-sm text-slate-400">{student.className || '—'}</td>
+                  <td className="py-2.5 pr-2">
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${status.bg} ${status.text} border ${status.border}`}>
+                      {status.label}
+                    </span>
+                  </td>
+                  <td className="py-2.5 pl-2 text-xs text-muted-foreground/60 tabular-nums">
+                    {new Date(student.createdAt).toLocaleDateString('ar-SA', { month: 'short', day: 'numeric' })}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <button
+        onClick={onViewAll}
+        className="mt-3 flex items-center gap-1.5 text-xs font-medium text-[#D4A574] hover:text-[#E8C9A8] transition-colors duration-200 cursor-pointer mr-auto"
+      >
+        عرض الكل
+        <ChevronLeft className="h-3 w-3" />
+      </button>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// NEW: Today's Attendance Overview (percentage rings)
+// ---------------------------------------------------------------------------
+
+function TodayAttendanceOverview({ pills, onClick }: {
+  pills: typeof attendancePills;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full text-right cursor-pointer group"
+    >
+      <div className="grid grid-cols-4 gap-2">
+        {pills.map((item) => {
+          const Icon = item.icon;
+          const radius = 22;
+          const circumference = 2 * Math.PI * radius;
+          const strokeDashoffset = circumference - (item.percentage / 100) * circumference;
+
+          return (
+            <div
+              key={item.id}
+              className="flex flex-col items-center gap-1.5 transition-transform duration-300 group-hover:scale-105"
+            >
+              {/* SVG percentage ring */}
+              <div className="relative">
+                <svg width="56" height="56" viewBox="0 0 56 56">
+                  {/* Background track */}
+                  <circle
+                    cx="28" cy="28" r={radius}
+                    fill="none"
+                    stroke="rgba(255,255,255,0.06)"
+                    strokeWidth="3.5"
+                  />
+                  {/* Progress arc */}
+                  <circle
+                    cx="28" cy="28" r={radius}
+                    fill="none"
+                    stroke={item.color}
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={strokeDashoffset}
+                    transform="rotate(-90 28 28)"
+                    className="transition-all duration-1000 ease-out"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Icon className="h-3.5 w-3.5" style={{ color: item.color }} />
+                </div>
+              </div>
+              {/* Label + percentage */}
+              <div className="text-center">
+                <span className="block text-[11px] font-semibold text-white">{item.label}</span>
+                <span className={`block text-[10px] font-bold tabular-nums ${item.textColor}`}>
+                  {item.percentage}%
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // KPI Card Data
 // ---------------------------------------------------------------------------
 
@@ -1115,7 +1272,7 @@ function buildKpiCards(stats: DashboardStats | null): KpiCardConfig[] {
 // ---------------------------------------------------------------------------
 
 export default function DashboardOverview() {
-  const { students, teachers, setActiveSection } = useAppStore();
+  const { students, teachers, classes, exams, messages, setActiveSection } = useAppStore();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -1223,6 +1380,21 @@ export default function DashboardOverview() {
 
       {/* ── Quick Stats Ribbon ── */}
       <QuickStatsRibbon />
+
+      {/* ── Recent Students Data Table ── */}
+      <div className="glass-card-elevated rounded-xl p-5 animate-fade-in-up opacity-0" style={{ animationDelay: '530ms' }}>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <GraduationCap className="h-4 w-4 text-[#D4A574]" />
+            <h3 className="text-sm font-semibold text-white">آخر الطلاب المسجلين</h3>
+          </div>
+          <span className="text-xs text-muted-foreground/50 font-medium tabular-nums">{students.length} طالب</span>
+        </div>
+        <RecentStudentsTable
+          students={students}
+          onViewAll={() => setActiveSection('students')}
+        />
+      </div>
 
       {/* ── KPI Cards Grid (with staggered animation) ── */}
       <div className="aurora-bg glass-medium rounded-2xl p-1 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -1424,6 +1596,22 @@ export default function DashboardOverview() {
           }
         >
           <AttendanceDistribution />
+        </SectionCard>
+
+        {/* Today's Attendance Overview — percentage rings */}
+        <SectionCard
+          title="ملخص حضور اليوم"
+          icon={<CheckCircle className="h-4 w-4" />}
+          action={
+            <span className="text-xs text-[#D4A574] font-medium smooth-underline cursor-pointer" onClick={() => setActiveSection('attendance')}>
+              التفاصيل
+            </span>
+          }
+        >
+          <TodayAttendanceOverview
+            pills={attendancePills}
+            onClick={() => setActiveSection('attendance')}
+          />
         </SectionCard>
       </div>
 

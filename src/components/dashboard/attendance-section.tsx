@@ -1203,7 +1203,7 @@ export default function AttendanceSection() {
 
       {/* ── Statistics Summary Cards ── */}
       {records.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 container-glow">
           {/* Overall rate */}
           <div
             className="rounded-xl p-4 flex items-center gap-3 transition-all duration-200 hover:scale-[1.02]"

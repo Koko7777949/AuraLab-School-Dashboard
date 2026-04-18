@@ -1331,6 +1331,7 @@ export default function MessagesSection() {
     addMessage,
     deleteMessage,
     archiveMessage,
+    unarchiveMessage,
     toggleMessageStar,
     markMessageRead,
   } = useAppStore();
@@ -1451,11 +1452,16 @@ export default function MessagesSection() {
 
   const handleArchive = useCallback(() => {
     if (!selectedMessage) return;
-    archiveMessage(selectedMessage.id);
+    if (selectedMessage.isArchived) {
+      unarchiveMessage(selectedMessage.id);
+      toast.success('تم إلغاء أرشفة الرسالة');
+    } else {
+      archiveMessage(selectedMessage.id);
+      toast.success('تم أرشفة الرسالة');
+    }
     setSelectedId(null);
     setMobileShowDetail(false);
-    toast.success(selectedMessage.isArchived ? 'تم إلغاء أرشفة الرسالة' : 'تم أرشفة الرسالة');
-  }, [selectedMessage, archiveMessage]);
+  }, [selectedMessage, archiveMessage, unarchiveMessage]);
 
   const handleForward = useCallback(() => {
     if (!selectedMessage) return;

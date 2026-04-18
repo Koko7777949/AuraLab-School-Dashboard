@@ -23,6 +23,7 @@ import AiAssistant from '@/components/dashboard/ai-assistant';
 import TrashSection from '@/components/dashboard/trash-section';
 import SettingsSection from '@/components/dashboard/settings-section';
 import LibrarySection from '@/components/dashboard/library-section';
+import FeesSection from '@/components/dashboard/fees-section';
 import KeyboardShortcuts from '@/components/dashboard/keyboard-shortcuts';
 import type { ActiveSection } from '@/lib/types';
 
@@ -64,6 +65,8 @@ function SectionRenderer({ section }: { section: ActiveSection }) {
       return <TrashSection />;
     case 'library':
       return <LibrarySection />;
+    case 'fees':
+      return <FeesSection />;
     case 'settings':
       return <SettingsSection />;
     default:
@@ -229,7 +232,7 @@ export default function Home() {
                 </nav>
 
                 {/* Version */}
-                <p className="text-xs text-muted-foreground/50">الإصدار 2.6.0</p>
+                <p className="text-xs text-muted-foreground/50">الإصدار 2.7.0</p>
               </div>
 
               {/* Mobile layout: stacked */}

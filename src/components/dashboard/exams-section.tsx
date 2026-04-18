@@ -10,7 +10,10 @@ import {
   Search,
   Award,
   TrendingUp,
+  TrendingDown,
   Download,
+  BarChart3,
+  Target,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import type { Exam } from '@/lib/types';
@@ -138,6 +141,92 @@ function getScoreLabel(score: number | null, maxScore: number): string {
   if (pct >= 70) return 'جيد جداً';
   if (pct >= 50) return 'مقبول';
   return 'يحتاج تحسين';
+}
+
+// ---------------------------------------------------------------------------
+// Subject Analysis Helpers (pure functions)
+// ---------------------------------------------------------------------------
+
+interface SubjectAvg {
+  subject: string;
+  avg: number;
+  count: number;
+  color: string;
+}
+
+interface AnalysisStats {
+  highest: { pct: number; subject: string };
+  lowest: { pct: number; subject: string };
+  overallAvg: number;
+  passRate: number;
+}
+
+function getBarColorHex(avg: number): string {
+  if (avg >= 85) return '#10b981';
+  if (avg >= 70) return '#f59e0b';
+  if (avg >= 50) return '#0ea5e9';
+  return '#f43f5e';
+}
+
+function computeSubjectAverages(exams: Exam[]): SubjectAvg[] {
+  const groups: Record<string, { total: number; count: number }> = {};
+
+  for (const exam of exams) {
+    if (exam.score === null) continue;
+    const pct = (exam.score / Math.max(0.001, exam.maxScore)) * 100;
+    if (!groups[exam.subject]) {
+      groups[exam.subject] = { total: 0, count: 0 };
+    }
+    groups[exam.subject] = {
+      total: groups[exam.subject].total + pct,
+      count: groups[exam.subject].count + 1,
+    };
+  }
+
+  return Object.entries(groups)
+    .map(([subject, data]) => ({
+      subject,
+      avg: Math.round((data.total / Math.max(0.001, data.count)) * 10) / 10,
+      count: data.count,
+      color: getBarColorHex(data.total / Math.max(0.001, data.count)),
+    }))
+    .sort((a, b) => b.avg - a.avg);
+}
+
+function computeAnalysisStats(exams: Exam[]): AnalysisStats {
+  const scoredExams = exams.filter((e) => e.score !== null);
+
+  if (scoredExams.length === 0) {
+    return {
+      highest: { pct: 0, subject: '—' },
+      lowest: { pct: 0, subject: '—' },
+      overallAvg: 0,
+      passRate: 0,
+    };
+  }
+
+  const result = scoredExams.reduce(
+    (acc, exam) => {
+      const pct = (exam.score! / Math.max(0.001, exam.maxScore)) * 100;
+      return {
+        totalPct: acc.totalPct + pct,
+        passCount: acc.passCount + (pct >= 50 ? 1 : 0),
+        highestPct: Math.max(acc.highestPct, pct),
+        highestSubject: pct > acc.highestPct ? exam.subject : acc.highestSubject,
+        lowestPct: Math.min(acc.lowestPct, pct),
+        lowestSubject: pct < acc.lowestPct ? exam.subject : acc.lowestSubject,
+      };
+    },
+    { totalPct: 0, passCount: 0, highestPct: -1, highestSubject: '', lowestPct: 101, lowestSubject: '' },
+  );
+
+  const count = Math.max(0.001, scoredExams.length);
+  return {
+    highest: { pct: Math.round(result.highestPct * 10) / 10, subject: result.highestSubject },
+    lowest: { pct: Math.round(result.lowestPct * 10) / 10, subject: result.lowestSubject },
+    overallAvg: Math.round((result.totalPct / count) * 10) / 10,
+    passRate: Math.round(((result.passCount / count) * 100) * 10) / 10,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -345,6 +434,176 @@ function ScoreCell({ score, maxScore }: { score: number | null; maxScore: number
           className={cn('h-full rounded-full transition-all duration-500', colors.bar)}
           style={{ width: `${pct}%` }}
         />
+      </div>
+    </div>
+  );
+}
+
+/** Subject Comparison Bar Chart */
+function SubjectComparisonChart({ data }: { data: SubjectAvg[] }) {
+  const [animProgress, setAnimProgress] = useState(0);
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+
+  useEffect(() => {
+    let raf: number;
+    const start = performance.now();
+    const duration = 800;
+
+    const step = (now: number) => {
+      const elapsed = now - start;
+      const progress = Math.min(1, elapsed / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setAnimProgress(eased);
+      if (progress < 1) {
+        raf = requestAnimationFrame(step);
+      }
+    };
+
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [data]);
+
+  if (data.length === 0) {
+    return (
+      <div className="glass-card-elevated rounded-2xl p-6 animate-fade-in-up">
+        <div className="flex flex-col items-center justify-center py-8">
+          <BarChart3 className="h-10 w-10 text-slate-500 mb-3" />
+          <p className="text-sm text-slate-400">لا توجد بيانات كافية لعرض التحليل</p>
+        </div>
+      </div>
+    );
+  }
+
+  const barHeight = 12;
+  const barY = (28 - barHeight) / 2;
+
+  return (
+    <div className="glass-card-elevated rounded-2xl p-5 sm:p-6 corner-accent animate-fade-in-up">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center justify-center h-9 w-9 rounded-xl bg-[#D4A574]/10">
+          <BarChart3 className="h-5 w-5 text-[#D4A574]" />
+        </div>
+        <div>
+          <h3 className="text-base font-bold text-white">تحليل نتائج الامتحانات حسب المادة</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">متوسط الدرجات لكل مادة</p>
+        </div>
+      </div>
+
+      {/* Color Legend */}
+      <div className="flex flex-wrap items-center gap-4 mb-4 text-[11px] text-slate-400">
+        <div className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: '#10b981' }} />
+          <span>≥ 85%</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: '#f59e0b' }} />
+          <span>≥ 70%</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: '#0ea5e9' }} />
+          <span>≥ 50%</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: '#f43f5e' }} />
+          <span>&lt; 50%</span>
+        </div>
+      </div>
+
+      {/* Bars */}
+      <div className="flex flex-col gap-2.5">
+        {data.map((item, idx) => {
+          const animWidth = item.avg * animProgress;
+          return (
+            <div
+              key={item.subject}
+              className="flex items-center gap-3 group cursor-default"
+              onMouseEnter={() => setHoveredIdx(idx)}
+              onMouseLeave={() => setHoveredIdx(null)}
+            >
+              {/* Subject name */}
+              <div className="w-24 sm:w-28 text-right shrink-0">
+                <span
+                  className={cn(
+                    'text-sm font-medium truncate block transition-colors',
+                    hoveredIdx === idx ? 'text-white' : 'text-slate-300',
+                  )}
+                >
+                  {item.subject}
+                </span>
+              </div>
+
+              {/* Bar */}
+              <div className="flex-1 relative h-7">
+                <svg
+                  viewBox="0 0 100 28"
+                  className="w-full h-full overflow-visible"
+                  preserveAspectRatio="none"
+                >
+                  {/* Track */}
+                  <rect x="0" y={barY} width="100" height={barHeight} rx="6" fill="rgba(255,255,255,0.04)" />
+                  {/* Animated bar (grows from right for RTL) */}
+                  <rect
+                    x={100 - animWidth}
+                    y={barY}
+                    width={animWidth}
+                    height={barHeight}
+                    rx="6"
+                    fill={item.color}
+                    opacity={hoveredIdx !== null && hoveredIdx !== idx ? 0.3 : 0.8}
+                    style={{ transition: 'opacity 0.2s ease' }}
+                  />
+                  {/* Glow on hover */}
+                  {hoveredIdx === idx && (
+                    <rect
+                      x={100 - animWidth}
+                      y={barY - 2}
+                      width={animWidth}
+                      height={barHeight + 4}
+                      rx="8"
+                      fill={item.color}
+                      opacity="0.12"
+                      style={{ animation: 'scale-in 0.15s ease-out' }}
+                    />
+                  )}
+                </svg>
+
+                {/* Tooltip on hover */}
+                {hoveredIdx === idx && (
+                  <div
+                    className="absolute -top-11 left-1/2 -translate-x-1/2 z-10 rounded-lg px-3 py-1.5 text-xs shadow-xl border pointer-events-none whitespace-nowrap"
+                    style={{
+                      backgroundColor: 'rgba(20,20,28,0.95)',
+                      borderColor: 'rgba(255,255,255,0.1)',
+                      animation: 'animate-pop-in 0.15s ease-out',
+                    }}
+                  >
+                    <span className="font-semibold text-white">{item.subject}</span>
+                    <span className="text-slate-500 mx-1.5">·</span>
+                    <span className="font-bold" style={{ color: item.color }}>{item.avg}%</span>
+                    <span className="text-slate-500 mx-1.5">·</span>
+                    <span className="text-slate-300">
+                      {item.count} {item.count === 1 ? 'امتحان' : 'امتحانات'}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Score label */}
+              <div className="w-16 sm:w-20 text-left shrink-0 tabular-nums">
+                <span
+                  className={cn(
+                    'text-sm font-bold transition-colors',
+                    hoveredIdx === idx ? 'text-white' : 'text-slate-400',
+                  )}
+                >
+                  {Math.round(item.avg)}%
+                </span>
+                <span className="text-[10px] text-slate-500 mr-1">({item.count})</span>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -877,6 +1136,12 @@ export default function ExamsSection() {
     return { avgScore, highestScore, totalExams };
   }, [exams]);
 
+  // Subject averages for comparison chart
+  const subjectAverages = useMemo(() => computeSubjectAverages(exams), [exams]);
+
+  // Analysis stats (highest/lowest/avg/pass rate)
+  const analysisStats = useMemo(() => computeAnalysisStats(exams), [exams]);
+
   // Filtered & searched list
   const filteredExams = useMemo(() => {
     let result = [...exams];
@@ -950,7 +1215,7 @@ export default function ExamsSection() {
   };
 
   return (
-    <div className="flex flex-col gap-6" dir="rtl">
+    <div className="flex flex-col gap-6 card-depth-2" dir="rtl">
       {/* ── Page Title ── */}
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
@@ -1064,6 +1329,68 @@ export default function ExamsSection() {
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      {/* ── Subject Comparison Chart ── */}
+      <SubjectComparisonChart data={subjectAverages} />
+
+      {/* ── Exam Statistics Summary Pills ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          {
+            icon: TrendingUp,
+            label: 'أعلى نسبة',
+            value: `${analysisStats.highest.pct}%`,
+            sub: analysisStats.highest.subject,
+            color: '#10b981',
+            bg: 'rgba(16,185,129,0.08)',
+          },
+          {
+            icon: TrendingDown,
+            label: 'أقل نسبة',
+            value: `${analysisStats.lowest.pct}%`,
+            sub: analysisStats.lowest.subject,
+            color: '#f43f5e',
+            bg: 'rgba(244,63,94,0.08)',
+          },
+          {
+            icon: Target,
+            label: 'متوسط عام',
+            value: `${analysisStats.overallAvg}%`,
+            sub: 'جميع المواد',
+            color: '#D4A574',
+            bg: 'rgba(212,165,116,0.08)',
+          },
+          {
+            icon: Award,
+            label: 'نسبة النجاح',
+            value: `${analysisStats.passRate}%`,
+            sub: 'درجة ≥ 50%',
+            color: '#0ea5e9',
+            bg: 'rgba(14,165,233,0.08)',
+          },
+        ].map((stat) => (
+          <div
+            key={stat.label}
+            className="flex items-center gap-3 rounded-xl p-3 transition-all duration-200 hover:scale-[1.02]"
+            style={{
+              backgroundColor: stat.bg,
+              border: '1px solid rgba(255,255,255,0.04)',
+            }}
+          >
+            <div
+              className="flex items-center justify-center h-9 w-9 rounded-lg shrink-0"
+              style={{ backgroundColor: `${stat.color}15` }}
+            >
+              <stat.icon className="h-4 w-4" style={{ color: stat.color }} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] text-muted-foreground">{stat.label}</p>
+              <p className="text-base font-bold text-white tabular-nums leading-tight">{stat.value}</p>
+              <p className="text-[10px] text-muted-foreground/60 truncate">{stat.sub}</p>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* ── Exams Table ── */}

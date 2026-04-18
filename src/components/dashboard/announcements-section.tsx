@@ -1075,7 +1075,7 @@ export default function AnnouncementsSection() {
   const totalPinnedCount = announcements.filter((a) => a.pinned).length;
 
   return (
-    <div className="flex flex-col gap-6" dir="rtl">
+    <div className="flex flex-col gap-6 theme-transition" dir="rtl">
       {/* ── Page Title ── */}
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">

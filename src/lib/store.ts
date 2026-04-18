@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ActiveSection, Student, Teacher, ClassRoom, Exam, TrashItem, AppNotification, ChatMessage, GradeRecord, Message, BehaviorRecord, ScheduleBlock, LibraryBook } from './types';
+import type { ActiveSection, Student, Teacher, ClassRoom, Exam, TrashItem, AppNotification, ChatMessage, GradeRecord, Message, BehaviorRecord, ScheduleBlock, LibraryBook, FeeRecord } from './types';
 
 interface AppState {
   // Navigation
@@ -106,6 +106,13 @@ interface AppState {
   addLibraryBook: (book: LibraryBook) => void;
   updateLibraryBook: (id: string, data: Partial<LibraryBook>) => void;
   deleteLibraryBook: (id: string) => void;
+
+  // Fees
+  fees: FeeRecord[];
+  setFees: (fees: FeeRecord[]) => void;
+  addFee: (fee: FeeRecord) => void;
+  updateFee: (id: string, data: Partial<FeeRecord>) => void;
+  deleteFee: (id: string) => void;
 
   // Theme Customizer
   accentColor: string;
@@ -344,6 +351,17 @@ export const useAppStore = create<AppState>((set) => ({
   })),
   deleteLibraryBook: (id) => set((state) => ({
     libraryBooks: state.libraryBooks.filter((b) => b.id !== id),
+  })),
+
+  // Fees
+  fees: [],
+  setFees: (fees) => set({ fees }),
+  addFee: (fee) => set((state) => ({ fees: [...state.fees, fee] })),
+  updateFee: (id, data) => set((state) => ({
+    fees: state.fees.map((f) => (f.id === id ? { ...f, ...data } : f)),
+  })),
+  deleteFee: (id) => set((state) => ({
+    fees: state.fees.filter((f) => f.id !== id),
   })),
 
   // Theme Customizer

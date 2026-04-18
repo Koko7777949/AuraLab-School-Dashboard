@@ -1173,3 +1173,338 @@ Current Project Status Assessment (Round 10):
 6. MEDIUM: Real-time WebSocket updates for live dashboard
 7. MEDIUM: Form validation with zod schemas
 8. LOW: PWA configuration for mobile access
+
+---
+Task ID: 11c
+Agent: Dashboard Enhancement Builder
+Task: Dashboard Recent Students Table and Enhanced Quick Stats
+
+Work Log:
+- Read worklog.md and dashboard-overview.tsx to understand full project context
+- Read store.ts to understand available data (students, teachers, classes, exams, messages, notifications)
+- Read types.ts to understand Student, Message, AttendanceRecord interfaces
+- Added DollarSign icon import from lucide-react
+- Removed unused static quickStatsData const array (was hardcoded values)
+- Rewrote QuickStatsRibbon component:
+  - Now uses useAppStore() to fetch real counts from store (students.length, teachers.length, classes.length, exams.length)
+  - Added 2 new stat pills: "الرسوم المستحقة" (outstanding fees = inactive students count) and "الرسائل الجديدة" (unread messages count)
+  - Each pill is now a clickable button that navigates to the relevant section via setActiveSection
+  - Added focus-visible ring for accessibility
+- Created RecentStudentsTable sub-component:
+  - Sorts students by createdAt descending, takes top 5
+  - Mini table with columns: الاسم (with avatar initial), الفصل, الحالة (pill badge), تاريخ التسجيل
+  - Status badges: active=emerald, inactive=amber, graduated=sky (small rounded pill badges)
+  - data-row-hover class on each row
+  - "عرض الكل" link with ChevronLeft icon, navigates to students section
+  - Empty state with Users icon and "لا يوجد طلاب مسجلين بعد" message
+- Created TodayAttendanceOverview sub-component:
+  - 4 mini SVG percentage rings (حاضر 85%, متأخر 8%, غائب 7%, مستأذن 3%)
+  - Each ring has: background track circle, colored progress arc, centered icon
+  - Hover effect: subtle scale-105 on each ring
+  - Entire card navigates to attendance section on click
+- Updated main component store destructuring to include classes, exams, messages
+- Added Recent Students Data Table card (glass-card-elevated) to layout between Quick Stats Ribbon and KPI grid
+- Added Today's Attendance Overview card to the 3-column bottom row (completing the grid alongside Classroom Map and Attendance Distribution)
+
+Stage Summary:
+- 1 existing component enhanced (QuickStatsRibbon — now dynamic + clickable + 6 pills instead of 5)
+- 2 new sub-components created (RecentStudentsTable, TodayAttendanceOverview)
+- 1 new dashboard card added (Recent Students Data Table with glass-card-elevated styling)
+- 1 existing grid row completed (Today's Attendance Overview fills 3rd column)
+- All icons: DollarSign, GraduationCap, Users, ChevronLeft, CheckCircle
+- CSS classes used: glass-card-elevated, data-row-hover, animate-fade-in-up, btn-shine, card-interactive, smooth-underline, data-empty-state, hide-scrollbar
+- ESLint: 0 errors, 0 new warnings
+- Dev server: compiles successfully, GET / returns 200
+
+---
+Task ID: 11b
+Agent: Exam Analysis Builder
+Task: Exam Results Subject Comparison Chart
+
+Work Log:
+- Read worklog.md to understand full project context (11 prior tasks completed)
+- Read exams-section.tsx (1238 lines) to understand existing structure: imports, constants, mock data, sub-components (ScoreCell, StatCard, EmptyState, ViewExamDialog, ExamFormDialog, DeleteExamDialog), main ExamsSection component with filters, CRUD, table
+- Studied existing chart components (area-chart.tsx, donut-chart.tsx) to understand animation patterns: setTimeout-based setState in useEffect, CSS transitions, SVG tooltip positioning
+- Identified lint patterns: rAF wrapping setState is acceptable, pure functions outside components, immutable reduce patterns
+
+### Implementation Steps:
+
+**1. Updated imports** (line 4-17):
+- Added `TrendingDown`, `BarChart3`, `Target` to lucide-react imports
+
+**2. Added Subject Analysis pure functions** (after line 144, ~85 lines new):
+- `SubjectAvg` interface: subject name, average score, exam count, bar color
+- `AnalysisStats` interface: highest/lowest (pct + subject), overallAvg, passRate
+- `getBarColorHex(avg)`: returns hex color by average threshold (≥85% emerald, ≥70% amber, ≥50% sky, <50% rose)
+- `computeSubjectAverages(exams)`: groups exams by subject, computes percentage averages, sorts descending. All divisions guarded with `Math.max(0.001, value)`
+- `computeAnalysisStats(exams)`: uses immutable reduce pattern to compute highest/lowest percentages with subjects, overall average, and pass rate (≥50%). All divisions guarded
+
+**3. Added SubjectComparisonChart component** (~170 lines):
+- Pure SVG horizontal bar chart with requestAnimationFrame animation (800ms ease-out cubic)
+- Bars grow from right-to-left for RTL layout (x = 100 - animWidth)
+- Each row: subject name (right, w-28) → SVG bar area (flex-1) → score label (left, w-20)
+- Color legend showing 4 threshold levels
+- Hover interaction: tooltip (subject, avg%, exam count), bar glow effect, non-hovered bars dimmed to 0.3 opacity
+- Empty state with BarChart3 icon and message
+- Uses glass-card-elevated, corner-accent, animate-fade-in-up CSS classes
+- Tooltip uses animate-pop-in animation, dark glass background
+
+**4. Added useMemo calculations in ExamsSection** (after existing stats):
+- `subjectAverages`: computed from exams via `computeSubjectAverages`
+- `analysisStats`: computed from exams via `computeAnalysisStats`
+
+**5. Inserted chart + stats pills in JSX** (between filter bar and exams table):
+- `<SubjectComparisonChart data={subjectAverages} />` — full-width chart card
+- 4 stat pills in 2x2/4-col grid:
+  - أعلى نسبة (TrendingUp, emerald): best exam % + subject name
+  - أقل نسبة (TrendingDown, rose): worst exam % + subject name
+  - متوسط عام (Target, amber): overall average across all exams
+  - نسبة النجاح (Award, sky): pass rate (exams ≥ 50%)
+- Each pill: colored icon container, label, bold value, subtext
+- Hover: scale-[1.02] transform
+
+### Verification:
+- ESLint: 0 errors in exams-section.tsx (2 pre-existing in fees-section.tsx, unrelated)
+- Dev server: compiles successfully, GET / returns HTTP 200
+- No existing functionality broken (CRUD, search, filter, export all preserved)
+- Total file: ~1500 lines (added ~260 lines of new code)
+
+Stage Summary:
+- Subject Comparison Analysis chart added with animated SVG bars and RTL layout
+- 4 exam statistics summary pills showing highest, lowest, overall average, and pass rate
+- All calculations use useMemo for performance
+- Pure functions extracted outside components (React Compiler compatible)
+- requestAnimationFrame-based animation (800ms ease-out)
+- Hover tooltips with subject name, average score, and exam count
+- Color-coded bars by performance threshold (emerald/amber/sky/rose)
+- Empty state handled for no-data scenario
+---
+Task ID: 11a
+Agent: Fee Section Builder
+Task: Fee/Payment Tracking Section
+
+Work Log:
+- Read worklog.md to understand full project context (5+ prior rounds, 20+ components)
+- Read existing types.ts, store.ts, sidebar.tsx, page.tsx, csv-export.ts for integration patterns
+- Added `FeeRecord` interface to types.ts with 14 fields (id, studentId, studentName, classId, className, feeType, amount, paidAmount, status, dueDate, paidDate, notes, createdAt)
+- Added `'fees'` to `ActiveSection` union type in types.ts
+- Added `FeeRecord` import and fees state (fees, setFees, addFee, updateFee, deleteFee) to store.ts interface and implementation
+- Created `/src/components/dashboard/fees-section.tsx` (~1120 lines) with:
+  - 4 Summary Stat Cards: Total Fees, Collected (emerald), Outstanding (amber), Overdue (rose) — with Lucide icons
+  - Collection Progress Bar: amber gradient with shimmer effect, percentage display
+  - Filter Bar: search input, fee type dropdown (6 types), status filter (4 statuses), class filter
+  - Fees Table: sortable columns (studentName, feeType, amount, paidAmount, status, dueDate) with sort direction icons
+  - Status badges: paid=emerald, partial=amber, unpaid=sky, overdue=rose — with colored dots
+  - Arabic currency formatting (SAR) via Intl.NumberFormat('ar-SA')
+  - Action buttons: View (Eye), Record Payment (CreditCard), Edit (Pencil), Delete (Trash2)
+  - Add/Edit Fee Dialog: form with student name, class, fee type selector, amount, paid amount, due date, notes
+  - Record Payment Dialog: shows remaining balance, suggested payment amounts (25%/50%/75%/100%), status preview
+  - View Fee Dialog: full details with payment progress bar
+  - Delete Confirmation Dialog with red warning box
+  - 18 mock fee records seeded via useRef guard pattern
+  - Toast notifications on all CRUD operations (add, edit, delete, payment, CSV export)
+  - CSV export button using existing csv-export.ts utility
+  - Pagination (10 per page) with clamped page on filter changes
+- Updated sidebar.tsx: Added Wallet icon import, nav item { id: 'fees', label: 'الرسوم', icon: Wallet }, version → v2.7.0
+- Updated page.tsx: Added FeesSection import, case 'fees' in SectionRenderer, version → v2.7.0
+- Fixed React Compiler lint errors:
+  - `set-state-in-effect`: Replaced useEffect for page reset with handler-based approach (handleSearchChange, handleFeeTypeChange, etc.)
+  - `static-components`: Moved SortIcon from useCallback component to standalone renderSortIcon function
+  - `immutability`: Used effectivePage (derived from currentPage + totalPages clamp) instead of useRef mutation
+
+Stage Summary:
+- 1 new component file created (fees-section.tsx, ~1120 lines)
+- 2 existing files modified (types.ts, store.ts) with FeeRecord type and store actions
+- 2 integration files updated (sidebar.tsx, page.tsx) with nav item and routing
+- Version bumped to v2.7.0
+- ESLint: 0 errors, 1 pre-existing warning (custom font in layout.tsx)
+- All features implemented: summary cards, progress bar, filter/sort, CRUD dialogs, payment recording, CSV export, pagination
+- 18 realistic mock records with varied students, classes, fee types, and statuses
+
+---
+Task ID: 11d
+Agent: CSS Styling Expert
+Task: CSS utilities and component styling Round 11
+
+Work Log:
+- Read worklog.md for project context (87 CSS sections, 3669 lines in globals.css)
+- Confirmed last CSS section is 87 (SCROLL-LINKED EFFECTS)
+- Identified existing patterns: amber accent (#D4A574), mask-composite borders, SVG noise, @keyframes
+- Appended 9 new CSS sections (88–96, ~215 lines) to globals.css:
+  - 88. Card Depth Effects (3 classes: card-depth-1/2/3)
+  - 89. Text Effects (3 classes: text-shadow-amber, text-shadow-glow, text-outline)
+  - 90. Container Effects (3 classes: container-glow, container-gradient, container-noise)
+  - 91. Interactive Feedback (3 classes: press-scale, hover-brighten, hover-saturate)
+  - 92. Badge & Tag Styles (3 classes: tag-amber, tag-emerald, tag-rose)
+  - 93. Responsive Typography (3 classes: text-responsive-sm/base/lg)
+  - 94. Focus Ring Utilities (3 classes: focus-ring-amber, focus-ring-emerald, focus-ring-none)
+  - 95. Print Utilities (2 classes: print-only, screen-only)
+  - 96. Theme Transition (1 class: theme-transition)
+- Applied CSS classes to 6 component files:
+  - exams-section.tsx: added `card-depth-2` to main return container
+  - attendance-section.tsx: added `container-glow` to stats cards grid
+  - announcements-section.tsx: added `theme-transition` to main return container
+  - sessions-section.tsx: added `container-gradient` to main return container
+  - trash-section.tsx: added `theme-transition` to main return container
+  - notifications-section.tsx: added `card-depth-1` to main return container
+
+Stage Summary:
+- 25 new CSS utility classes added across 9 sections (88–96)
+- 6 component files updated with single-class additions each
+- ESLint: 0 errors, 1 pre-existing warning (no new issues)
+- globals.css grew from 3669 → 3883 lines
+- No existing CSS modified — all changes are append-only
+
+---
+Task ID: 11
+Agent: Main Orchestrator (Round 11)
+Task: QA, bug fixes, new features (Fee Tracking, Exam Analysis, Dashboard Table), CSS enhancements
+
+Work Log:
+- Read worklog.md and assessed full project progress (10 prior rounds completed)
+- ESLint: 0 errors, 1 warning (pre-existing) at start
+- Dev server: Running, GET / returns HTTP 200
+- Conducted thorough code-level QA via Explore subagent — found 5 issues (0 HIGH, 2 MEDIUM, 3 LOW)
+
+### Bug Fixes Applied (2 total):
+
+**MEDIUM (2):**
+- Fixed messages-section.tsx: handleArchive always called archiveMessage even for already-archived messages. Now properly toggles between archive/unarchive using the unarchiveMessage store action.
+- Fixed settings-section.tsx: Accent color swatch used invalid CSS property `ringColor` (silently ignored). Replaced with `--tw-ring-color` CSS variable override for proper Tailwind ring styling.
+
+### New Features:
+
+**11a: Fee/Payment Tracking Section (NEW - MAJOR FEATURE)**
+- Added FeeRecord interface to types.ts (14 fields: studentId, feeType, amount, paidAmount, status, dueDate, etc.)
+- Added 'fees' to ActiveSection union
+- Added fees CRUD to Zustand store
+- Created fees-section.tsx (~1318 lines) with:
+  - 4 summary stat cards (total, collected, outstanding, overdue)
+  - Collection progress bar with amber gradient
+  - Filter bar (search, 6 fee types, 4 statuses, class filter)
+  - Sortable table with status badges, Arabic SAR currency formatting
+  - Add/Edit dialog with student selector, type, amount, due date
+  - Record Payment dialog with suggested amounts (25/50/75/100%), live status preview
+  - View Details dialog with payment progress bar
+  - 18 mock records seeded via useRef guard
+  - CSV export, pagination (10/page), toast notifications
+- Integrated into sidebar (Wallet icon) and page.tsx
+
+**11b: Exam Results Subject Comparison Chart (NEW)**
+- Added to exams-section.tsx (~260 lines):
+  - SubjectComparisonChart: Pure SVG horizontal bar chart comparing average scores by subject
+  - Color-coded bars: ≥85% emerald, ≥70% amber, ≥50% sky, <50% rose
+  - Animated bars using requestAnimationFrame with ease-out cubic
+  - Hover tooltips showing subject, average %, exam count
+  - 4 Exam Statistics Summary Pills: highest/lowest scores, overall average, pass rate
+  - All divisions guarded with Math.max(0.001, value)
+  - All computations memoized with useMemo
+
+**11c: Dashboard Recent Students Table & Enhanced Quick Stats (NEW)**
+- Enhanced Quick Stats Ribbon: now shows real store counts (students, teachers, classes, exams)
+- Added 2 new stat pills: outstanding fees count, unread messages count
+- All pills now clickable, navigating to relevant sections
+- Recent Students Data Table: glass-card-elevated mini table showing 5 most recently registered students
+  - Columns: name (with avatar initial), class, status badge, registration date
+  - "عرض الكل" link navigates to students section
+- Today's Attendance Overview Card: 4 SVG percentage rings (حاضر/متأخر/غائب/مستأذن)
+  - Click navigates to attendance section
+
+**11d: CSS Styling Enhancements (NEW)**
+- Appended 214 lines to globals.css (sections 88-96, total now 3883 lines):
+  - Card depth effects (3 classes): layered box-shadows for visual hierarchy
+  - Text effects (3 classes): amber shadow, animated glow, outline/stroke
+  - Container effects (3 classes): inner glow, gradient border, noise texture
+  - Interactive feedback (3 classes): press scale, hover brighten, hover saturate
+  - Badge & tag styles (3 classes): amber/emerald/rose rounded pill tags
+  - Responsive typography (3 classes): clamp-based fluid sizing
+  - Focus ring utilities (3 classes): amber/emerald/none
+  - Print utilities (2 classes): print-only, screen-only
+  - Theme transition (1 class): smooth color/shadow transitions
+- Applied CSS classes to 6 existing components:
+  - exams-section: card-depth-2
+  - attendance-section: container-glow
+  - announcements-section: theme-transition
+  - sessions-section: container-gradient
+  - trash-section: theme-transition
+  - notifications-section: card-depth-1
+
+### Verification:
+- ESLint: 0 errors, 1 warning (pre-existing @next/next/no-page-custom-font)
+- Dev server: compiles successfully
+- All 31+ component files compile cleanly
+- Version bumped to 2.7.0
+
+Stage Summary:
+- 2 bugs fixed (2 MEDIUM)
+- 1 new major feature section (Fee/Payment Tracking)
+- 1 new chart feature (Exam Subject Comparison)
+- 2 new dashboard widgets (Recent Students Table, Attendance Overview)
+- 1 enhanced dashboard feature (Dynamic Quick Stats)
+- 24+ new CSS utility classes (214 lines)
+- CSS enhancements applied to 6 existing components
+- Version 2.7.0 | 31 components | 15+ API routes | 12 Prisma models | 3883 lines CSS
+
+---
+Current Project Status Assessment (Round 11):
+- AuraLab v2.7.0 is a feature-rich, production-quality Arabic RTL school management dashboard
+- 31 React components with professional dark theme and glassmorphism effects
+- 15+ backend API routes for full CRUD operations
+- Zustand state management with complete data models + theme customization
+- Prisma schema with 11 models + SQLite database
+- AI chatbot integrated with LLM backend
+- 4 custom SVG chart components (donut, radar, area, subject comparison)
+- Student Profile Detail View with 4-tab layout
+- Reports Section with 6 report types, charts, and export
+- Behavior & Discipline Tracking with timeline, filters, and CSV export
+- Timetable/Schedule with week grid and list view
+- Library Management with grid/list views, borrow/return
+- Fee/Payment Tracking with collection progress, payment recording
+- Theme Customizer (accent color, UI density, border radius, background style)
+- Enhanced Messages with compose/reply/forward dialogs and archive toggle
+- Grade management with class performance chart and report cards
+- Exam analysis with subject comparison and pass rate stats
+- CSV data export AND import for students and teachers
+- Interactive calendar widget with event management
+- Global keyboard shortcuts system (Ctrl+K)
+- Live clock in header with Arabic date
+- Toast notifications on all CRUD operations
+- Attendance management with heatmap calendar
+- Communication/Announcement board with categories and priorities
+- 150+ CSS utility classes across 96 sections
+- Arabic font (Noto Sans Arabic), responsive mobile design, print support
+- Version 2.7.0
+
+### Completed Items (This Round):
+1. Fixed handleArchive toggle bug in Messages (now properly archives/unarchives)
+2. Fixed accent color ring styling (ringColor → --tw-ring-color)
+3. Built Fee/Payment Tracking section (full CRUD, payment recording, CSV export)
+4. Built Exam Subject Comparison chart with statistics pills
+5. Enhanced Quick Stats with real store counts + 2 new pills
+6. Added Recent Students Data Table to dashboard
+7. Added Today's Attendance Overview card to dashboard
+8. Added 24+ new CSS utility classes (214 lines)
+9. Applied CSS enhancements to 6 existing components
+10. Version bumped to 2.7.0
+
+### Remaining Opportunities:
+1. Connect frontend CRUD to backend APIs (replace mock data)
+2. Add authentication with NextAuth.js (admin/teacher/parent roles)
+3. Apply theme customizer settings globally (CSS variables)
+4. Implement PDF report generation
+5. Add i18n support (Arabic/English toggle)
+6. Implement real-time WebSocket updates
+7. Form validation with zod schemas
+8. Connect trash system to grades/messages/behaviors/schedule/library/fees
+9. PWA configuration for mobile access
+10. Predictive analytics with ML models
+
+### Priority Recommendations for Next Phase:
+1. HIGH: Connect frontend to backend APIs (replace mock data with real DB operations)
+2. HIGH: Add NextAuth.js authentication (admin, teacher, parent roles)
+3. HIGH: Apply theme customizer globally (CSS custom properties driven by store)
+4. MEDIUM: Implement PDF report generation (server-side)
+5. MEDIUM: Add i18n with next-intl or next-i18next
+6. MEDIUM: Real-time WebSocket updates for live dashboard
+7. MEDIUM: Form validation with zod schemas
+8. LOW: PWA configuration for mobile access

@@ -18,6 +18,7 @@ import {
   Sparkles,
   ClipboardCheck,
   Megaphone,
+  Wallet,
   Trophy,
   MessageSquare,
   FileBarChart,
@@ -60,6 +61,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'ai-assistant', label: 'المساعد الذكي', icon: Bot },
   { id: 'trash', label: 'المحذوفات', icon: Trash2, showCount: true },
   { id: 'library', label: 'المكتبة', icon: BookOpen, showCount: true },
+  { id: 'fees', label: 'الرسوم', icon: Wallet, showCount: true },
   { id: 'settings', label: 'الإعدادات', icon: Settings },
 ];
 
@@ -414,7 +416,7 @@ export default function Sidebar() {
                 <Sparkles size={10} className="text-[#D4A574]/40" />
               </div>
               <span className="text-[9px] tracking-widest text-[#3E3E4E]">
-                v2.5.0
+                v2.7.0
               </span>
             </div>
           </div>
