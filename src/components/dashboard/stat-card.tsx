@@ -246,7 +246,7 @@ export default function StatCard({
 
       {/* ── Middle: animated value + trend ── */}
       <div className="relative flex items-center gap-2 mb-2">
-        <span className="text-3xl font-bold text-white tracking-tight leading-none shimmer-card inline-block py-1 px-2 -mx-2 rounded">
+        <span className="text-3xl font-bold text-white tracking-tight leading-none shimmer-card inline-block py-1 px-2 -mx-2 rounded stat-value-glow">
           <AnimatedValue value={value} />
         </span>
         {trend && <TrendIcon trend={trend} />}

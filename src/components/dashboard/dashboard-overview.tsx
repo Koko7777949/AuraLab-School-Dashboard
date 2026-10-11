@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import {
   BookOpen,
   Eye,
@@ -330,7 +330,7 @@ function WeeklyBarChart() {
               />
             </div>
             {/* Day label */}
-            <span className="text-[11px] font-medium text-muted-foreground/70 whitespace-nowrap">
+            <span className="text-[11px] font-medium text-[#B0B0C0] whitespace-nowrap">
               {item.day}
             </span>
           </div>
@@ -354,13 +354,13 @@ function NotificationItem({
       {/* Status dot */}
       <div className="mt-1.5 shrink-0">
         <span
-          className={`block h-2.5 w-2.5 rounded-full ${notificationStatusStyles[status]}`}
+          className={`block h-3.5 w-3.5 rounded-full ${notificationStatusStyles[status]}`}
         />
       </div>
       {/* Content */}
       <div className="flex flex-col gap-1 min-w-0">
         <p className="text-sm leading-relaxed text-slate-300 line-clamp-2">{text}</p>
-        <span className="text-[11px] text-muted-foreground/50 font-medium">{time}</span>
+        <span className="text-[11px] text-[#A0A0B8] font-medium">{time}</span>
       </div>
     </div>
   );
@@ -403,7 +403,7 @@ function ClassroomMapPlaceholder() {
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-4 text-[11px] text-muted-foreground/60">
+      <div className="flex items-center gap-4 text-[11px] text-[#B0B0C0]">
         <div className="flex items-center gap-1.5">
           <span className="block h-2 w-2 rounded-sm bg-emerald-500/40" />
           حاضر
@@ -447,7 +447,7 @@ function AttendanceDistribution() {
         }}
       >
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground/60">إجمالي الطلاب المسجلين</span>
+          <span className="text-xsB0B0C0">إجمالي الطلاب المسجلين</span>
           <span className="text-sm font-bold text-white tabular-nums">32 طالب</span>
         </div>
       </div>
@@ -615,9 +615,9 @@ function TodayScheduleWidget() {
                     </span>
                   )}
                 </div>
-                <span className="text-[11px] tabular-nums text-muted-foreground/60">{period.time}</span>
+                <span className="text-[11px] tabular-nums text-[#B0B0C0]">{period.time}</span>
               </div>
-              <div className="flex items-center gap-3 text-xs text-muted-foreground/70">
+              <div className="flex items-center gap-3 text-xs text-[#B0B0C0]">
                 <span className="flex items-center gap-1">
                   <BookMarked className="h-3 w-3" />
                   {period.teacher}
@@ -657,7 +657,7 @@ function StudentPerformanceChart() {
               {/* Label */}
               <div className="w-20 shrink-0 text-right">
                 <span className="text-xs font-semibold text-slate-300">{grade.label}</span>
-                <span className="block text-[10px] text-muted-foreground/50 tabular-nums">{grade.range}</span>
+                <span className="block text-[10px] text-[#A0A0B8] tabular-nums">{grade.range}</span>
               </div>
               {/* Bar */}
               <div className="flex-1 h-6 rounded-md bg-white/[0.04] overflow-hidden relative">
@@ -698,7 +698,7 @@ function StudentPerformanceChart() {
           border: '1px solid rgba(255,255,255,0.06)',
         }}
       >
-        <span className="text-xs text-muted-foreground/60">إجمالي الطلاب</span>
+        <span className="text-xs text-[#B0B0C0]">إجمالي الطلاب</span>
         <span className="text-sm font-bold text-white tabular-nums">
           {gradeDistribution.reduce((sum, g) => sum + g.count, 0)} طالب
         </span>
@@ -738,7 +738,7 @@ function UpcomingEventsList() {
               <span className="text-sm font-semibold text-white group-hover:text-[#D4A574] transition-colors duration-200">
                 {event.title}
               </span>
-              <span className="text-xs text-muted-foreground/60">{event.description}</span>
+              <span className="text-xs text-[#B0B0C0]">{event.description}</span>
             </div>
           </div>
         );
@@ -786,11 +786,11 @@ function DashboardSkeleton() {
 function WelcomeBanner({ onDismiss }: { onDismiss: () => void }) {
   return (
     <div
-      className="relative overflow-hidden rounded-xl p-5 animate-fade-in-up card-shine"
+      className="relative overflow-hidden rounded-xl p-6 animate-fade-in-up banner-shimmer animate-border-glow"
       style={{
-        background: 'linear-gradient(135deg, rgba(212,165,116,0.15) 0%, rgba(212,165,116,0.05) 100%)',
-        border: '1px solid rgba(212,165,116,0.15)',
-        borderRight: '4px solid rgba(212,165,116,0.6)',
+        background: 'linear-gradient(135deg, rgba(212,165,116,0.18) 0%, rgba(212,165,116,0.06) 50%, rgba(212,165,116,0.02) 100%)',
+        border: '1px solid rgba(212,165,116,0.2)',
+        borderRight: '4px solid rgba(212,165,116,0.7)',
       }}
     >
       {/* Dismiss button */}
@@ -805,10 +805,10 @@ function WelcomeBanner({ onDismiss }: { onDismiss: () => void }) {
       {/* Content */}
       <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-4">
         <div>
-          <h2 className="text-lg font-bold text-white">
+          <h2 className="text-xl font-bold text-white">
             مرحباً، أحمد محمد 👋
           </h2>
-          <p className="text-sm text-[#C4C4D4] mt-1">
+          <p className="text-sm text-[#D0D0E0] mt-1">
             يوم دراسي جديد — لديك 3 حصص اليوم و 12 تنبيه جديد
           </p>
         </div>
@@ -860,7 +860,7 @@ function QuickActionButton({
         <span className="text-sm font-semibold text-white group-hover:text-[#D4A574] transition-colors duration-200">
           {label}
         </span>
-        <span className="text-xs text-muted-foreground/60 truncate">
+        <span className="text-xs text-[#B0B0C0] truncate">
           {description}
         </span>
       </div>
@@ -941,7 +941,7 @@ function ActivityFeed() {
             {/* Content */}
             <div className={`flex-1 pb-4 data-row-hover rounded-lg px-2 -mx-2 transition-colors duration-200 ${!isLast ? '' : ''}`}>
               <p className="text-sm leading-relaxed text-slate-300">{item.description}</p>
-              <span className="text-[11px] text-muted-foreground/50 font-medium mt-1 block">{item.time}</span>
+              <span className="text-[11px] text-[#A0A0B8] font-medium mt-1 block">{item.time}</span>
             </div>
           </div>
         );
@@ -975,7 +975,7 @@ function WeeklyGoalsProgress() {
                 <span className="text-xs font-medium text-slate-300">{goal.label}</span>
                 <span className="text-xs font-semibold tabular-nums" style={{ color: goal.color }}>
                   {goal.current}/{goal.target}{goal.unit}
-                  <span className="text-muted-foreground/50 mr-1">({percentage}%)</span>
+                  <span className="text-[#A0A0B8] mr-1">({percentage}%)</span>
                 </span>
               </div>
               <div className="h-2 w-full rounded-full bg-white/[0.06] overflow-hidden">
@@ -1063,8 +1063,8 @@ function RecentStudentsTable({ students, onViewAll }: { students: { id: string; 
   if (recentStudents.length === 0) {
     return (
       <div className="data-empty-state flex flex-col items-center justify-center py-10">
-        <Users className="h-10 w-10 text-muted-foreground/30 mb-3" />
-        <p className="text-sm text-muted-foreground">لا يوجد طلاب مسجلين بعد</p>
+        <Users className="h-10 w-10 text-[#A0A0B8] mb-3" />
+        <p className="text-sm text-[#B0B0C0]">لا يوجد طلاب مسجلين بعد</p>
         <button
           onClick={onViewAll}
           className="mt-3 text-xs font-medium text-[#D4A574] hover:text-[#E8C9A8] transition-colors duration-200 cursor-pointer"
@@ -1106,7 +1106,7 @@ function RecentStudentsTable({ students, onViewAll }: { students: { id: string; 
                       {status.label}
                     </span>
                   </td>
-                  <td className="py-2.5 pl-2 text-xs text-muted-foreground/60 tabular-nums">
+                  <td className="py-2.5 pl-2 text-xs text-[#B0B0C0] tabular-nums">
                     {new Date(student.createdAt).toLocaleDateString('ar-SA', { month: 'short', day: 'numeric' })}
                   </td>
                 </tr>
@@ -1272,7 +1272,7 @@ function buildKpiCards(stats: DashboardStats | null): KpiCardConfig[] {
 // ---------------------------------------------------------------------------
 
 export default function DashboardOverview() {
-  const { students, teachers, classes, exams, messages, setActiveSection } = useAppStore();
+  const { students, teachers, classes, exams, messages, setActiveSection, setStudents } = useAppStore();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -1282,6 +1282,22 @@ export default function DashboardOverview() {
     hour: '2-digit',
     minute: '2-digit',
   }));
+
+  // Seed mock students if store is empty (so RecentStudentsTable shows data)
+  const studentsSeeded = useRef(false);
+  useEffect(() => {
+    if (!studentsSeeded.current && students.length === 0) {
+      studentsSeeded.current = true;
+      setStudents([
+        { id: 's1', name: 'أحمد العتيبي', studentId: 'STD-001', classId: 'c1', status: 'active', notes: '', psychBackground: '', avatar: '', className: 'الصف الأول أ', createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), updatedAt: new Date().toISOString() },
+        { id: 's2', name: 'سارة القحطاني', studentId: 'STD-002', classId: 'c2', status: 'active', notes: '', psychBackground: '', avatar: '', className: 'الصف الثاني ب', createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(), updatedAt: new Date().toISOString() },
+        { id: 's3', name: 'نورة الدوسري', studentId: 'STD-003', classId: 'c1', status: 'active', notes: '', psychBackground: '', avatar: '', className: 'الصف الأول أ', createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), updatedAt: new Date().toISOString() },
+        { id: 's4', name: 'خالد الحربي', studentId: 'STD-004', classId: 'c3', status: 'inactive', notes: '', psychBackground: '', avatar: '', className: 'الصف الثالث', createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), updatedAt: new Date().toISOString() },
+        { id: 's5', name: 'فاطمة الشمري', studentId: 'STD-005', classId: 'c2', status: 'graduated', notes: '', psychBackground: '', avatar: '', className: 'الصف الثاني أ', createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), updatedAt: new Date().toISOString() },
+        { id: 's6', name: 'محمد الغامدي', studentId: 'STD-006', classId: 'c1', status: 'active', notes: '', psychBackground: '', avatar: '', className: 'الصف الأول ب', createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), updatedAt: new Date().toISOString() },
+      ]);
+    }
+  }, []);
 
   const dismissBanner = useCallback(() => setShowBanner(false), []);
 
@@ -1363,7 +1379,7 @@ export default function DashboardOverview() {
             )}
           </div>
           {/* Last updated timestamp */}
-          <div className="flex items-center gap-2 text-xs text-muted-foreground/50 shrink-0 mt-1">
+          <div className="flex items-center gap-2 text-xs text-[#A0A0B8] shrink-0 mt-1">
             <div className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-50" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
@@ -1388,7 +1404,7 @@ export default function DashboardOverview() {
             <GraduationCap className="h-4 w-4 text-[#D4A574]" />
             <h3 className="text-sm font-semibold text-white">آخر الطلاب المسجلين</h3>
           </div>
-          <span className="text-xs text-muted-foreground/50 font-medium tabular-nums">{students.length} طالب</span>
+          <span className="text-xs text-[#A0A0B8] font-medium tabular-nums">{students.length} طالب</span>
         </div>
         <RecentStudentsTable
           students={students}
@@ -1475,7 +1491,7 @@ export default function DashboardOverview() {
           icon={<MessageSquare className="h-4 w-4" />}
           className="lg:col-span-3"
           action={
-            <span className="text-xs text-muted-foreground/50 font-medium">هذا الأسبوع</span>
+            <span className="text-xs text-[#A0A0B8] font-medium">هذا الأسبوع</span>
           }
         >
           <WeeklyBarChart />
@@ -1526,7 +1542,7 @@ export default function DashboardOverview() {
           title="أفضل الطلاب"
           icon={<Trophy className="h-4 w-4" />}
           action={
-            <span className="text-xs text-muted-foreground/50 font-medium">هذا الفصل</span>
+            <span className="text-xs text-[#A0A0B8] font-medium">هذا الفصل</span>
           }
         >
           <StudentLeaderboard />
@@ -1562,11 +1578,50 @@ export default function DashboardOverview() {
           title="توزيع الدرجات - الصف الثالث"
           icon={<BarChart3 className="h-4 w-4" />}
           action={
-            <span className="text-xs text-muted-foreground/50 font-medium smooth-underline cursor-pointer" onClick={() => setActiveSection('exams')}>الفصل الحالي</span>
+            <span className="text-xs text-[#A0A0B8] font-medium smooth-underline cursor-pointer" onClick={() => setActiveSection('exams')}>الفصل الحالي</span>
           }
         >
           <div className="shimmer-loading p-1 rounded-lg" style={{ animationDuration: '1.2s', animationIterationCount: '1' }}>
           <StudentPerformanceChart />
+          </div>
+          {/* Performance Trend Sparkline */}
+          <div className="mt-4 flex items-center gap-3">
+            <span className="text-xs font-semibold text-[#B0B0C0]">الاتجاه:</span>
+            <svg viewBox="0 0 120 30" className="w-28 h-7 sparkline-trend" style={{ direction: 'ltr' }}>
+              <defs>
+                <linearGradient id="sparkline-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#D4A574" stopOpacity="0.3" />
+                  <stop offset="100%" stopColor="#D4A574" stopOpacity="1" />
+                </linearGradient>
+              </defs>
+              <polyline
+                fill="none"
+                stroke="url(#sparkline-grad)"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                points="0,22 20,18 40,20 60,12 80,15 100,8 120,5"
+              />
+              {/* Glow duplicate for depth */}
+              <polyline
+                fill="none"
+                stroke="#D4A574"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                points="0,22 20,18 40,20 60,12 80,15 100,8 120,5"
+                opacity="0.2"
+                filter="blur(2px)"
+              />
+              {/* Data points */}
+              {[
+                [0,22],[20,18],[40,20],[60,12],[80,15],[100,8],[120,5]
+              ].map(([x, y], i) => (
+                <circle key={i} cx={x} cy={y} r="2.5" fill="#D4A574" opacity={i === 6 ? 1 : 0.6} />
+              ))}
+            </svg>
+            <span className="text-xs font-bold text-emerald-400">+12%</span>
+            <span className="text-[10px] text-[#A0A0B8]">عن الفصل الماضي</span>
           </div>
         </SectionCard>
       </div>
@@ -1592,7 +1647,7 @@ export default function DashboardOverview() {
           title="توزيع الحضور"
           icon={<UserCheck className="h-4 w-4" />}
           action={
-            <span className="text-xs text-muted-foreground/50 font-medium">اليوم</span>
+            <span className="text-xs text-[#A0A0B8] font-medium">اليوم</span>
           }
         >
           <AttendanceDistribution />

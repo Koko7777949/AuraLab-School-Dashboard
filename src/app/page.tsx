@@ -262,7 +262,7 @@ export default function Home() {
                   ))}
                 </nav>
 
-                <p className="text-[11px] text-muted-foreground/40">الإصدار 2.6.0</p>
+                <p className="text-[11px] text-muted-foreground/40">الإصدار 2.7.0</p>
               </div>
             </div>
           </footer>

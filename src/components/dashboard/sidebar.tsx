@@ -247,14 +247,14 @@ export default function Sidebar() {
                 {/* Active indicator bar (right side - amber) */}
                 {isActive && (
                   <span
-                    className="animate-indicator-glow absolute right-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-l-full bg-[#D4A574]"
+                    className="animate-indicator-glow absolute right-0 top-1/2 h-8 w-[4px] -translate-y-1/2 rounded-l-full bg-[#D4A574] shadow-[0_0_12px_rgba(212,165,116,0.6)]"
                   />
                 )}
 
                 {/* Active indicator line (left side - subtle) */}
                 {isActive && (
                   <span
-                    className="absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-r-full bg-[#D4A574]/30"
+                    className="absolute left-0 top-1/2 h-5 w-[2.5px] -translate-y-1/2 rounded-r-full bg-[#D4A574]/40"
                   />
                 )}
 
@@ -269,7 +269,7 @@ export default function Sidebar() {
                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A574]/50
                     ${
                       isActive
-                        ? 'bg-[rgba(212,165,116,0.12)] text-[#D4A574]'
+                        ? 'bg-[rgba(212,165,116,0.15)] text-[#E8C9A8]'
                         : 'text-[#8B8B9E] hover:text-[#C4C4D4]'
                     }
                     ${sidebarOpen ? 'flex-row-reverse' : 'flex-col items-center justify-center gap-1'}
@@ -297,12 +297,12 @@ export default function Sidebar() {
                   <span
                     className={`
                       shrink-0 transition-all duration-300 ease-out
-                      ${isActive ? 'text-[#D4A574]' : 'text-[#8B8B9E] group-hover:text-[#C4C4D4]'}
+                      ${isActive ? 'text-[#E8C9A8]' : 'text-[#8B8B9E] group-hover:text-[#C4C4D4]'}
                     `}
                     style={
                       isActive
                         ? {
-                            filter: 'drop-shadow(0 0 8px rgba(212, 165, 116, 0.4))',
+                            filter: 'drop-shadow(0 0 10px rgba(212, 165, 116, 0.6))',
                           }
                         : undefined
                     }

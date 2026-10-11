@@ -162,6 +162,11 @@ export default function SessionTimer() {
           backgroundColor: '#1A1A24',
         }}
       >
+        {/* ── Timer label ── */}
+        <span className="text-xs font-semibold text-[#B0B0C0] tracking-wide">
+          مؤقت الجلسة
+        </span>
+
         {/* ── Status badge ── */}
         <div className="flex items-center gap-2">
           {/* Pulsing green dot when running */}
@@ -192,7 +197,7 @@ export default function SessionTimer() {
         </div>
 
         {/* ── Session progress label ── */}
-        <span className="text-xs text-muted-foreground/60 font-medium tabular-nums">
+        <span className="text-xs text-[#B0B0C0] font-medium tabular-nums">
           {Math.round(progress)}% من الحصة (45 دقيقة)
         </span>
 
