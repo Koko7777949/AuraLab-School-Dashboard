@@ -3881,3 +3881,90 @@ html {
 .theme-transition {
   transition: background-color 0.3s, color 0.3s, border-color 0.3s, box-shadow 0.3s;
 }
+
+/* ===================================================================
+   45. ANIMATED BORDER GLOW
+   A subtle traveling amber glow along card borders (moving light).
+   =================================================================== */
+@keyframes border-glow-travel {
+  0% { background-position: 0% 0%; }
+  25% { background-position: 100% 0%; }
+  50% { background-position: 100% 100%; }
+  75% { background-position: 0% 100%; }
+  100% { background-position: 0% 0%; }
+}
+.animate-border-glow {
+  position: relative;
+}
+.animate-border-glow::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(212, 165, 116, 0.4) 10%,
+    rgba(232, 201, 168, 0.6) 20%,
+    rgba(212, 165, 116, 0.4) 30%,
+    transparent 40%
+  );
+  background-size: 300% 300%;
+  animation: border-glow-travel 6s linear infinite;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ===================================================================
+   46. STAT VALUE GRADIENT BACKGROUND
+   Subtle gradient behind stat card value numbers for visual depth.
+   =================================================================== */
+.stat-value-glow {
+  background: linear-gradient(135deg, rgba(212,165,116,0.06), rgba(212,165,116,0.02));
+  border-radius: 8px;
+  padding: 2px 8px;
+  margin: -2px -8px;
+  display: inline-block;
+}
+
+/* ===================================================================
+   47. SPARKLINE TREND UTILITY
+   Simple inline SVG sparkline for trend indicators.
+   =================================================================== */
+.sparkline-trend {
+  filter: drop-shadow(0 0 3px rgba(212, 165, 116, 0.3));
+}
+
+/* ===================================================================
+   48. PULSE RING ON IMPORTANT CARDS
+   Breathing pulse ring around important/critical stat cards.
+   =================================================================== */
+@keyframes pulse-ring-soft {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(212, 165, 116, 0); }
+  50% { box-shadow: 0 0 0 4px rgba(212, 165, 116, 0.08); }
+}
+.pulse-ring-soft {
+  animation: pulse-ring-soft 3s ease-in-out infinite;
+}
+
+/* ===================================================================
+   49. GRADIENT SHIMMER FOR WELCOME BANNER
+   Polished traveling shimmer for welcome/header banners.
+   =================================================================== */
+@keyframes banner-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.banner-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 45%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 55%, transparent 100%);
+  background-size: 200% 100%;
+  animation: banner-shimmer 4s ease-in-out infinite;
+  pointer-events: none;
+}

@@ -208,7 +208,7 @@ export default function CalendarWidget() {
         {ARABIC_DAYS_SHORT.map((day) => (
           <div
             key={day}
-            className="flex items-center justify-center text-[11px] font-semibold text-slate-500 py-1"
+            className="flex items-center justify-center text-[11px] font-semibold text-[#B0B0C0] py-1"
           >
             {day}
           </div>
@@ -270,7 +270,7 @@ export default function CalendarWidget() {
 
       {/* ── Legend ── */}
       {events.length > 0 && (
-        <div className="mt-4 flex flex-wrap items-center gap-3 text-[10px] text-slate-500">
+        <div className="mt-4 flex flex-wrap items-center gap-3 text-[10px] text-[#A0A0B8]">
           {Array.from(new Map(events.map((ev) => [ev.color, ev.color])).keys()).map((color) => (
             <div key={color} className="flex items-center gap-1">
               <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />

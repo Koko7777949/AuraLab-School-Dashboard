@@ -247,19 +247,19 @@ function NotificationItem({
 
             {/* Unread dot */}
             {isUnread && (
-              <span className="shrink-0 h-2.5 w-2.5 rounded-full bg-[#D4A574] shadow-[0_0_8px_rgba(212,165,116,0.5)]" />
+              <span className="shrink-0 h-3.5 w-3.5 rounded-full bg-[#D4A574] shadow-[0_0_8px_rgba(212,165,116,0.5)]" />
             )}
           </div>
 
           <p className={cn(
             'text-sm leading-relaxed line-clamp-2',
-            isUnread ? 'text-slate-300' : 'text-slate-500',
+            isUnread ? 'text-slate-300' : 'text-[#A0A0B8]',
           )}>
             {notification.message}
           </p>
 
           <div className="flex items-center justify-between pt-1">
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-[#A0A0B8]">
               {relativeTime(notification.createdAt)}
             </span>
             <span
