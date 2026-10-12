@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
 إذا طُلب منك تحليل، استخدم البيانات المتاحة لتقديم رؤى عملية.`;
 
     const messages: Array<{ role: string; content: string }> = [
-      { role: 'assistant', content: systemPrompt },
+      { role: 'system', content: systemPrompt },
     ];
 
     // Add conversation history (last 10 messages for context)

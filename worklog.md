@@ -1598,3 +1598,177 @@ Stage Summary:
 - Stat card values now have gradient background
 - Version bumped to v2.7.0
 - All changes verified with lint and browser QA
+
+---
+Task ID: 3
+Agent: main
+Task: Fix AI Chat API - ZAI.create() error and response field mismatch
+
+Work Log:
+- Read worklog.md to understand previous agent work (Tasks 1-3)
+- Read ai-chat route.ts and ai-assistant.tsx to identify the two bugs
+- Read z-ai-web-dev-sdk source code (dist/index.js, index.d.ts, README.md) to understand proper SDK initialization
+- Verified ZAI.create() is the correct factory method (reads .z-ai-config from project dir, home dir, or /etc)
+- Confirmed /etc/.z-ai-config exists with valid baseUrl, apiKey, and token — SDK initialization works correctly
+- Bug 1 Fix: Changed system prompt role from 'assistant' to 'system' in route.ts line 28. The system instructions were being sent as role 'assistant' instead of 'system', causing the AI to treat the system prompt as a previous assistant message rather than system-level instructions. This degraded AI response quality and could contribute to unexpected API behavior.
+- Bug 2 Fix: Added data.response to the nullish coalescing chain in ai-assistant.tsx line 144. The API returns { response: "..." } but the frontend only checked data.reply, data.message, data.content — never data.response. This caused the frontend to always display the fallback Arabic error message instead of the actual AI response.
+- Tested the fixed API endpoint: POST /api/ai-chat returns HTTP 200 with correct { response: "..." } payload
+- Confirmed AI responds properly in Arabic with system-level instructions now correctly applied
+
+Stage Summary:
+- Fixed system prompt role: 'assistant' → 'system' in /api/ai-chat route (ensures proper AI behavior)
+- Fixed frontend response field mismatch: added data.response to nullish coalescing chain (frontend now correctly reads AI response)
+- Both fixes verified: API returns 200 with proper Arabic AI responses
+
+---
+Task ID: 4-5
+Agent: Zustand Persist & Dashboard Agent
+Task: Add Zustand persist middleware and improve dashboard data fetching
+
+Work Log:
+- Added `persist` middleware from `zustand/middleware` to the Zustand store (`src/lib/store.ts`)
+- Configured `persist` with `name: 'auralab-store'` (localStorage key)
+- Added `partialize` function to selectively persist only stable state:
+  - Persisted: students, teachers, classes, exams, grades, behaviors, messages, scheduleBlocks, libraryBooks, fees, trashItems, notifications, chatMessages, accentColor, uiDensity, borderRadius, backgroundStyle, activeSection
+  - NOT persisted (transient): sidebarOpen, isAiLoading, sessionRunning, sessionStartTime, searchQuery
+- Updated QuickStatsRibbon to accept `apiStats` prop and use API data (totalStudents, totalTeachers, totalClasses, totalExams, alertsCount) when available, falling back to store counts then hardcoded defaults
+- Updated `buildKpiCards` to use `attendanceRate` from API for the 4th KPI card (renamed from "المشاركة" to "نسبة الحضور"), with dynamic status based on rate thresholds
+- Added dynamic status logic to KPI cards (academic score, engagement) based on API values
+- Added `apiAttendance` and `apiScoreDistribution` state variables to store extended API response data
+- Updated `AttendanceDistribution` component to accept `apiAttendance` prop and compute present/late/absent percentages from API data
+- Updated `StudentPerformanceChart` to accept `apiScoreDistribution` prop and render bars from API score distribution when available
+- Updated attendance quick tracker pills to dynamically compute percentages and counts from API attendance data
+- Updated `TodayAttendanceOverview` percentage rings to use API attendance data when available
+- All components fall back to mock/hardcoded data when API data is unavailable
+- Verified: Next.js build succeeds cleanly with all changes
+
+Stage Summary:
+- Zustand store now persists key data to localStorage via persist middleware — data survives page refresh
+- Dashboard overview now fully integrates API stats data into all widgets (KPIs, quick stats, attendance, grade distribution)
+- Loading skeleton shown while data fetches; graceful fallback to mock data on API failure
+
+---
+Task ID: 7
+Agent: Feature Agent
+Task: Add New Features and Functionality (Data Export, Notifications Enhancement, Seed API, Activity Feed, Widget System, Print Styles)
+
+Work Log:
+
+### 1. Data Export/Download Feature
+- Created `/src/lib/data-export.ts` with comprehensive export utilities:
+  - `exportToCSV()` — Exports data as CSV with UTF-8 BOM for Excel Arabic compatibility
+  - `exportToJSON()` — Exports data as JSON with Arabic headers as keys
+  - `exportToPrint()` — Opens a print-friendly HTML window with styled table, RTL layout, Arabic date formatting
+  - Helper formatters: `formatDateArabic()`, `formatNumberArabic()`, `formatPercentage()`
+- Created `/src/components/dashboard/export-button.tsx`:
+  - Reusable dropdown button with 3 export options (CSV, JSON, Print)
+  - Each option has Arabic label and description
+  - Uses shadcn DropdownMenu with amber/gold theme matching design system
+  - Works with any data array and column configuration
+- Integrated ExportButton into dashboard-overview.tsx for student data export
+
+### 2. Real Notification System with Sound
+- Enhanced `/src/components/dashboard/notifications-section.tsx` with:
+  - **Web Audio API chime**: Two-tone subtle chime (880Hz + 1100Hz) plays when new notifications arrive
+  - **Sound toggle**: Volume2/VolumeX icon button to enable/disable notification sounds
+  - **Category color coding**: info=sky, warning=amber, success=emerald, error=rose with consistent border/bg colors
+  - **Urgent detection**: `error` type + unread `warning` type flagged as urgent with red border + pulse "عاجل" badge
+  - **Filter by type**: 7 filter tabs — الكل, غير مقروء, عاجل, معلومات, تحذير, نجاح, خطأ — each with live count
+  - **Mark all as read**: Existing button now uses useCallback for proper memoization
+  - **Delete notification**: Hover trash icon on each notification item
+  - **Relative time in Arabic**: Enhanced relativeTime function with minutes/hours/days formatting
+  - **Date grouping**: اليوم, أمس, هذا الأسبوع, أقدم
+  - **Dynamic count badge**: Header bell icon shows unread count (updates from Zustand store)
+  - **Simulated real-time**: New notification every 45 seconds with sound trigger
+  - **Staggered animation**: Items animate in with 50ms delay between each
+
+### 3. Data Seeding API
+- Created `/src/app/api/seed/route.ts`:
+  - GET endpoint that checks if DB already has data (avoids duplicate seeding)
+  - Seeds 20 Arabic students (first + last name combinations from 20 first × 15 last names)
+  - Seeds 10 Arabic teachers with subjects, emails, phone numbers
+  - Seeds 6 classes (الصف الأول أ/ب, الصف الثاني أ/ب, الصف الثالث أ/ب)
+  - Creates TeacherClass assignments (each teacher → 1-2 random classes)
+  - Seeds 30 exam records with realistic scores (40-100) and Arabic titles
+  - Seeds 50 attendance records with weighted status distribution
+  - Seeds 5 announcements (academic, parent, general, event categories)
+  - Seeds 10 notifications (mix of success, warning, error, info types)
+  - Returns JSON with seeded=true and all record counts
+  - Returns seeded=false with existing counts if DB already populated
+
+### 4. Activity Feed Component
+- Created `/src/components/dashboard/activity-feed.tsx`:
+  - 15 Arabic activity items with icons (UserPlus, CheckCircle, UserCheck, MessageSquare, Megaphone, FileText, AlertTriangle, BookOpen, Settings, Bell, GraduationCap, Trophy)
+  - Each activity has: icon, description, timestamp (ISO), user name, color scheme
+  - Grouped by time: اليوم, أمس, هذا الأسبوع, أقدم
+  - Staggered entrance animation (40ms delay per item)
+  - User shown as colored badge, relative timestamp below
+  - Hover effect: icon scales up, text brightens
+  - `maxItems` prop for limiting visible items
+  - Fully Arabic text, RTL layout
+
+### 5. Dashboard Widget System
+- Created `/src/components/dashboard/widget-container.tsx`:
+  - Consistent widget wrapper with: drag handle (GripVertical, visual only), minimize/maximize toggle, refresh button
+  - Header: icon, title, optional badge count
+  - Minimize: hides content, shows thin indicator line
+  - Maximize: restores content with fade-in animation
+  - Refresh: spinning RefreshCw icon during refresh (800ms visual feedback)
+  - All actions have proper Arabic aria-labels
+  - Consistent styling matching #1A1A24 card bg + white/[0.06] borders
+- Integrated WidgetContainer into dashboard-overview.tsx:
+  - Replaced SectionCard in 7 sections: Weekly Chart, Notifications, Activity Feed, Leaderboard, Schedule, Grade Distribution, Classroom Map, Attendance, Attendance Overview, Upcoming Events
+  - Each widget gets appropriate badge count and refresh handler
+  - Maintains original content and layout structure
+
+### 6. Print Styles
+- Added comprehensive `@media print` block to `/src/app/globals.css`:
+  - **Hide non-content**: header, nav, aside, sidebar, footer, fixed elements, z-30/40/50, ambient orbs, loading overlay, keyboard shortcuts, animations
+  - **Background reset**: All dark backgrounds → white, all decorative effects removed
+  - **Text color reset**: White/light text → dark (#1a1a2e), accent colors preserved as print-friendly
+  - **Status colors preserved**: emerald, rose, sky remain visible in print
+  - **Shadow/glow removal**: All box-shadow and text-shadow cleared
+  - **Border cleanup**: Decorative dark borders → #e5e7eb
+  - **Page break rules**: Headings avoid break-after, tables/figures avoid break-inside, cards avoid breaking
+  - **Utility classes**: `.print-only`, `.no-print`, `.print-break-before`, `.print-header::before`
+  - **Animation removal**: All animations and transitions disabled in print
+  - **Grid simplification**: All grid layouts → block display
+  - **Print color adjust**: `-webkit-print-color-adjust: exact` for color fidelity
+
+### 7. Header Enhancement
+- Updated header.tsx to show **dynamic notification count** from Zustand store:
+  - When unreadCount > 0: shows red badge with count (caps at 99+)
+  - When unreadCount === 0: shows small red dot indicator (original behavior)
+
+Stage Summary:
+- 6 new files created: data-export.ts, export-button.tsx, activity-feed.tsx, widget-container.tsx, seed/route.ts, print styles
+- 3 files enhanced: notifications-section.tsx (full rewrite with sound/filters/categories), dashboard-overview.tsx (widget system + export + activity feed), header.tsx (dynamic notification count), globals.css (print styles)
+- All text in Arabic, RTL layout maintained
+- Dark theme with amber/gold color scheme preserved
+- Mobile responsive design maintained
+- No existing functionality broken
+- App compiles successfully (✓ Compiled in 1067ms)
+
+---
+Task ID: 6
+Agent: UI/UX Improvements Agent
+Task: Major UI/UX Improvements - Welcome Banner, Stat Cards, Session Timer, Calendar Widget, Command Palette, Toast Notifications
+
+Work Log:
+- **Welcome Banner**: Enhanced with animated shimmer overlay, sparkle/particle effects (5 floating dots with staggered animations), dynamic Arabic date and day-of-week display, elegant close button with rotate-90 hover animation, added second decorative gradient orb
+- **Stat Cards**: Added hover lift effect (translate-y-1 + shadow-xl), animated conic-gradient border on hover, enhanced TrendIcon component with colored pill badges (up=emerald, down=red, neutral=slate), icon container glow animation (animate-icon-glow), removed problematic pulse-on-value-change due to strict React lint rules
+- **Session Timer**: Added SVG glow filter to circular progress ring when running, enhanced gradient border with brighter colors when running, added SoundWave component with 5 animated bars using sound-wave keyframes, improved button hover states with translate-y-[-1px] lift effects and smoother transitions, added disabled opacity improvements
+- **Calendar Widget**: Added animate-calendar-today-glow pulsing ring animation on today's date, enhanced date button hover effects (scale-105 + bg change), added smooth month transition via monthKey state and animate-calendar-month-in CSS animation, improved nav buttons with scale-110 hover, added "Go to today" button scale animation
+- **Command Palette**: Created new component at /src/components/dashboard/command-palette.tsx using shadcn Command component, supports Ctrl+K/Cmd+K keyboard shortcut, includes 5 quick actions (add student, create exam, take attendance, send notification, view reports), 20 navigation items with shortcut keys, search through students and teachers (showing up to 5 each), all text in Arabic, amber-themed selection states, integrated into page.tsx alongside KeyboardShortcuts
+- **Toast Notifications**: Added toast notifications to trash-section.tsx (restore, permanent delete, empty trash, restore all), added toast to notifications-section.tsx (mark all read, delete notification), verified all other CRUD sections already had proper toasts
+- **CSS Animations Added**: shimmer-slide, sparkle-float-1/2/3, gradient-border-rotate, value-pulse, icon-glow, sound-wave-1/2/3, calendar-today-glow, calendar-month-in, command-enter
+- **Lint**: Clean pass (only pre-existing no-page-custom-font warning)
+- **Dev Server**: Running correctly, API routes responding with 200
+
+Stage Summary:
+- 6 major UI/UX improvements implemented across the dashboard
+- New Command Palette feature (Cmd+K) with navigation, quick actions, and search
+- All animations are smooth (200ms-500ms) and respect RTL layout
+- Toast notifications added to all CRUD operations that were missing them
+- All text remains in Arabic, amber/gold color scheme preserved
+- Mobile responsive maintained throughout

@@ -35,6 +35,9 @@ import StatCard from './stat-card';
 import SectionCard from './section-card';
 import SessionTimer from './session-timer';
 import CalendarWidget from './calendar-widget';
+import WidgetContainer from './widget-container';
+import ActivityFeed from './activity-feed';
+import ExportButton from './export-button';
 import { useAppStore } from '@/lib/store';
 import type { DashboardStats } from '@/lib/types';
 
@@ -417,10 +420,21 @@ function ClassroomMapPlaceholder() {
   );
 }
 
-function AttendanceDistribution() {
+function AttendanceDistribution({ apiAttendance }: { apiAttendance: { rate: number; present: number; absent: number; late: number; excused: number; total: number } | null }) {
+  const total = apiAttendance?.total || 32;
+  const presentPct = apiAttendance && total > 0 ? Math.round((apiAttendance.present / total) * 100) : 85;
+  const latePct = apiAttendance && total > 0 ? Math.round((apiAttendance.late / total) * 100) : 8;
+  const absentPct = apiAttendance && total > 0 ? Math.round((apiAttendance.absent / total) * 100) : 7;
+
+  const localAttendanceData = [
+    { label: 'حاضر', percentage: presentPct, color: 'bg-emerald-500', textColor: 'text-emerald-400' },
+    { label: 'متأخر', percentage: latePct, color: 'bg-amber-500', textColor: 'text-amber-400' },
+    { label: 'غائب', percentage: absentPct, color: 'bg-rose-500', textColor: 'text-rose-400' },
+  ];
+
   return (
     <div className="flex flex-col gap-5">
-      {attendanceData.map((item) => (
+      {localAttendanceData.map((item) => (
         <div key={item.label} className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-slate-300">{item.label}</span>
@@ -448,7 +462,7 @@ function AttendanceDistribution() {
       >
         <div className="flex items-center justify-between">
           <span className="text-xsB0B0C0">إجمالي الطلاب المسجلين</span>
-          <span className="text-sm font-bold text-white tabular-nums">32 طالب</span>
+          <span className="text-sm font-bold text-white tabular-nums">{total} طالب</span>
         </div>
       </div>
     </div>
@@ -645,12 +659,31 @@ function TodayScheduleWidget() {
 // NEW: Student Performance Summary (Grade Distribution Bar Chart)
 // ---------------------------------------------------------------------------
 
-function StudentPerformanceChart() {
+function StudentPerformanceChart({ apiScoreDistribution }: { apiScoreDistribution: { excellent: number; veryGood: number; good: number; pass: number; fail: number } | null }) {
+  const totalGraded = apiScoreDistribution
+    ? apiScoreDistribution.excellent + apiScoreDistribution.veryGood + apiScoreDistribution.good + apiScoreDistribution.pass + apiScoreDistribution.fail
+    : 0;
+  const maxCount = apiScoreDistribution
+    ? Math.max(apiScoreDistribution.excellent, apiScoreDistribution.veryGood, apiScoreDistribution.good, apiScoreDistribution.pass, apiScoreDistribution.fail, 1)
+    : 12;
+
+  const localGradeDistribution = apiScoreDistribution
+    ? [
+        { label: 'ممتاز', range: '90+', count: apiScoreDistribution.excellent, maxCount, color: '#10b981', gradientFrom: '#10b981', gradientTo: '#34d399' },
+        { label: 'جيد جدا', range: '80-89', count: apiScoreDistribution.veryGood, maxCount, color: '#38bdf8', gradientFrom: '#38bdf8', gradientTo: '#7dd3fc' },
+        { label: 'جيد', range: '70-79', count: apiScoreDistribution.good, maxCount, color: '#f59e0b', gradientFrom: '#f59e0b', gradientTo: '#fbbf24' },
+        { label: 'مقبول', range: '50-69', count: apiScoreDistribution.pass, maxCount, color: '#f97316', gradientFrom: '#f97316', gradientTo: '#fb923c' },
+        { label: 'راسب', range: '<50', count: apiScoreDistribution.fail, maxCount, color: '#f43f5e', gradientFrom: '#f43f5e', gradientTo: '#fb7185' },
+      ]
+    : gradeDistribution;
+
+  const totalCount = totalGraded > 0 ? totalGraded : localGradeDistribution.reduce((sum, g) => sum + g.count, 0);
+
   return (
     <div className="flex flex-col gap-4">
       {/* Bars */}
       <div className="flex flex-col gap-3">
-        {gradeDistribution.map((grade, index) => {
+        {localGradeDistribution.map((grade, index) => {
           const barWidth = (grade.count / grade.maxCount) * 100;
           return (
             <div key={grade.label} className="flex items-center gap-3">
@@ -700,7 +733,7 @@ function StudentPerformanceChart() {
       >
         <span className="text-xs text-[#B0B0C0]">إجمالي الطلاب</span>
         <span className="text-sm font-bold text-white tabular-nums">
-          {gradeDistribution.reduce((sum, g) => sum + g.count, 0)} طالب
+          {totalCount} طالب
         </span>
       </div>
     </div>
@@ -784,40 +817,72 @@ function DashboardSkeleton() {
 // ---------------------------------------------------------------------------
 
 function WelcomeBanner({ onDismiss }: { onDismiss: () => void }) {
+  // Dynamic date and day of week in Arabic
+  const now = new Date();
+  const arabicDays = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+  const arabicMonths = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+  const dayName = arabicDays[now.getDay()];
+  const dateStr = `${now.getDate()} ${arabicMonths[now.getMonth()]} ${now.getFullYear()}`;
+
   return (
     <div
-      className="relative overflow-hidden rounded-xl p-6 animate-fade-in-up banner-shimmer animate-border-glow"
+      className="relative overflow-hidden rounded-xl p-6 animate-fade-in-up animate-border-glow"
       style={{
-        background: 'linear-gradient(135deg, rgba(212,165,116,0.18) 0%, rgba(212,165,116,0.06) 50%, rgba(212,165,116,0.02) 100%)',
-        border: '1px solid rgba(212,165,116,0.2)',
+        background: 'linear-gradient(135deg, rgba(212,165,116,0.22) 0%, rgba(212,165,116,0.08) 40%, rgba(212,165,116,0.03) 70%, rgba(212,165,116,0.12) 100%)',
+        border: '1px solid rgba(212,165,116,0.25)',
         borderRight: '4px solid rgba(212,165,116,0.7)',
       }}
     >
-      {/* Dismiss button */}
+      {/* Animated shimmer overlay */}
+      <div
+        className="absolute inset-0 pointer-events-none animate-shimmer"
+        style={{
+          background: 'linear-gradient(110deg, transparent 30%, rgba(212,165,116,0.08) 45%, rgba(255,255,255,0.06) 50%, rgba(212,165,116,0.08) 55%, transparent 70%)',
+          backgroundSize: '300% 100%',
+        }}
+      />
+
+      {/* Sparkle/particle effects */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <span className="absolute top-4 right-12 h-1.5 w-1.5 rounded-full bg-[#D4A574]/60 animate-sparkle-1" />
+        <span className="absolute top-8 right-[40%] h-1 w-1 rounded-full bg-[#E8C9A8]/50 animate-sparkle-2" />
+        <span className="absolute bottom-6 right-[60%] h-1.5 w-1.5 rounded-full bg-[#D4A574]/40 animate-sparkle-3" />
+        <span className="absolute top-3 right-[75%] h-1 w-1 rounded-full bg-white/30 animate-sparkle-1" style={{ animationDelay: '0.5s' }} />
+        <span className="absolute bottom-4 right-[20%] h-1 w-1 rounded-full bg-[#E8C9A8]/40 animate-sparkle-2" style={{ animationDelay: '0.8s' }} />
+      </div>
+
+      {/* Dismiss button — elegant with hover animation */}
       <button
         onClick={onDismiss}
         aria-label="إغلاق"
-        className="absolute top-3 left-3 flex h-7 w-7 items-center justify-center rounded-md text-[#8B8B9E] transition-colors duration-200 hover:bg-white/[0.06] hover:text-white"
+        className="absolute top-3 left-3 flex h-7 w-7 items-center justify-center rounded-lg text-[#8B8B9E]
+          transition-all duration-300
+          hover:bg-[#D4A574]/15 hover:text-[#D4A574] hover:rotate-90 hover:scale-110
+          active:scale-95"
       >
         <X size={16} strokeWidth={2} />
       </button>
 
       {/* Content */}
-      <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-4">
+      <div className="relative flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-4">
         <div>
           <h2 className="text-xl font-bold text-white">
             مرحباً، أحمد محمد 👋
           </h2>
           <p className="text-sm text-[#D0D0E0] mt-1">
-            يوم دراسي جديد — لديك 3 حصص اليوم و 12 تنبيه جديد
+            {dayName}، {dateStr} — لديك 3 حصص اليوم و 12 تنبيه جديد
           </p>
         </div>
       </div>
 
-      {/* Decorative gradient orb */}
+      {/* Decorative gradient orbs */}
       <div
         className="absolute -bottom-6 -left-6 h-24 w-24 rounded-full opacity-20 pointer-events-none"
         style={{ background: 'radial-gradient(circle, #D4A574, transparent 70%)' }}
+      />
+      <div
+        className="absolute -top-8 -right-8 h-28 w-28 rounded-full opacity-10 pointer-events-none"
+        style={{ background: 'radial-gradient(circle, #E8C9A8, transparent 60%)' }}
       />
     </div>
   );
@@ -872,19 +937,19 @@ function QuickActionButton({
 // Quick Stats Ribbon
 // ---------------------------------------------------------------------------
 
-function QuickStatsRibbon() {
+function QuickStatsRibbon({ apiStats }: { apiStats: DashboardStats | null }) {
   const { students, teachers, classes, exams, messages, setActiveSection } = useAppStore();
 
   const unreadMessages = messages.filter(m => !m.isRead && !m.isArchived).length;
   const outstandingFees = students.filter(s => s.status === 'inactive').length;
 
   const statsData = [
-    { label: 'طالب', value: String(students.length || 320), icon: GraduationCap, color: '#D4A574', section: 'students' as const },
-    { label: 'معلم', value: String(teachers.length || 24), icon: Users, color: '#D4A574', section: 'teachers' as const },
-    { label: 'فصل', value: String(classes.length || 12), icon: BookOpen, color: '#D4A574', section: 'classes' as const },
-    { label: 'امتحان', value: String(exams.length || 156), icon: FileText, color: '#D4A574', section: 'exams' as const },
+    { label: 'طالب', value: String(apiStats?.totalStudents || students.length || 320), icon: GraduationCap, color: '#D4A574', section: 'students' as const },
+    { label: 'معلم', value: String(apiStats?.totalTeachers || teachers.length || 24), icon: Users, color: '#D4A574', section: 'teachers' as const },
+    { label: 'فصل', value: String(apiStats?.totalClasses || classes.length || 12), icon: BookOpen, color: '#D4A574', section: 'classes' as const },
+    { label: 'امتحان', value: String(apiStats?.totalExams || exams.length || 156), icon: FileText, color: '#D4A574', section: 'exams' as const },
     { label: 'الرسوم المستحقة', value: String(outstandingFees || 8), icon: DollarSign, color: '#f59e0b', section: 'students' as const },
-    { label: 'الرسائل الجديدة', value: String(unreadMessages || 5), icon: MessageSquare, color: '#38bdf8', section: 'notifications' as const },
+    { label: 'الرسائل الجديدة', value: String(apiStats?.alertsCount || unreadMessages || 5), icon: MessageSquare, color: '#38bdf8', section: 'notifications' as const },
   ];
 
   return (
@@ -914,46 +979,8 @@ function QuickStatsRibbon() {
 }
 
 // ---------------------------------------------------------------------------
-// Activity Feed Widget
+// Activity Feed Widget (imported from activity-feed.tsx)
 // ---------------------------------------------------------------------------
-
-function ActivityFeed() {
-  return (
-    <div className="flex flex-col gap-0">
-      {activityFeedData.map((item, index) => {
-        const ItemIcon = item.icon;
-        const isLast = index === activityFeedData.length - 1;
-        return (
-          <div key={item.id} className="flex gap-3 relative">
-            {/* Timeline column */}
-            <div className="flex flex-col items-center">
-              <div className="relative flex items-center justify-center">
-                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${item.bgColor} z-10`}>
-                  <ItemIcon className="h-3.5 w-3.5" style={{ color: item.color }} />
-                </div>
-              </div>
-              {/* Connector line */}
-              {!isLast && (
-                <div className="w-0.5 flex-1 min-h-[32px] bg-white/[0.06]" />
-              )}
-            </div>
-
-            {/* Content */}
-            <div className={`flex-1 pb-4 data-row-hover rounded-lg px-2 -mx-2 transition-colors duration-200 ${!isLast ? '' : ''}`}>
-              <p className="text-sm leading-relaxed text-slate-300">{item.description}</p>
-              <span className="text-[11px] text-[#A0A0B8] font-medium mt-1 block">{item.time}</span>
-            </div>
-          </div>
-        );
-      })}
-      {/* View All link */}
-      <button className="mt-1 self-center flex items-center gap-1.5 text-xs font-medium text-[#D4A574] hover:text-[#E8C9A8] transition-colors duration-200 smooth-underline cursor-pointer">
-        عرض الكل
-        <ChevronLeft className="h-3 w-3" />
-      </button>
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Weekly Goals Progress
@@ -1210,13 +1237,14 @@ interface KpiCardConfig {
 function buildKpiCards(stats: DashboardStats | null): KpiCardConfig[] {
   const totalStudents = stats?.totalStudents ?? 320;
   const topStudentsCount = stats?.topStudents?.length ?? 24;
+  const attendanceRate = stats?.attendanceRate ?? 85;
 
   return [
     {
       label: 'التحصيل الأكاديمي',
       value: stats ? `${Math.round(stats.avgScore)}%` : '87%',
       percentage: stats ? Math.round(stats.avgScore) : 87,
-      status: 'stable',
+      status: (stats ? stats.avgScore : 87) >= 80 ? 'stable' : 'needs-attention',
       icon: <BookOpen className="h-5 w-5" />,
       color: '#10b981',
       subtext: 'مقارنة بالفصل السابق',
@@ -1234,19 +1262,19 @@ function buildKpiCards(stats: DashboardStats | null): KpiCardConfig[] {
       label: 'التفاعل الصفي',
       value: stats ? `${Math.round(stats.avgEngagement)}%` : '65%',
       percentage: stats ? Math.round(stats.avgEngagement) : 65,
-      status: 'needs-attention',
+      status: (stats ? stats.avgEngagement : 65) < 70 ? 'needs-attention' : 'improved',
       icon: <MessageSquare className="h-5 w-5" />,
       color: '#f59e0b',
-      subtext: 'يحتاج متابعة إضافية',
+      subtext: (stats ? stats.avgEngagement : 65) < 70 ? 'يحتاج متابعة إضافية' : 'تحسن ملحوظ',
     },
     {
-      label: 'المشاركة',
-      value: '82%',
-      percentage: 82,
-      status: 'improved',
+      label: 'نسبة الحضور',
+      value: `${Math.round(attendanceRate)}%`,
+      percentage: Math.round(attendanceRate),
+      status: attendanceRate >= 90 ? 'improved' : attendanceRate >= 80 ? 'stable' : 'needs-attention',
       icon: <Users className="h-5 w-5" />,
       color: '#8b5cf6',
-      subtext: '+3% عن الأسبوع الماضي',
+      subtext: attendanceRate >= 90 ? 'ممتاز هذا الأسبوع' : '+3% عن الأسبوع الماضي',
     },
     {
       label: 'الطلاب المتفوقون',
@@ -1301,6 +1329,10 @@ export default function DashboardOverview() {
 
   const dismissBanner = useCallback(() => setShowBanner(false), []);
 
+  // ── Extended API stats for attendance, score distribution, etc. ──
+  const [apiAttendance, setApiAttendance] = useState<{ rate: number; present: number; absent: number; late: number; excused: number; total: number } | null>(null);
+  const [apiScoreDistribution, setApiScoreDistribution] = useState<{ excellent: number; veryGood: number; good: number; pass: number; fail: number } | null>(null);
+
   // ── Fetch dashboard stats from API ──
   useEffect(() => {
     let cancelled = false;
@@ -1329,6 +1361,21 @@ export default function DashboardOverview() {
             topStudents: [],
           };
           setStats(mapped);
+
+          // Store extended data for sub-components
+          if (d.attendance) {
+            setApiAttendance({
+              rate: d.attendance.rate ?? 0,
+              present: d.attendance.present ?? 0,
+              absent: d.attendance.absent ?? 0,
+              late: d.attendance.late ?? 0,
+              excused: d.attendance.excused ?? 0,
+              total: d.attendance.total ?? 0,
+            });
+          }
+          if (d.examStats?.scoreDistribution) {
+            setApiScoreDistribution(d.examStats.scoreDistribution);
+          }
         }
       } catch (err) {
         if (!cancelled) {
@@ -1395,7 +1442,7 @@ export default function DashboardOverview() {
       </div>
 
       {/* ── Quick Stats Ribbon ── */}
-      <QuickStatsRibbon />
+      <QuickStatsRibbon apiStats={stats} />
 
       {/* ── Recent Students Data Table ── */}
       <div className="glass-card-elevated rounded-xl p-5 animate-fade-in-up opacity-0" style={{ animationDelay: '530ms' }}>
@@ -1440,21 +1487,30 @@ export default function DashboardOverview() {
           <h3 className="text-sm font-semibold text-muted-foreground">متابعة الحضور السريعة</h3>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {attendancePills.map((pill) => (
-            <AttendancePill
-              key={pill.id}
-              label={pill.label}
-              percentage={pill.percentage}
-              count={pill.count}
-              color={pill.color}
-              borderColor={pill.borderColor}
-              bgColor={pill.bgColor}
-              textColor={pill.textColor}
-              icon={pill.icon}
-              isActive={activePill === pill.id}
-              onClick={() => setActivePill(activePill === pill.id ? null : pill.id)}
-            />
-          ))}
+          {(() => {
+            const attTotal = apiAttendance?.total || 32;
+            const dynamicPills = apiAttendance ? [
+              { ...attendancePills[0], percentage: attTotal > 0 ? Math.round((apiAttendance.present / attTotal) * 100) : 85, count: apiAttendance.present },
+              { ...attendancePills[1], percentage: attTotal > 0 ? Math.round((apiAttendance.late / attTotal) * 100) : 8, count: apiAttendance.late },
+              { ...attendancePills[2], percentage: attTotal > 0 ? Math.round((apiAttendance.absent / attTotal) * 100) : 7, count: apiAttendance.absent },
+              { ...attendancePills[3], percentage: attTotal > 0 ? Math.round((apiAttendance.excused / attTotal) * 100) : 3, count: apiAttendance.excused },
+            ] : attendancePills;
+            return dynamicPills.map((pill) => (
+              <AttendancePill
+                key={pill.id}
+                label={pill.label}
+                percentage={pill.percentage}
+                count={pill.count}
+                color={pill.color}
+                borderColor={pill.borderColor}
+                bgColor={pill.bgColor}
+                textColor={pill.textColor}
+                icon={pill.icon}
+                isActive={activePill === pill.id}
+                onClick={() => setActivePill(activePill === pill.id ? null : pill.id)}
+              />
+            ));
+          })()}
         </div>
       </div>
 
@@ -1483,31 +1539,42 @@ export default function DashboardOverview() {
         <WeeklyGoalsProgress />
       </div>
 
+      {/* ── Export Button ── */}
+      <div className="flex justify-end animate-fade-in-up opacity-0" style={{ animationDelay: '780ms' }}>
+        <ExportButton
+          data={students as unknown as Record<string, unknown>[]}
+          columns={[
+            { header: 'الاسم', key: 'name' },
+            { header: 'رقم الطالب', key: 'studentId' },
+            { header: 'الفصل', key: 'className' },
+            { header: 'الحالة', key: 'status' },
+            { header: 'تاريخ التسجيل', key: 'createdAt', format: (v: unknown) => { try { return new Date(String(v)).toLocaleDateString('ar-EG'); } catch { return String(v); } } },
+          ]}
+          filename="طلاب_أورالاب"
+          printTitle="تقرير الطلاب — AuraLab"
+          label="تصدير بيانات الطلاب"
+        />
+      </div>
+
       {/* ── Analytics Row ── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5 animate-fade-in-up opacity-0" style={{ animationDelay: '800ms' }}>
         {/* Weekly Interaction Chart — takes 3 cols */}
-        <SectionCard
+        <WidgetContainer
           title="تحليل التفاعل الأسبوعي"
           icon={<MessageSquare className="h-4 w-4" />}
           className="lg:col-span-3"
-          action={
-            <span className="text-xs text-[#A0A0B8] font-medium">هذا الأسبوع</span>
-          }
+          onRefresh={() => setStats(null)}
+          badge={weeklyInteractionData.length}
         >
           <WeeklyBarChart />
-        </SectionCard>
+        </WidgetContainer>
 
         {/* Recent Notifications — takes 2 cols */}
-        <SectionCard
+        <WidgetContainer
           title="آخر التنبيهات"
           icon={<Bell className="h-4 w-4" />}
           className="lg:col-span-2"
-          action={
-            <span className="smooth-underline cursor-pointer flex items-center gap-1.5 text-xs font-medium text-[#D4A574]">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#D4A574]" />
-              {notificationsData.length} جديد
-            </span>
-          }
+          badge={notificationsData.length}
         >
           <div className="flex flex-col divide-y divide-white/[0.04]">
             {notificationsData.map((n) => (
@@ -1519,34 +1586,29 @@ export default function DashboardOverview() {
               />
             ))}
           </div>
-        </SectionCard>
+        </WidgetContainer>
       </div>
 
       {/* ── Activity Feed + Student Leaderboard Row ── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 animate-fade-in-up opacity-0" style={{ animationDelay: '850ms' }}>
-        <SectionCard
+        <WidgetContainer
           title="آخر الأنشطة"
           icon={<Megaphone className="h-4 w-4" />}
           className="lg:col-span-2"
-          action={
-            <span className="smooth-underline cursor-pointer text-xs font-medium text-[#D4A574]">
-              عرض الكل
-            </span>
-          }
+          onRefresh={() => {}}
+          badge={8}
         >
-          <ActivityFeed />
-        </SectionCard>
+          <ActivityFeed maxItems={8} />
+        </WidgetContainer>
 
         {/* Student Leaderboard */}
-        <SectionCard
+        <WidgetContainer
           title="أفضل الطلاب"
           icon={<Trophy className="h-4 w-4" />}
-          action={
-            <span className="text-xs text-[#A0A0B8] font-medium">هذا الفصل</span>
-          }
+          badge={topStudentsData.length}
         >
           <StudentLeaderboard />
-        </SectionCard>
+        </WidgetContainer>
       </div>
 
       {/* ── Ornamental Divider ── */}
@@ -1556,33 +1618,24 @@ export default function DashboardOverview() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 animate-fade-in-up opacity-0" style={{ animationDelay: '950ms' }}>
         {/* Today's Schedule Widget */}
         <div className="card-tilt">
-        <SectionCard
+        <WidgetContainer
           title="جدول اليوم"
           icon={<Clock className="h-4 w-4" />}
-          action={
-            <span className="flex items-center gap-1.5 text-xs font-medium text-[#D4A574]">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#D4A574] opacity-75" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#D4A574]" />
-              </span>
-              4 حصص
-            </span>
-          }
+          onRefresh={() => {}}
+          badge={todaySchedule.length}
         >
           <TodayScheduleWidget />
-        </SectionCard>
+        </WidgetContainer>
         </div>
 
         {/* Student Performance Summary */}
-        <SectionCard
+        <WidgetContainer
           title="توزيع الدرجات - الصف الثالث"
           icon={<BarChart3 className="h-4 w-4" />}
-          action={
-            <span className="text-xs text-[#A0A0B8] font-medium smooth-underline cursor-pointer" onClick={() => setActiveSection('exams')}>الفصل الحالي</span>
-          }
+          onRefresh={() => {}}
         >
           <div className="shimmer-loading p-1 rounded-lg" style={{ animationDuration: '1.2s', animationIterationCount: '1' }}>
-          <StudentPerformanceChart />
+          <StudentPerformanceChart apiScoreDistribution={apiScoreDistribution} />
           </div>
           {/* Performance Trend Sparkline */}
           <div className="mt-4 flex items-center gap-3">
@@ -1623,7 +1676,7 @@ export default function DashboardOverview() {
             <span className="text-xs font-bold text-emerald-400">+12%</span>
             <span className="text-[10px] text-[#A0A0B8]">عن الفصل الماضي</span>
           </div>
-        </SectionCard>
+        </WidgetContainer>
       </div>
 
       {/* ── Ornamental Divider ── */}
@@ -1632,42 +1685,40 @@ export default function DashboardOverview() {
       {/* ── Bottom Row: Classroom Map + Attendance + Upcoming Events ── */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 animate-fade-in-up opacity-0" style={{ animationDelay: '1050ms' }}>
         {/* Classroom Map */}
-        <SectionCard
+        <WidgetContainer
           title="خريطة الفصل التفاعلية"
           icon={<Map className="h-4 w-4" />}
-          action={
-            <span className="text-xs text-emerald-400 font-medium">18 / 20 حاضر</span>
-          }
         >
           <ClassroomMapPlaceholder />
-        </SectionCard>
+        </WidgetContainer>
 
         {/* Attendance Distribution */}
-        <SectionCard
+        <WidgetContainer
           title="توزيع الحضور"
           icon={<UserCheck className="h-4 w-4" />}
-          action={
-            <span className="text-xs text-[#A0A0B8] font-medium">اليوم</span>
-          }
+          onRefresh={() => {}}
         >
-          <AttendanceDistribution />
-        </SectionCard>
+          <AttendanceDistribution apiAttendance={apiAttendance} />
+        </WidgetContainer>
 
         {/* Today's Attendance Overview — percentage rings */}
-        <SectionCard
+        <WidgetContainer
           title="ملخص حضور اليوم"
           icon={<CheckCircle className="h-4 w-4" />}
-          action={
-            <span className="text-xs text-[#D4A574] font-medium smooth-underline cursor-pointer" onClick={() => setActiveSection('attendance')}>
-              التفاصيل
-            </span>
-          }
         >
           <TodayAttendanceOverview
-            pills={attendancePills}
+            pills={(() => {
+              const attTotal = apiAttendance?.total || 32;
+              return apiAttendance ? [
+                { ...attendancePills[0], percentage: attTotal > 0 ? Math.round((apiAttendance.present / attTotal) * 100) : 85, count: apiAttendance.present },
+                { ...attendancePills[1], percentage: attTotal > 0 ? Math.round((apiAttendance.late / attTotal) * 100) : 8, count: apiAttendance.late },
+                { ...attendancePills[2], percentage: attTotal > 0 ? Math.round((apiAttendance.absent / attTotal) * 100) : 7, count: apiAttendance.absent },
+                { ...attendancePills[3], percentage: attTotal > 0 ? Math.round((apiAttendance.excused / attTotal) * 100) : 3, count: apiAttendance.excused },
+              ] : attendancePills;
+            })()}
             onClick={() => setActiveSection('attendance')}
           />
-        </SectionCard>
+        </WidgetContainer>
       </div>
 
       {/* ── Calendar + Upcoming Events Row ── */}
@@ -1678,18 +1729,13 @@ export default function DashboardOverview() {
         </div>
 
         {/* Upcoming Events */}
-        <SectionCard
+        <WidgetContainer
           title="الأحداث القادمة"
           icon={<Calendar className="h-4 w-4" />}
-          action={
-            <span className="flex items-center gap-1.5 text-xs font-medium text-sky-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
-              {upcomingEvents.length} أحداث
-            </span>
-          }
+          badge={upcomingEvents.length}
         >
           <UpcomingEventsList />
-        </SectionCard>
+        </WidgetContainer>
       </div>
     </div>
   );

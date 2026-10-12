@@ -16,6 +16,7 @@ import {
 import { useAppStore } from '@/lib/store';
 import type { TrashItem } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 // shadcn/ui
 import { Button } from '@/components/ui/button';
@@ -497,6 +498,7 @@ export default function TrashSection() {
   // Handlers
   const handleRestore = (item: TrashItem) => {
     restoreFromTrash(item.id);
+    toast.success(`تم استعادة "${item.itemName}" بنجاح`);
   };
 
   const handlePermanentDelete = (item: TrashItem) => {
@@ -507,6 +509,7 @@ export default function TrashSection() {
   const confirmPermanentDelete = () => {
     if (selectedItem) {
       removeFromTrash(selectedItem.id);
+      toast.success(`تم حذف "${selectedItem.itemName}" نهائياً`);
       setSelectedItem(null);
       setPermanentDeleteOpen(false);
     }
@@ -521,6 +524,7 @@ export default function TrashSection() {
     for (const item of trashItems) {
       removeFromTrash(item.id);
     }
+    toast.success('تم إفراغ سلة المحذوفات');
     setEmptyTrashOpen(false);
   };
 
@@ -528,6 +532,7 @@ export default function TrashSection() {
     for (const item of trashItems) {
       restoreFromTrash(item.id);
     }
+    toast.success(`تم استعادة ${trashItems.length} عناصر بنجاح`);
   };
 
   return (

@@ -1,0 +1,2002 @@
+  1900→  width: 100%;
+  1901→}
+  1902→.nav-step-item {
+  1903→  display: flex;
+  1904→  flex-direction: column;
+  1905→  align-items: center;
+  1906→  gap: 0.5rem;
+  1907→  flex: 1;
+  1908→  position: relative;
+  1909→}
+  1910→.nav-step-circle {
+  1911→  width: 2rem;
+  1912→  height: 2rem;
+  1913→  border-radius: 50%;
+  1914→  display: flex;
+  1915→  align-items: center;
+  1916→  justify-content: center;
+  1917→  font-size: 0.75rem;
+  1918→  font-weight: 700;
+  1919→  z-index: 2;
+  1920→  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  1921→  flex-shrink: 0;
+  1922→}
+  1923→.nav-step-circle.pending {
+  1924→  background: rgba(107, 107, 118, 0.15);
+  1925→  color: #6B6B76;
+  1926→  border: 2px solid rgba(107, 107, 118, 0.2);
+  1927→}
+  1928→.nav-step-circle.active {
+  1929→  background: linear-gradient(135deg, #D4A574, #B8895A);
+  1930→  color: #121218;
+  1931→  border: 2px solid transparent;
+  1932→  box-shadow: 0 0 12px rgba(212, 165, 116, 0.3);
+  1933→}
+  1934→.nav-step-circle.completed {
+  1935→  background: rgba(74, 222, 128, 0.15);
+  1936→  color: #4ADE80;
+  1937→  border: 2px solid rgba(74, 222, 128, 0.3);
+  1938→}
+  1939→.nav-step-label {
+  1940→  font-size: 0.72rem;
+  1941→  color: #6B6B76;
+  1942→  text-align: center;
+  1943→  transition: color 0.25s ease;
+  1944→  white-space: nowrap;
+  1945→}
+  1946→.nav-step-item.active .nav-step-label,
+  1947→.nav-step-item.completed .nav-step-label {
+  1948→  color: #C4C4D4;
+  1949→}
+  1950→.nav-step-line {
+  1951→  flex: 1;
+  1952→  height: 2px;
+  1953→  background: rgba(107, 107, 118, 0.15);
+  1954→  margin-top: 1rem;
+  1955→  transition: background 0.3s ease;
+  1956→}
+  1957→.nav-step-line.completed {
+  1958→  background: linear-gradient(90deg, rgba(74, 222, 128, 0.4), rgba(212, 165, 116, 0.3));
+  1959→}
+  1960→
+  1961→/* ===================================================================
+  1962→   53. FORM ENHANCEMENTS
+  1963→   Input with float label, form groups, custom select, error states
+  1964→   =================================================================== */
+  1965→
+  1966→/* --- .form-input-enhanced --- Input with amber focus ring and subtle float label --- */
+  1967→.form-input-enhanced {
+  1968→  position: relative;
+  1969→}
+  1970→.form-input-enhanced input,
+  1971→.form-input-enhanced textarea {
+  1972→  width: 100%;
+  1973→  padding: 0.7rem 0.9rem;
+  1974→  padding-top: 1.35rem;
+  1975→  background: rgba(26, 26, 36, 0.8);
+  1976→  border: 1px solid rgba(255, 255, 255, 0.08);
+  1977→  border-radius: 0.5rem;
+  1978→  color: #E8E8ED;
+  1979→  font-size: 0.875rem;
+  1980→  outline: none;
+  1981→  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  1982→}
+  1983→.form-input-enhanced input::placeholder,
+  1984→.form-input-enhanced textarea::placeholder {
+  1985→  color: transparent;
+  1986→}
+  1987→.form-input-enhanced label {
+  1988→  position: absolute;
+  1989→  top: 50%;
+  1990→  right: 0.9rem;
+  1991→  transform: translateY(-50%);
+  1992→  font-size: 0.85rem;
+  1993→  color: #6B6B76;
+  1994→  pointer-events: none;
+  1995→  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  1996→  transform-origin: right center;
+  1997→}
+  1998→.form-input-enhanced input:focus,
+  1999→.form-input-enhanced textarea:focus {
+  2000→  border-color: rgba(212, 165, 116, 0.5);
+  2001→  box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.1), 0 0 16px rgba(212, 165, 116, 0.06);
+  2002→}
+  2003→.form-input-enhanced input:focus ~ label,
+  2004→.form-input-enhanced input:not(:placeholder-shown) ~ label,
+  2005→.form-input-enhanced textarea:focus ~ label,
+  2006→.form-input-enhanced textarea:not(:placeholder-shown) ~ label {
+  2007→  top: 0.65rem;
+  2008→  transform: translateY(0) scale(0.75);
+  2009→  color: #D4A574;
+  2010→  font-weight: 500;
+  2011→}
+  2012→.form-input-enhanced textarea ~ label {
+  2013→  top: 1.35rem;
+  2014→  transform: translateY(-50%) scale(0.75);
+  2015→  transform-origin: right center;
+  2016→}
+  2017→
+  2018→/* --- .form-group --- Labeled form group with consistent spacing --- */
+  2019→.form-group {
+  2020→  display: flex;
+  2021→  flex-direction: column;
+  2022→  gap: 0.4rem;
+  2023→}
+  2024→.form-group-label {
+  2025→  font-size: 0.8rem;
+  2026→  font-weight: 600;
+  2027→  color: #C4C4D4;
+  2028→  padding-right: 0.15rem;
+  2029→}
+  2030→.form-group-hint {
+  2031→  font-size: 0.72rem;
+  2032→  color: #6B6B76;
+  2033→  padding-right: 0.15rem;
+  2034→}
+  2035→
+  2036→/* --- .form-select-custom --- Custom styled select with amber accent --- */
+  2037→.form-select-custom {
+  2038→  appearance: none;
+  2039→  -webkit-appearance: none;
+  2040→  width: 100%;
+  2041→  padding: 0.6rem 2.5rem 0.6rem 0.9rem;
+  2042→  background: rgba(26, 26, 36, 0.8) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23D4A574' d='M2 4l4 4 4-4'/%3E%3C/svg%3E") no-repeat left 0.9rem center;
+  2043→  background-size: 12px;
+  2044→  border: 1px solid rgba(255, 255, 255, 0.08);
+  2045→  border-radius: 0.5rem;
+  2046→  color: #E8E8ED;
+  2047→  font-size: 0.875rem;
+  2048→  cursor: pointer;
+  2049→  outline: none;
+  2050→  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  2051→}
+  2052→.form-select-custom:focus {
+  2053→  border-color: rgba(212, 165, 116, 0.5);
+  2054→  box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.1), 0 0 16px rgba(212, 165, 116, 0.06);
+  2055→}
+  2056→.form-select-custom option {
+  2057→  background: #1A1A24;
+  2058→  color: #E8E8ED;
+  2059→}
+  2060→
+  2061→/* --- .form-error --- Error state with red border and shake animation --- */
+  2062→.form-error {
+  2063→  border-color: rgba(239, 68, 68, 0.5) !important;
+  2064→  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+  2065→}
+  2066→.form-error-message {
+  2067→  font-size: 0.75rem;
+  2068→  color: #EF4444;
+  2069→  display: flex;
+  2070→  align-items: center;
+  2071→  gap: 0.35rem;
+  2072→  padding-right: 0.15rem;
+  2073→  margin-top: 0.25rem;
+  2074→}
+  2075→.form-error.shake {
+  2076→  animation: form-shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  2077→}
+  2078→@keyframes form-shake {
+  2079→  0%, 100% { transform: translateX(0); }
+  2080→  10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
+  2081→  20%, 40%, 60%, 80% { transform: translateX(3px); }
+  2082→}
+  2083→
+  2084→/* ===================================================================
+  2085→   54. LOADING & TRANSITION STATES
+  2086→   Glass skeleton, text/card skeletons, page transitions, RTL slide
+  2087→   =================================================================== */
+  2088→
+  2089→/* --- .skeleton-glass --- Glass-morphism skeleton with shimmer blur --- */
+  2090→.skeleton-glass {
+  2091→  background: rgba(255, 255, 255, 0.04);
+  2092→  backdrop-filter: blur(4px);
+  2093→  border-radius: var(--radius);
+  2094→  position: relative;
+  2095→  overflow: hidden;
+  2096→}
+  2097→.skeleton-glass::after {
+  2098→  content: "";
+  2099→  position: absolute;
+  2100→  inset: 0;
+  2101→  background: linear-gradient(
+  2102→    90deg,
+  2103→    transparent 0%,
+  2104→    rgba(255, 255, 255, 0.06) 30%,
+  2105→    rgba(255, 255, 255, 0.1) 50%,
+  2106→    rgba(255, 255, 255, 0.06) 70%,
+  2107→    transparent 100%
+  2108→  );
+  2109→  background-size: 400px 100%;
+  2110→  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+  2111→  border-radius: inherit;
+  2112→}
+  2113→@keyframes skeleton-shimmer {
+  2114→  0% { background-position: -400px 0; }
+  2115→  100% { background-position: 400px 0; }
+  2116→}
+  2117→
+  2118→/* --- .skeleton-text --- Multi-line text skeleton with varying widths --- */
+  2119→.skeleton-text {
+  2120→  display: flex;
+  2121→  flex-direction: column;
+  2122→  gap: 0.5rem;
+  2123→}
+  2124→.skeleton-text-line {
+  2125→  height: 0.875rem;
+  2126→  border-radius: 0.25rem;
+  2127→  background: rgba(255, 255, 255, 0.05);
+  2128→  position: relative;
+  2129→  overflow: hidden;
+  2130→}
+  2131→.skeleton-text-line::after {
+  2132→  content: "";
+  2133→  position: absolute;
+  2134→  inset: 0;
+  2135→  background: linear-gradient(
+  2136→    90deg,
+  2137→    transparent,
+  2138→    rgba(255, 255, 255, 0.06),
+  2139→    transparent
+  2140→  );
+  2141→  background-size: 400px 100%;
+  2142→  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+  2143→}
+  2144→.skeleton-text-line:nth-child(1) { width: 100%; }
+  2145→.skeleton-text-line:nth-child(2) { width: 85%; }
+  2146→.skeleton-text-line:nth-child(3) { width: 70%; }
+  2147→.skeleton-text-line:nth-child(4) { width: 90%; }
+  2148→.skeleton-text-line:nth-child(5) { width: 60%; }
+  2149→
+  2150→/* --- .skeleton-card --- Card-shaped skeleton with rounded corners --- */
+  2151→.skeleton-card {
+  2152→  background: rgba(26, 26, 36, 0.6);
+  2153→  border: 1px solid rgba(255, 255, 255, 0.04);
+  2154→  border-radius: 1rem;
+  2155→  padding: 1.25rem;
+  2156→  display: flex;
+  2157→  flex-direction: column;
+  2158→  gap: 1rem;
+  2159→}
+  2160→.skeleton-card-header {
+  2161→  height: 1rem;
+  2162→  width: 40%;
+  2163→  border-radius: 0.25rem;
+  2164→  background: rgba(255, 255, 255, 0.05);
+  2165→}
+  2166→.skeleton-card-body {
+  2167→  display: flex;
+  2168→  flex-direction: column;
+  2169→  gap: 0.6rem;
+  2170→}
+  2171→.skeleton-card-line {
+  2172→  height: 0.75rem;
+  2173→  border-radius: 0.2rem;
+  2174→  background: rgba(255, 255, 255, 0.04);
+  2175→}
+  2176→.skeleton-card-line:nth-child(1) { width: 100%; }
+  2177→.skeleton-card-line:nth-child(2) { width: 75%; }
+  2178→.skeleton-card-line:nth-child(3) { width: 88%; }
+  2179→.skeleton-card-line:nth-child(4) { width: 50%; }
+  2180→.skeleton-card-circle {
+  2181→  width: 2.5rem;
+  2182→  height: 2.5rem;
+  2183→  border-radius: 50%;
+  2184→  background: rgba(255, 255, 255, 0.05);
+  2185→  flex-shrink: 0;
+  2186→}
+  2187→
+  2188→/* --- .transition-page --- Page transition with fade + scale --- */
+  2189→.transition-page {
+  2190→  animation: page-transition-enter 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  2191→}
+  2192→@keyframes page-transition-enter {
+  2193→  from {
+  2194→    opacity: 0;
+  2195→    transform: scale(0.98);
+  2196→  }
+  2197→  to {
+  2198→    opacity: 1;
+  2199→    transform: scale(1);
+  2200→  }
+  2201→}
+  2202→
+  2203→/* --- .transition-slide-rtl --- Slide from right to left (RTL-aware) --- */
+  2204→.transition-slide-rtl {
+  2205→  animation: slide-rtl-enter 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  2206→}
+  2207→@keyframes slide-rtl-enter {
+  2208→  from {
+  2209→    opacity: 0;
+  2210→    transform: translateX(24px);
+  2211→  }
+  2212→  to {
+  2213→    opacity: 1;
+  2214→    transform: translateX(0);
+  2215→  }
+  2216→}
+  2217→.transition-slide-rtl-exit {
+  2218→  animation: slide-rtl-exit 0.2s ease-in both;
+  2219→}
+  2220→@keyframes slide-rtl-exit {
+  2221→  from {
+  2222→    opacity: 1;
+  2223→    transform: translateX(0);
+  2224→  }
+  2225→  to {
+  2226→    opacity: 0;
+  2227→    transform: translateX(-24px);
+  2228→  }
+  2229→}
+  2230→
+  2231→/* ===================================================================
+  2232→   55. DECORATIVE ELEMENTS
+  2233→   Divider ornament, corner accent marks, dot pattern background
+  2234→   =================================================================== */
+  2235→
+  2236→/* --- .divider-ornament --- Ornamental divider with center diamond/dot --- */
+  2237→.divider-ornament {
+  2238→  display: flex;
+  2239→  align-items: center;
+  2240→  gap: 1rem;
+  2241→  margin: 1.5rem 0;
+  2242→  color: #6B6B76;
+  2243→}
+  2244→.divider-ornament::before,
+  2245→.divider-ornament::after {
+  2246→  content: "";
+  2247→  flex: 1;
+  2248→  height: 1px;
+  2249→}
+  2250→.divider-ornament::before {
+  2251→  background: linear-gradient(to left, rgba(212, 165, 116, 0.2), transparent);
+  2252→}
+  2253→.divider-ornament::after {
+  2254→  background: linear-gradient(to right, rgba(212, 165, 116, 0.2), transparent);
+  2255→}
+  2256→.divider-ornament-diamond {
+  2257→  width: 8px;
+  2258→  height: 8px;
+  2259→  background: rgba(212, 165, 116, 0.35);
+  2260→  transform: rotate(45deg);
+  2261→  flex-shrink: 0;
+  2262→}
+  2263→
+  2264→/* --- .corner-accent --- Amber corner accent marks on cards --- */
+  2265→.corner-accent {
+  2266→  position: relative;
+  2267→  overflow: hidden;
+  2268→}
+  2269→.corner-accent::before,
+  2270→.corner-accent::after {
+  2271→  content: "";
+  2272→  position: absolute;
+  2273→  width: 24px;
+  2274→  height: 24px;
+  2275→  pointer-events: none;
+  2276→  z-index: 2;
+  2277→}
+  2278→/* Top-right corner (RTL start) */
+  2279→.corner-accent::before {
+  2280→  top: 8px;
+  2281→  right: 8px;
+  2282→  border-top: 2px solid rgba(212, 165, 116, 0.3);
+  2283→  border-right: 2px solid rgba(212, 165, 116, 0.3);
+  2284→  border-top-right-radius: 6px;
+  2285→}
+  2286→/* Bottom-left corner (RTL end) */
+  2287→.corner-accent::after {
+  2288→  bottom: 8px;
+  2289→  left: 8px;
+  2290→  border-bottom: 2px solid rgba(212, 165, 116, 0.3);
+  2291→  border-left: 2px solid rgba(212, 165, 116, 0.3);
+  2292→  border-bottom-left-radius: 6px;
+  2293→}
+  2294→
+  2295→/* --- .dot-pattern --- Subtle dot grid pattern background --- */
+  2296→.dot-pattern {
+  2297→  background-image: radial-gradient(
+  2298→    circle,
+  2299→    rgba(255, 255, 255, 0.04) 1px,
+  2300→    transparent 1px
+  2301→  );
+  2302→  background-size: 16px 16px;
+  2303→}
+  2304→
+  2305→/* ===================================================================
+  2306→   56. SCROLL ENHANCEMENTS
+  2307→   Scroll shadow indicators at top/bottom, animated scroll arrows
+  2308→   =================================================================== */
+  2309→
+  2310→/* --- .scroll-shadow-top --- Shadow at top of scrollable container --- */
+  2311→.scroll-shadow-top {
+  2312→  position: relative;
+  2313→}
+  2314→.scroll-shadow-top::before {
+  2315→  content: "";
+  2316→  position: sticky;
+  2317→  top: 0;
+  2318→  display: block;
+  2319→  height: 24px;
+  2320→  background: linear-gradient(to bottom, rgba(18, 18, 24, 0.9), transparent);
+  2321→  z-index: 5;
+  2322→  pointer-events: none;
+  2323→  border-radius: inherit;
+  2324→}
+  2325→
+  2326→/* --- .scroll-shadow-bottom --- Shadow at bottom of scrollable container --- */
+  2327→.scroll-shadow-bottom {
+  2328→  position: relative;
+  2329→}
+  2330→.scroll-shadow-bottom::after {
+  2331→  content: "";
+  2332→  position: sticky;
+  2333→  bottom: 0;
+  2334→  display: block;
+  2335→  height: 24px;
+  2336→  background: linear-gradient(to top, rgba(18, 18, 24, 0.9), transparent);
+  2337→  z-index: 5;
+  2338→  pointer-events: none;
+  2339→  border-radius: inherit;
+  2340→}
+  2341→
+  2342→/* --- .scroll-indicator --- Animated scroll indicator arrows --- */
+  2343→.scroll-indicator {
+  2344→  display: flex;
+  2345→  flex-direction: column;
+  2346→  align-items: center;
+  2347→  gap: 4px;
+  2348→  animation: scroll-indicator-bounce 1.8s ease-in-out infinite;
+  2349→}
+  2350→.scroll-indicator-dot {
+  2351→  width: 6px;
+  2352→  height: 6px;
+  2353→  border-radius: 50%;
+  2354→  background: rgba(212, 165, 116, 0.4);
+  2355→}
+  2356→.scroll-indicator-dot:nth-child(1) {
+  2357→  animation: scroll-dot-pulse 1.8s ease-in-out infinite 0s;
+  2358→}
+  2359→.scroll-indicator-dot:nth-child(2) {
+  2360→  animation: scroll-dot-pulse 1.8s ease-in-out infinite 0.15s;
+  2361→}
+  2362→.scroll-indicator-dot:nth-child(3) {
+  2363→  animation: scroll-dot-pulse 1.8s ease-in-out infinite 0.3s;
+  2364→}
+  2365→@keyframes scroll-dot-pulse {
+  2366→  0%, 100% { opacity: 0.2; transform: scale(0.8); }
+  2367→  50% { opacity: 1; transform: scale(1.2); }
+  2368→}
+  2369→@keyframes scroll-indicator-bounce {
+  2370→  0%, 100% { transform: translateY(0); }
+  2371→  50% { transform: translateY(4px); }
+  2372→}
+  2373→
+  2374→/* ===================================================================
+  2375→   57. TOOLTIP ENHANCEMENTS
+  2376→   Amber-styled tooltip and dark glass tooltip with blur
+  2377→   =================================================================== */
+  2378→
+  2379→/* --- .tooltip-amber --- Amber-styled tooltip with arrow --- */
+  2380→.tooltip-amber {
+  2381→  position: relative;
+  2382→  background: linear-gradient(135deg, rgba(212, 165, 116, 0.95), rgba(184, 137, 90, 0.95));
+  2383→  color: #121218;
+  2384→  font-size: 0.78rem;
+  2385→  font-weight: 500;
+  2386→  padding: 6px 12px;
+  2387→  border-radius: 6px;
+  2388→  box-shadow: 0 4px 16px rgba(212, 165, 116, 0.25);
+  2389→  animation: tooltip-amber-enter 0.15s cubic-bezier(0.16, 1, 0.3, 1) both;
+  2390→  z-index: 100;
+  2391→  white-space: nowrap;
+  2392→}
+  2393→.tooltip-amber[data-side="bottom"]::before {
+  2394→  content: "";
+  2395→  position: absolute;
+  2396→  top: -4px;
+  2397→  right: 50%;
+  2398→  transform: translateX(50%) rotate(45deg);
+  2399→  width: 8px;
+  2400→  height: 8px;
+  2401→  background: rgba(212, 165, 116, 0.95);
+  2402→}
+  2403→.tooltip-amber[data-side="top"]::before {
+  2404→  content: "";
+  2405→  position: absolute;
+  2406→  bottom: -4px;
+  2407→  right: 50%;
+  2408→  transform: translateX(50%) rotate(45deg);
+  2409→  width: 8px;
+  2410→  height: 8px;
+  2411→  background: rgba(212, 165, 116, 0.95);
+  2412→}
+  2413→@keyframes tooltip-amber-enter {
+  2414→  from { opacity: 0; transform: scale(0.94) translateY(2px); }
+  2415→  to { opacity: 1; transform: scale(1) translateY(0); }
+  2416→}
+  2417→
+  2418→/* --- .tooltip-dark --- Dark glass tooltip with blur backdrop --- */
+  2419→.tooltip-dark {
+  2420→  position: relative;
+  2421→  background: rgba(18, 18, 24, 0.94);
+  2422→  backdrop-filter: blur(20px);
+  2423→  -webkit-backdrop-filter: blur(20px);
+  2424→  color: #E8E8ED;
+  2425→  font-size: 0.78rem;
+  2426→  font-weight: 400;
+  2427→  padding: 8px 14px;
+  2428→  border-radius: 8px;
+  2429→  border: 1px solid rgba(255, 255, 255, 0.06);
+  2430→  box-shadow:
+  2431→    0 4px 24px rgba(0, 0, 0, 0.5),
+  2432→    0 0 0 1px rgba(212, 165, 116, 0.04);
+  2433→  animation: tooltip-dark-enter 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+  2434→  z-index: 100;
+  2435→}
+  2436→@keyframes tooltip-dark-enter {
+  2437→  from { opacity: 0; transform: scale(0.95) translateY(3px); }
+  2438→  to { opacity: 1; transform: scale(1) translateY(0); }
+  2439→}
+  2440→
+  2441→/* ===================================================================
+  2442→   58. ANIMATION UTILITY CLASSES
+  2443→   Staggered delays (fade-in, scale-in, slide-up), special animations
+  2444→   =================================================================== */
+  2445→
+  2446→/* --- Staggered fade-in delays (100ms increments) --- */
+  2447→.animate-fade-in-delay-1 { animation: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 100ms; }
+  2448→.animate-fade-in-delay-2 { animation: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 200ms; }
+  2449→.animate-fade-in-delay-3 { animation: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 300ms; }
+  2450→.animate-fade-in-delay-4 { animation: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 400ms; }
+  2451→.animate-fade-in-delay-5 { animation: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 500ms; }
+  2452→
+  2453→/* --- Staggered scale-in delays (100ms increments) --- */
+  2454→.animate-scale-in-delay-1 { animation: scale-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 100ms; }
+  2455→.animate-scale-in-delay-2 { animation: scale-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 200ms; }
+  2456→.animate-scale-in-delay-3 { animation: scale-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 300ms; }
+  2457→.animate-scale-in-delay-4 { animation: scale-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 400ms; }
+  2458→.animate-scale-in-delay-5 { animation: scale-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 500ms; }
+  2459→
+  2460→/* --- Staggered slide-up delays (100ms increments) --- */
+  2461→.animate-slide-up-delay-1 { animation: slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 100ms; }
+  2462→.animate-slide-up-delay-2 { animation: slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 200ms; }
+  2463→.animate-slide-up-delay-3 { animation: slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 300ms; }
+  2464→.animate-slide-up-delay-4 { animation: slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 400ms; }
+  2465→.animate-slide-up-delay-5 { animation: slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 500ms; }
+  2466→
+  2467→/* --- .animate-bounce-subtle --- Subtle bounce (less aggressive) --- */
+  2468→@keyframes bounce-subtle {
+  2469→  0%, 100% { transform: translateY(0); animation-timing-function: cubic-bezier(0.33, 0, 0.66, 0); }
+  2470→  35% { transform: translateY(-6px); animation-timing-function: cubic-bezier(0.33, 1.66, 0.66, 1); }
+  2471→  55% { transform: translateY(-2px); animation-timing-function: cubic-bezier(0.33, 1.66, 0.66, 1); }
+  2472→}
+  2473→.animate-bounce-subtle {
+  2474→  animation: bounce-subtle 1.2s cubic-bezier(0.33, 1, 0.66, 1) both;
+  2475→}
+  2476→
+  2477→/* --- .animate-pulse-slow --- Very slow pulse (3s duration) --- */
+  2478→@keyframes pulse-slow {
+  2479→  0%, 100% { opacity: 1; }
+  2480→  50% { opacity: 0.6; }
+  2481→}
+  2482→.animate-pulse-slow {
+  2483→  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  2484→}
+  2485→
+  2486→/* --- .animate-spin-slow --- Slow spin (4s duration) --- */
+  2487→.animate-spin-slow {
+  2488→  animation: spin 4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  2489→}
+  2490→@keyframes spin {
+  2491→  from { transform: rotate(0deg); }
+  2492→  to { transform: rotate(360deg); }
+  2493→}
+  2494→
+  2495→/* --- .animate-wiggle --- Gentle wiggle/shake animation --- */
+  2496→@keyframes wiggle {
+  2497→  0%, 100% { transform: rotate(0deg); }
+  2498→  15% { transform: rotate(3deg); }
+  2499→  30% { transform: rotate(-3deg); }
+  2500→  45% { transform: rotate(2deg); }
+  2501→  60% { transform: rotate(-2deg); }
+  2502→  75% { transform: rotate(1deg); }
+  2503→  90% { transform: rotate(-0.5deg); }
+  2504→}
+  2505→.animate-wiggle {
+  2506→  animation: wiggle 0.8s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  2507→}
+  2508→
+  2509→/* ===================================================================
+  2510→   59. RESPONSIVE HELPERS
+  2511→   Hide scrollbar, text balance, scroll snap, line clamping
+  2512→   =================================================================== */
+  2513→
+  2514→/* --- .hide-scrollbar --- Hide scrollbar but keep scroll functionality --- */
+  2515→.hide-scrollbar {
+  2516→  -ms-overflow-style: none;
+  2517→  scrollbar-width: none;
+  2518→}
+  2519→.hide-scrollbar::-webkit-scrollbar {
+  2520→  display: none;
+  2521→}
+  2522→
+  2523→/* --- .text-balance --- CSS text-wrap balance for headings --- */
+  2524→.text-balance {
+  2525→  text-wrap: balance;
+  2526→}
+  2527→
+  2528→/* --- .scroll-snap-x --- Horizontal scroll snap container --- */
+  2529→.scroll-snap-x {
+  2530→  display: flex;
+  2531→  overflow-x: auto;
+  2532→  scroll-snap-type: x mandatory;
+  2533→  -webkit-overflow-scrolling: touch;
+  2534→  gap: 1rem;
+  2535→}
+  2536→.scroll-snap-x > * {
+  2537→  scroll-snap-align: start;
+  2538→  flex-shrink: 0;
+  2539→}
+  2540→
+  2541→/* --- .clamp-lines-2 --- Clamp text to 2 lines with ellipsis --- */
+  2542→.clamp-lines-2 {
+  2543→  display: -webkit-box;
+  2544→  -webkit-line-clamp: 2;
+  2545→  -webkit-box-orient: vertical;
+  2546→  overflow: hidden;
+  2547→  text-overflow: ellipsis;
+  2548→}
+  2549→
+  2550→/* --- .clamp-lines-3 --- Clamp text to 3 lines with ellipsis --- */
+  2551→.clamp-lines-3 {
+  2552→  display: -webkit-box;
+  2553→  -webkit-line-clamp: 3;
+  2554→  -webkit-box-orient: vertical;
+  2555→  overflow: hidden;
+  2556→  text-overflow: ellipsis;
+  2557→}
+  2558→
+  2559→/* ===================================================================
+  2560→   60. SIDEBAR MOBILE SLIDE-IN ANIMATION
+  2561→   =================================================================== */
+  2562→@keyframes sidebar-slide-in-right {
+  2563→  from {
+  2564→    opacity: 0;
+  2565→    transform: translateX(100%);
+  2566→  }
+  2567→  to {
+  2568→    opacity: 1;
+  2569→    transform: translateX(0);
+  2570→  }
+  2571→}
+  2572→.animate-sidebar-slide-in {
+  2573→  animation: sidebar-slide-in-right 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+  2574→}
+  2575→
+  2576→/* ===================================================================
+  2577→   61. ANIMATED LOGO GRADIENT
+  2578→   =================================================================== */
+  2579→@keyframes logo-gradient-shift {
+  2580→  0%, 100% { background-position: 0% 50%; }
+  2581→  50% { background-position: 100% 50%; }
+  2582→}
+  2583→.animate-logo-gradient {
+  2584→  animation: logo-gradient-shift 3s ease-in-out infinite;
+  2585→}
+  2586→
+  2587→/* ===================================================================
+  2588→   62. INDICATOR GLOW (sidebar active indicator)
+  2589→   =================================================================== */
+  2590→@keyframes indicator-glow {
+  2591→  0%, 100% { box-shadow: 0 0 4px rgba(212, 165, 116, 0.3); }
+  2592→  50% { box-shadow: 0 0 8px rgba(212, 165, 116, 0.6); }
+  2593→}
+  2594→.animate-indicator-glow {
+  2595→  animation: indicator-glow 2s ease-in-out infinite;
+  2596→}
+  2597→
+  2598→/* ===================================================================
+  2599→   63. ANIMATED GRADIENT TEXT
+  2600→   Text with animated gradient background-clip that sweeps left→right.
+  2601→   Usage: <span class="gradient-text-animated">Living Text</span>
+  2602→   =================================================================== */
+  2603→@keyframes gradient-text-sweep {
+  2604→  0% { background-position: 0% center; }
+  2605→  100% { background-position: 200% center; }
+  2606→}
+  2607→.gradient-text-animated {
+  2608→  background: linear-gradient(90deg, #D4A574, #E8C9A0, #D4A574);
+  2609→  background-size: 200% auto;
+  2610→  -webkit-background-clip: text;
+  2611→  -webkit-text-fill-color: transparent;
+  2612→  background-clip: text;
+  2613→  animation: gradient-text-sweep 3s linear infinite;
+  2614→}
+  2615→
+  2616→/* ===================================================================
+  2617→   64. GLASS CARD — FROST VARIANT
+  2618→   Stronger frosted glass with 20px blur, subtle white border glow
+  2619→   on hover, and a smooth 0.4s transition.
+  2620→   =================================================================== */
+  2621→.glass-card-frost {
+  2622→  background: rgba(26, 26, 36, 0.6);
+  2623→  backdrop-filter: blur(20px);
+  2624→  -webkit-backdrop-filter: blur(20px);
+  2625→  border: 1px solid rgba(255, 255, 255, 0.06);
+  2626→  border-radius: var(--radius);
+  2627→  transition: all 0.4s ease;
+  2628→  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+  2629→}
+  2630→.glass-card-frost:hover {
+  2631→  border-color: rgba(255, 255, 255, 0.12);
+  2632→  box-shadow:
+  2633→    0 0 0 1px rgba(255, 255, 255, 0.05),
+  2634→    0 8px 32px rgba(0, 0, 0, 0.3),
+  2635→    0 0 40px rgba(255, 255, 255, 0.02);
+  2636→  background: rgba(26, 26, 36, 0.75);
+  2637→}
+  2638→
+  2639→/* ===================================================================
+  2640→   65. ICON BUTTON STYLES
+  2641→   Micro-interaction wrappers for icon buttons.
+  2642→   =================================================================== */
+  2643→
+  2644→/* Scale + rotate on hover */
+  2645→.icon-btn-hover {
+  2646→  display: inline-flex;
+  2647→  align-items: center;
+  2648→  justify-content: center;
+  2649→  transition: transform 0.3s ease, filter 0.3s ease;
+  2650→}
+  2651→.icon-btn-hover:hover {
+  2652→  transform: scale(1.15) rotate(5deg);
+  2653→}
+  2654→
+  2655→/* Colored glow matching text color on hover */
+  2656→.icon-btn-glow {
+  2657→  display: inline-flex;
+  2658→  align-items: center;
+  2659→  justify-content: center;
+  2660→  transition: box-shadow 0.3s ease, transform 0.3s ease;
+  2661→}
+  2662→.icon-btn-glow:hover {
+  2663→  box-shadow: 0 0 14px currentColor;
+  2664→  transform: scale(1.05);
+  2665→}
+  2666→
+  2667→/* Bounce on click (scale 0.9 → 1.1 → 1) */
+  2668→@keyframes icon-bounce {
+  2669→  0% { transform: scale(1); }
+  2670→  40% { transform: scale(0.9); }
+  2671→  70% { transform: scale(1.1); }
+  2672→  100% { transform: scale(1); }
+  2673→}
+  2674→.icon-btn-bounce {
+  2675→  display: inline-flex;
+  2676→  align-items: center;
+  2677→  justify-content: center;
+  2678→  cursor: pointer;
+  2679→  transition: transform 0.3s ease;
+  2680→}
+  2681→.icon-btn-bounce:active {
+  2682→  animation: icon-bounce 0.3s ease;
+  2683→}
+  2684→
+  2685→/* ===================================================================
+  2686→   66. TEXT REVEAL ANIMATION
+  2687→   Text slides up from below with a clip-mask reveal effect.
+  2688→   Usage: <h2 class="text-reveal">Revealed Heading</h2>
+  2689→   =================================================================== */
+  2690→@keyframes text-reveal-up {
+  2691→  from {
+  2692→    opacity: 0;
+  2693→    transform: translateY(100%);
+  2694→  }
+  2695→  to {
+  2696→    opacity: 1;
+  2697→    transform: translateY(0);
+  2698→  }
+  2699→}
+  2700→.text-reveal {
+  2701→  overflow: hidden;
+  2702→  display: inline-block;
+  2703→}
+  2704→.text-reveal > * {
+  2705→  display: inline-block;
+  2706→  animation: text-reveal-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  2707→}
+  2708→
+  2709→/* ===================================================================
+  2710→   67. CARD SHIMMER OVERLAY
+  2711→   Moving diagonal shine sweep across card, triggered on hover.
+  2712→   Usage: add class "card-shimmer" to any card container.
+  2713→   =================================================================== */
+  2714→@keyframes card-shimmer-sweep {
+  2715→  0% {
+  2716→    transform: translateX(-100%) translateY(-100%) rotate(45deg);
+  2717→  }
+  2718→  100% {
+  2719→    transform: translateX(200%) translateY(200%) rotate(45deg);
+  2720→  }
+  2721→}
+  2722→.card-shimmer {
+  2723→  position: relative;
+  2724→  overflow: hidden;
+  2725→}
+  2726→.card-shimmer::before {
+  2727→  content: "";
+  2728→  position: absolute;
+  2729→  top: -50%;
+  2730→  left: -50%;
+  2731→  width: 60%;
+  2732→  height: 200%;
+  2733→  background: linear-gradient(
+  2734→    90deg,
+  2735→    transparent 0%,
+  2736→    rgba(255, 255, 255, 0.04) 40%,
+  2737→    rgba(255, 255, 255, 0.08) 50%,
+  2738→    rgba(255, 255, 255, 0.04) 60%,
+  2739→    transparent 100%
+  2740→  );
+  2741→  transform: translateX(-100%) translateY(-100%) rotate(45deg);
+  2742→  opacity: 0;
+  2743→  transition: opacity 0.3s ease;
+  2744→  pointer-events: none;
+  2745→  z-index: 2;
+  2746→}
+  2747→.card-shimmer:hover::before {
+  2748→  opacity: 1;
+  2749→  animation: card-shimmer-sweep 1.5s ease-in-out;
+  2750→}
+  2751→
+  2752→/* ===================================================================
+  2753→   68. RIPPLE CLICK EFFECT (CSS-only :active trigger)
+  2754→   Enhances existing .ripple-effect class with a pure CSS :active
+  2755→   animation trigger — no JS required.
+  2756→   =================================================================== */
+  2757→.ripple-effect:active::after {
+  2758→  top: 50%;
+  2759→  left: 50%;
+  2760→  margin-top: -50px;
+  2761→  margin-left: -50px;
+  2762→  animation: ripple 0.4s ease-out;
+  2763→}
+  2764→
+  2765→/* ===================================================================
+  2766→   69. NEON BORDER PULSE
+  2767→   Amber-colored neon glow border with pulsing animation.
+  2768→   =================================================================== */
+  2769→@keyframes neon-pulse {
+  2770→  0%, 100% {
+  2771→    border-color: rgba(212, 165, 116, 0.4);
+  2772→    box-shadow:
+  2773→      0 0 6px rgba(212, 165, 116, 0.15),
+  2774→      0 0 16px rgba(212, 165, 116, 0.08);
+  2775→  }
+  2776→  50% {
+  2777→    border-color: rgba(212, 165, 116, 0.7);
+  2778→    box-shadow:
+  2779→      0 0 10px rgba(212, 165, 116, 0.3),
+  2780→      0 0 28px rgba(212, 165, 116, 0.15),
+  2781→      0 0 48px rgba(212, 165, 116, 0.06);
+  2782→  }
+  2783→}
+  2784→.neon-border-pulse {
+  2785→  border: 1px solid rgba(212, 165, 116, 0.4);
+  2786→  animation: neon-pulse 2s ease-in-out infinite;
+  2787→}
+  2788→
+  2789→/* ===================================================================
+  2790→   70. STAGGER CHILDREN ANIMATION
+  2791→   Automatically staggers opacity + translateY for up to 10 children
+  2792→   using :nth-child selectors. Apply entrance animation class (e.g.
+  2793→   .animate-fade-in) to each child for the full effect.
+  2794→   =================================================================== */
+  2795→.stagger-children > *:nth-child(1)  { animation-delay: 0ms; }
+  2796→.stagger-children > *:nth-child(2)  { animation-delay: 80ms; }
+  2797→.stagger-children > *:nth-child(3)  { animation-delay: 160ms; }
+  2798→.stagger-children > *:nth-child(4)  { animation-delay: 240ms; }
+  2799→.stagger-children > *:nth-child(5)  { animation-delay: 320ms; }
+  2800→.stagger-children > *:nth-child(6)  { animation-delay: 400ms; }
+  2801→.stagger-children > *:nth-child(7)  { animation-delay: 480ms; }
+  2802→.stagger-children > *:nth-child(8)  { animation-delay: 560ms; }
+  2803→.stagger-children > *:nth-child(9)  { animation-delay: 640ms; }
+  2804→.stagger-children > *:nth-child(10) { animation-delay: 720ms; }
+  2805→
+  2806→/* ===================================================================
+  2807→   71. SCROLL-LINKED PROGRESS BAR
+  2808→   Thin amber progress bar at the very top of the page.
+  2809→   CSS-only: uses a looping @keyframes animation.
+  2810→   Pair with JS to set width dynamically, or use the animated
+  2811→   decorative version below.
+  2812→   =================================================================== */
+  2813→@keyframes scroll-progress-fill {
+  2814→  0% { width: 0%; }
+  2815→  25% { width: 25%; }
+  2816→  50% { width: 55%; }
+  2817→  75% { width: 80%; }
+  2818→  100% { width: 100%; }
+  2819→}
+  2820→.scroll-progress {
+  2821→  position: fixed;
+  2822→  top: 0;
+  2823→  left: 0;
+  2824→  height: 3px;
+  2825→  background: linear-gradient(90deg, #D4A574, #E8C9A0, #D4A574);
+  2826→  background-size: 200% auto;
+  2827→  animation: scroll-progress-fill 8s cubic-bezier(0.4, 0, 0.2, 1) infinite,
+  2828→             gradient-text-sweep 3s linear infinite;
+  2829→  z-index: 9999;
+  2830→  border-radius: 0 2px 2px 0;
+  2831→  pointer-events: none;
+  2832→  opacity: 0.7;
+  2833→}
+  2834→
+  2835→/* ===================================================================
+  2836→   72. ENHANCED BADGE STYLES
+  2837→   Colored badges with glow shadows and luminous text-shadow.
+  2838→   =================================================================== */
+  2839→.badge-glow-amber {
+  2840→  display: inline-flex;
+  2841→  align-items: center;
+  2842→  gap: 4px;
+  2843→  padding: 2px 10px;
+  2844→  border-radius: 9999px;
+  2845→  font-size: 0.75rem;
+  2846→  font-weight: 600;
+  2847→  color: #D4A574;
+  2848→  background: rgba(212, 165, 116, 0.1);
+  2849→  border: 1px solid rgba(212, 165, 116, 0.15);
+  2850→  box-shadow: 0 0 10px rgba(212, 165, 116, 0.12);
+  2851→  text-shadow: 0 0 8px rgba(212, 165, 116, 0.3);
+  2852→}
+  2853→.badge-glow-emerald {
+  2854→  display: inline-flex;
+  2855→  align-items: center;
+  2856→  gap: 4px;
+  2857→  padding: 2px 10px;
+  2858→  border-radius: 9999px;
+  2859→  font-size: 0.75rem;
+  2860→  font-weight: 600;
+  2861→  color: #4ADE80;
+  2862→  background: rgba(74, 222, 128, 0.1);
+  2863→  border: 1px solid rgba(74, 222, 128, 0.15);
+  2864→  box-shadow: 0 0 10px rgba(74, 222, 128, 0.12);
+  2865→  text-shadow: 0 0 8px rgba(74, 222, 128, 0.3);
+  2866→}
+  2867→.badge-glow-rose {
+  2868→  display: inline-flex;
+  2869→  align-items: center;
+  2870→  gap: 4px;
+  2871→  padding: 2px 10px;
+  2872→  border-radius: 9999px;
+  2873→  font-size: 0.75rem;
+  2874→  font-weight: 600;
+  2875→  color: #FB7185;
+  2876→  background: rgba(251, 113, 133, 0.1);
+  2877→  border: 1px solid rgba(251, 113, 133, 0.15);
+  2878→  box-shadow: 0 0 10px rgba(251, 113, 133, 0.12);
+  2879→  text-shadow: 0 0 8px rgba(251, 113, 133, 0.3);
+  2880→}
+  2881→
+  2882→/* ===================================================================
+  2883→   73. ENHANCED TOOLTIP (.tooltip-modern)
+  2884→   Dark glass tooltip with 16px blur, bottom triangle arrow, and
+  2885→   a fade + translateY entrance animation.
+  2886→   =================================================================== */
+  2887→@keyframes tooltip-modern-enter {
+  2888→  from {
+  2889→    opacity: 0;
+  2890→    transform: translateY(4px) scale(0.97);
+  2891→  }
+  2892→  to {
+  2893→    opacity: 1;
+  2894→    transform: translateY(0) scale(1);
+  2895→  }
+  2896→}
+  2897→.tooltip-modern {
+  2898→  position: relative;
+  2899→  display: inline-block;
+  2900→}
+  2901→.tooltip-modern::after {
+  2902→  content: attr(data-tooltip);
+  2903→  position: absolute;
+  2904→  bottom: calc(100% + 10px);
+  2905→  left: 50%;
+  2906→  transform: translateX(-50%);
+  2907→  background: rgba(18, 18, 24, 0.92);
+  2908→  backdrop-filter: blur(16px);
+  2909→  -webkit-backdrop-filter: blur(16px);
+  2910→  border: 1px solid rgba(255, 255, 255, 0.08);
+  2911→  border-radius: 8px;
+  2912→  padding: 6px 12px;
+  2913→  font-size: 0.75rem;
+  2914→  font-weight: 500;
+  2915→  color: #F1F1F6;
+  2916→  white-space: nowrap;
+  2917→  pointer-events: none;
+  2918→  opacity: 0;
+  2919→  animation: tooltip-modern-enter 0.2s ease-out both;
+  2920→  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  2921→  z-index: 100;
+  2922→}
+  2923→/* Triangle arrow at bottom */
+  2924→.tooltip-modern::before {
+  2925→  content: "";
+  2926→  position: absolute;
+  2927→  bottom: calc(100% + 4px);
+  2928→  left: 50%;
+  2929→  transform: translateX(-50%);
+  2930→  border: 5px solid transparent;
+  2931→  border-top-color: rgba(18, 18, 24, 0.92);
+  2932→  pointer-events: none;
+  2933→  opacity: 0;
+  2934→  z-index: 101;
+  2935→}
+  2936→.tooltip-modern:hover::after,
+  2937→.tooltip-modern:hover::before {
+  2938→  opacity: 1;
+  2939→}
+  2940→
+  2941→/* ===================================================================
+  2942→   74. LIST ITEM HOVER
+  2943→   Subtle left border appears on hover with background shift.
+  2944→   RTL-aware: uses right border in [dir="rtl"] contexts.
+  2945→   =================================================================== */
+  2946→.list-item-hover {
+  2947→  position: relative;
+  2948→  transition: background-color 0.25s ease, padding-right 0.25s ease;
+  2949→  border-left: 2px solid transparent;
+  2950→  padding-right: 12px;
+  2951→}
+  2952→.list-item-hover:hover {
+  2953→  background-color: rgba(255, 255, 255, 0.02);
+  2954→  border-left-color: rgba(212, 165, 116, 0.4);
+  2955→  padding-right: 16px;
+  2956→}
+  2957→/* RTL variant: right border instead of left */
+  2958→[dir="rtl"] .list-item-hover {
+  2959→  border-left: none;
+  2960→  border-right: 2px solid transparent;
+  2961→  padding-right: 12px;
+  2962→  padding-left: 12px;
+  2963→}
+  2964→[dir="rtl"] .list-item-hover:hover {
+  2965→  border-right-color: rgba(212, 165, 116, 0.4);
+  2966→  border-left: none;
+  2967→  padding-left: 16px;
+  2968→}
+  2969→
+  2970→/* ===================================================================
+  2971→   75. INPUT FOCUS RING — ENHANCED AMBER
+  2972→   Amber ring (2px) + amber glow shadow on focus.
+  2973→   Designed for dark inputs with bg-white/[0.03] backgrounds.
+  2974→   =================================================================== */
+  2975→.input-focus-amber {
+  2976→  background: rgba(255, 255, 255, 0.03);
+  2977→  border: 1px solid rgba(255, 255, 255, 0.08);
+  2978→  border-radius: var(--radius);
+  2979→  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  2980→  outline: none;
+  2981→}
+  2982→.input-focus-amber:focus {
+  2983→  border-color: rgba(212, 165, 116, 0.5);
+  2984→  box-shadow:
+  2985→    0 0 0 2px rgba(212, 165, 116, 0.2),
+  2986→    0 0 12px rgba(212, 165, 116, 0.1);
+  2987→}
+  2988→
+  2989→/* ===================================================================
+  2990→   76. SECTION ENTRANCE PACK
+  2991→   Directional fade+translate entrance animations.
+  2992→   =================================================================== */
+  2993→@keyframes section-enter-up {
+  2994→  from {
+  2995→    opacity: 0;
+  2996→    transform: translateY(16px);
+  2997→  }
+  2998→  to {
+  2999→    opacity: 1;
+  3000→    transform: translateY(0);
+  3001→  }
+  3002→}
+  3003→@keyframes section-enter-down {
+  3004→  from {
+  3005→    opacity: 0;
+  3006→    transform: translateY(-16px);
+  3007→  }
+  3008→  to {
+  3009→    opacity: 1;
+  3010→    transform: translateY(0);
+  3011→  }
+  3012→}
+  3013→@keyframes section-enter-right {
+  3014→  from {
+  3015→    opacity: 0;
+  3016→    transform: translateX(24px);
+  3017→  }
+  3018→  to {
+  3019→    opacity: 1;
+  3020→    transform: translateX(0);
+  3021→  }
+  3022→}
+  3023→@keyframes section-enter-left {
+  3024→  from {
+  3025→    opacity: 0;
+  3026→    transform: translateX(-24px);
+  3027→  }
+  3028→  to {
+  3029→    opacity: 1;
+  3030→    transform: translateX(0);
+  3031→  }
+  3032→}
+  3033→.section-enter-up {
+  3034→  animation: section-enter-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  3035→}
+  3036→.section-enter-down {
+  3037→  animation: section-enter-down 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  3038→}
+  3039→.section-enter-right {
+  3040→  animation: section-enter-right 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  3041→}
+  3042→.section-enter-left {
+  3043→  animation: section-enter-left 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  3044→}
+  3045→
+  3046→/* ===================================================================
+  3047→   77. HOVER CARD GLOW VARIANTS
+  3048→   Colored box-shadow glow on hover for interactive cards.
+  3049→   =================================================================== */
+  3050→.hover-glow-amber {
+  3051→  transition: box-shadow 0.35s ease, transform 0.35s ease;
+  3052→  will-change: box-shadow, transform;
+  3053→}
+  3054→.hover-glow-amber:hover {
+  3055→  box-shadow: 0 0 20px rgba(212, 165, 116, 0.3),
+  3056→              0 0 40px rgba(212, 165, 116, 0.1);
+  3057→}
+  3058→
+  3059→.hover-glow-emerald {
+  3060→  transition: box-shadow 0.35s ease, transform 0.35s ease;
+  3061→  will-change: box-shadow, transform;
+  3062→}
+  3063→.hover-glow-emerald:hover {
+  3064→  box-shadow: 0 0 20px rgba(74, 222, 128, 0.3),
+  3065→              0 0 40px rgba(74, 222, 128, 0.1);
+  3066→}
+  3067→
+  3068→.hover-glow-rose {
+  3069→  transition: box-shadow 0.35s ease, transform 0.35s ease;
+  3070→  will-change: box-shadow, transform;
+  3071→}
+  3072→.hover-glow-rose:hover {
+  3073→  box-shadow: 0 0 20px rgba(251, 113, 133, 0.3),
+  3074→              0 0 40px rgba(251, 113, 133, 0.1);
+  3075→}
+  3076→
+  3077→.hover-glow-sky {
+  3078→  transition: box-shadow 0.35s ease, transform 0.35s ease;
+  3079→  will-change: box-shadow, transform;
+  3080→}
+  3081→.hover-glow-sky:hover {
+  3082→  box-shadow: 0 0 20px rgba(56, 189, 248, 0.3),
+  3083→              0 0 40px rgba(56, 189, 248, 0.1);
+  3084→}
+  3085→
+  3086→/* ===================================================================
+  3087→   78. TEXT GRADIENT ANIMATIONS
+  3088→   Animated gradient text with shimmer, sweep, and pulse effects.
+  3089→   =================================================================== */
+  3090→@keyframes text-gradient-shift {
+  3091→  0% { background-position: 0% 50%; }
+  3092→  50% { background-position: 100% 50%; }
+  3093→  100% { background-position: 0% 50%; }
+  3094→}
+  3095→
+  3096→@keyframes text-gradient-pulse-key {
+  3097→  0%, 100% { opacity: 1; }
+  3098→  50% { opacity: 0.6; }
+  3099→}
+  3100→
+  3101→.text-gradient-animate {
+  3102→  background: linear-gradient(
+  3103→    90deg,
+  3104→    #D4A574 0%,
+  3105→    #FBBF24 25%,
+  3106→    #E8C9A8 50%,
+  3107→    #FBBF24 75%,
+  3108→    #D4A574 100%
+  3109→  );
+  3110→  background-size: 200% 100%;
+  3111→  -webkit-background-clip: text;
+  3112→  -webkit-text-fill-color: transparent;
+  3113→  background-clip: text;
+  3114→  animation: text-gradient-shift 3s linear infinite;
+  3115→  will-change: background-position;
+  3116→}
+  3117→
+  3118→.text-gradient-shimmer {
+  3119→  background: linear-gradient(
+  3120→    120deg,
+  3121→    #D4A574 0%,
+  3122→    #FBBF24 40%,
+  3123→    #E8C9A8 60%,
+  3124→    #D4A574 100%
+  3125→  );
+  3126→  background-size: 200% 100%;
+  3127→  -webkit-background-clip: text;
+  3128→  -webkit-text-fill-color: transparent;
+  3129→  background-clip: text;
+  3130→  animation: text-gradient-shift 2s ease-in-out infinite;
+  3131→  will-change: background-position;
+  3132→}
+  3133→
+  3134→.text-gradient-pulse {
+  3135→  background: linear-gradient(135deg, #D4A574, #FBBF24, #E8C9A8);
+  3136→  -webkit-background-clip: text;
+  3137→  -webkit-text-fill-color: transparent;
+  3138→  background-clip: text;
+  3139→  animation: text-gradient-pulse-key 2s ease-in-out infinite;
+  3140→  will-change: opacity;
+  3141→}
+  3142→
+  3143→/* ===================================================================
+  3144→   79. CARD INNER SHADOW VARIANTS
+  3145→   Inset glow shadows for card depth effects.
+  3146→   =================================================================== */
+  3147→.inner-shadow-amber {
+  3148→  box-shadow: inset 0 1px 20px rgba(212, 165, 116, 0.1);
+  3149→}
+  3150→
+  3151→.inner-shadow-top {
+  3152→  box-shadow: inset 0 8px 16px -8px rgba(0, 0, 0, 0.25),
+  3153→              inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+  3154→}
+  3155→
+  3156→.inner-shadow-bottom {
+  3157→  box-shadow: inset 0 -8px 16px -8px rgba(0, 0, 0, 0.25),
+  3158→              inset 0 -1px 0 0 rgba(255, 255, 255, 0.03);
+  3159→}
+  3160→
+  3161→/* ===================================================================
+  3162→   80. INTERACTIVE TOGGLE SWITCH
+  3163→   Custom toggle with amber track, smooth transitions.
+  3164→   =================================================================== */
+  3165→.toggle-amber {
+  3166→  appearance: none;
+  3167→  -webkit-appearance: none;
+  3168→  width: 44px;
+  3169→  height: 24px;
+  3170→  background: rgba(255, 255, 255, 0.1);
+  3171→  border: 1px solid rgba(255, 255, 255, 0.08);
+  3172→  border-radius: 12px;
+  3173→  position: relative;
+  3174→  cursor: pointer;
+  3175→  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  3176→  will-change: background-color, border-color;
+  3177→  outline: none;
+  3178→}
+  3179→.toggle-amber::after {
+  3180→  content: "";
+  3181→  position: absolute;
+  3182→  top: 2px;
+  3183→  right: 2px;
+  3184→  width: 18px;
+  3185→  height: 18px;
+  3186→  border-radius: 50%;
+  3187→  background: #8888A0;
+  3188→  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
+  3189→  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  3190→}
+  3191→.toggle-amber:checked {
+  3192→  background-color: rgba(212, 165, 116, 0.2);
+  3193→  border-color: rgba(212, 165, 116, 0.3);
+  3194→  box-shadow: 0 0 8px rgba(212, 165, 116, 0.15);
+  3195→}
+  3196→.toggle-amber:checked::after {
+  3197→  transform: translateX(-20px);
+  3198→  background-color: #D4A574;
+  3199→  box-shadow: 0 0 8px rgba(212, 165, 116, 0.4);
+  3200→}
+  3201→.toggle-amber:focus-visible {
+  3202→  box-shadow: 0 0 0 2px rgba(212, 165, 116, 0.3);
+  3203→}
+  3204→
+  3205→/* ===================================================================
+  3206→   81. NOTIFICATION BADGE STYLES
+  3207→   Count badge, ping animation, and dot indicator.
+  3208→   =================================================================== */
+  3209→@keyframes badge-count-ping {
+  3210→  0% {
+  3211→    transform: scale(1);
+  3212→    opacity: 0.8;
+  3213→  }
+  3214→  75%, 100% {
+  3215→    transform: scale(2.2);
+  3216→    opacity: 0;
+  3217→  }
+  3218→}
+  3219→
+  3220→.badge-count {
+  3221→  display: inline-flex;
+  3222→  align-items: center;
+  3223→  justify-content: center;
+  3224→  min-width: 18px;
+  3225→  height: 18px;
+  3226→  padding: 0 5px;
+  3227→  border-radius: 9px;
+  3228→  background-color: #D4A574;
+  3229→  color: #fff;
+  3230→  font-size: 10px;
+  3231→  font-weight: 700;
+  3232→  line-height: 1;
+  3233→  white-space: nowrap;
+  3234→  will-change: transform;
+  3235→}
+  3236→
+  3237→.badge-count-ping {
+  3238→  position: relative;
+  3239→}
+  3240→.badge-count-ping::before {
+  3241→  content: "";
+  3242→  position: absolute;
+  3243→  inset: 0;
+  3244→  border-radius: inherit;
+  3245→  background-color: #D4A574;
+  3246→  animation: badge-count-ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+  3247→  z-index: -1;
+  3248→}
+  3249→
+  3250→.badge-dot {
+  3251→  position: relative;
+  3252→  display: inline-flex;
+  3253→  align-items: center;
+  3254→  justify-content: center;
+  3255→  width: 8px;
+  3256→  height: 8px;
+  3257→  border-radius: 50%;
+  3258→  background-color: #D4A574;
+  3259→  box-shadow: 0 0 6px rgba(212, 165, 116, 0.4);
+  3260→}
+  3261→.badge-dot::after {
+  3262→  content: "";
+  3263→  position: absolute;
+  3264→  inset: -2px;
+  3265→  border-radius: 50%;
+  3266→  border: 1px solid rgba(212, 165, 116, 0.3);
+  3267→  animation: badge-count-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+  3268→}
+  3269→
+  3270→/* ===================================================================
+  3271→   82. PROGRESS BAR VARIANTS
+  3272→   Colored gradient progress bars with optional shine/stripe effects.
+  3273→   =================================================================== */
+  3274→@keyframes progress-shine {
+  3275→  0% { left: -100%; }
+  3276→  100% { left: 200%; }
+  3277→}
+  3278→
+  3279→@keyframes progress-stripe-move {
+  3280→  0% { background-position: 0 0; }
+  3281→  100% { background-position: 40px 0; }
+  3282→}
+  3283→
+  3284→.progress-amber {
+  3285→  background: linear-gradient(90deg, #B8895A, #D4A574, #FBBF24);
+  3286→  border-radius: 9999px;
+  3287→  position: relative;
+  3288→  overflow: hidden;
+  3289→}
+  3290→.progress-amber::after {
+  3291→  content: "";
+  3292→  position: absolute;
+  3293→  top: 0;
+  3294→  left: -100%;
+  3295→  width: 100%;
+  3296→  height: 100%;
+  3297→  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+  3298→  animation: progress-shine 2s ease-in-out infinite;
+  3299→}
+  3300→
+  3301→.progress-emerald {
+  3302→  background: linear-gradient(90deg, #059669, #10b981, #34d399);
+  3303→  border-radius: 9999px;
+  3304→  position: relative;
+  3305→  overflow: hidden;
+  3306→}
+  3307→.progress-emerald::after {
+  3308→  content: "";
+  3309→  position: absolute;
+  3310→  top: 0;
+  3311→  left: -100%;
+  3312→  width: 100%;
+  3313→  height: 100%;
+  3314→  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+  3315→  animation: progress-shine 2s ease-in-out infinite;
+  3316→}
+  3317→
+  3318→.progress-rose {
+  3319→  background: linear-gradient(90deg, #e11d48, #f43f5e, #fb7185);
+  3320→  border-radius: 9999px;
+  3321→  position: relative;
+  3322→  overflow: hidden;
+  3323→}
+  3324→.progress-rose::after {
+  3325→  content: "";
+  3326→  position: absolute;
+  3327→  top: 0;
+  3328→  left: -100%;
+  3329→  width: 100%;
+  3330→  height: 100%;
+  3331→  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+  3332→  animation: progress-shine 2s ease-in-out infinite;
+  3333→}
+  3334→
+  3335→.progress-striped {
+  3336→  position: relative;
+  3337→  overflow: hidden;
+  3338→}
+  3339→.progress-striped::before {
+  3340→  content: "";
+  3341→  position: absolute;
+  3342→  inset: 0;
+  3343→  background-image: linear-gradient(
+  3344→    45deg,
+  3345→    rgba(255, 255, 255, 0.08) 25%,
+  3346→    transparent 25%,
+  3347→    transparent 50%,
+  3348→    rgba(255, 255, 255, 0.08) 50%,
+  3349→    rgba(255, 255, 255, 0.08) 75%,
+  3350→    transparent 75%,
+  3351→    transparent
+  3352→  );
+  3353→  background-size: 40px 40px;
+  3354→  animation: progress-stripe-move 1s linear infinite;
+  3355→}
+  3356→
+  3357→/* ===================================================================
+  3358→   83. SKELETON LOADING VARIANTS
+  3359→   Fast shimmer, pulse, and wave loading animations.
+  3360→   =================================================================== */
+  3361→@keyframes skeleton-shimmer-fast-key {
+  3362→  0% { background-position: -400px 0; }
+  3363→  100% { background-position: 400px 0; }
+  3364→}
+  3365→
+  3366→@keyframes skeleton-pulse-key {
+  3367→  0%, 100% { opacity: 1; }
+  3368→  50% { opacity: 0.3; }
+  3369→}
+  3370→
+  3371→@keyframes skeleton-wave-key {
+  3372→  0% { transform: translateY(-100%); }
+  3373→  100% { transform: translateY(100%); }
+  3374→}
+  3375→
+  3376→.skeleton-shimmer-fast {
+  3377→  background: linear-gradient(
+  3378→    90deg,
+  3379→    rgba(255, 255, 255, 0.03) 0%,
+  3380→    rgba(255, 255, 255, 0.1) 20%,
+  3381→    rgba(255, 255, 255, 0.15) 50%,
+  3382→    rgba(255, 255, 255, 0.1) 80%,
+  3383→    rgba(255, 255, 255, 0.03) 100%
+  3384→  );
+  3385→  background-size: 800px 100%;
+  3386→  animation: skeleton-shimmer-fast-key 1s ease-in-out infinite;
+  3387→  border-radius: var(--radius);
+  3388→  will-change: background-position;
+  3389→}
+  3390→
+  3391→.skeleton-pulse {
+  3392→  background: rgba(255, 255, 255, 0.06);
+  3393→  animation: skeleton-pulse-key 1.5s ease-in-out infinite;
+  3394→  border-radius: var(--radius);
+  3395→  will-change: opacity;
+  3396→}
+  3397→
+  3398→.skeleton-wave {
+  3399→  position: relative;
+  3400→  overflow: hidden;
+  3401→  background: rgba(255, 255, 255, 0.06);
+  3402→  border-radius: var(--radius);
+  3403→  will-change: transform;
+  3404→}
+  3405→.skeleton-wave::after {
+  3406→  content: "";
+  3407→  position: absolute;
+  3408→  inset: 0;
+  3409→  background: linear-gradient(
+  3410→    180deg,
+  3411→    transparent 0%,
+  3412→    rgba(255, 255, 255, 0.06) 50%,
+  3413→    transparent 100%
+  3414→  );
+  3415→  animation: skeleton-wave-key 1.5s ease-in-out infinite;
+  3416→}
+  3417→
+  3418→/* ===================================================================
+  3419→   84. GLASSMORPHISM DEPTH LEVELS
+  3420→   Three tiers of glass effect: light, medium, heavy.
+  3421→   =================================================================== */
+  3422→.glass-light {
+  3423→  background: rgba(255, 255, 255, 0.03);
+  3424→  backdrop-filter: blur(4px);
+  3425→  -webkit-backdrop-filter: blur(4px);
+  3426→  border: 1px solid rgba(255, 255, 255, 0.05);
+  3427→  border-radius: var(--radius);
+  3428→}
+  3429→
+  3430→.glass-medium {
+  3431→  background: rgba(255, 255, 255, 0.05);
+  3432→  backdrop-filter: blur(12px);
+  3433→  -webkit-backdrop-filter: blur(12px);
+  3434→  border: 1px solid rgba(255, 255, 255, 0.08);
+  3435→  border-radius: var(--radius);
+  3436→  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  3437→}
+  3438→
+  3439→.glass-heavy {
+  3440→  background: rgba(255, 255, 255, 0.08);
+  3441→  backdrop-filter: blur(20px);
+  3442→  -webkit-backdrop-filter: blur(20px);
+  3443→  border: 1px solid rgba(255, 255, 255, 0.12);
+  3444→  border-radius: var(--radius);
+  3445→  box-shadow:
+  3446→    0 0 0 1px rgba(212, 165, 116, 0.05),
+  3447→    0 8px 32px rgba(0, 0, 0, 0.25),
+  3448→    0 0 24px rgba(212, 165, 116, 0.06);
+  3449→}
+  3450→
+  3451→/* ===================================================================
+  3452→   85. ANIMATION CHOREOGRAPHY
+  3453→   Stagger, cascade, pop-in, and slide-in-stack effects.
+  3454→   =================================================================== */
+  3455→@keyframes pop-in-overshoot {
+  3456→  0% {
+  3457→    opacity: 0;
+  3458→    transform: scale(0.8);
+  3459→  }
+  3460→  60% {
+  3461→    opacity: 1;
+  3462→    transform: scale(1.04);
+  3463→  }
+  3464→  100% {
+  3465→    opacity: 1;
+  3466→    transform: scale(1);
+  3467→  }
+  3468→}
+  3469→
+  3470→.animate-in-stagger > *:nth-child(1)  { animation-delay: 0ms; }
+  3471→.animate-in-stagger > *:nth-child(2)  { animation-delay: 80ms; }
+  3472→.animate-in-stagger > *:nth-child(3)  { animation-delay: 160ms; }
+  3473→.animate-in-stagger > *:nth-child(4)  { animation-delay: 240ms; }
+  3474→.animate-in-stagger > *:nth-child(5)  { animation-delay: 320ms; }
+  3475→.animate-in-stagger > *:nth-child(6)  { animation-delay: 400ms; }
+  3476→.animate-in-stagger > *:nth-child(7)  { animation-delay: 480ms; }
+  3477→.animate-in-stagger > *:nth-child(8)  { animation-delay: 560ms; }
+  3478→.animate-in-stagger > *:nth-child(9)  { animation-delay: 640ms; }
+  3479→.animate-in-stagger > *:nth-child(10) { animation-delay: 720ms; }
+  3480→.animate-in-stagger > *:nth-child(11) { animation-delay: 800ms; }
+  3481→.animate-in-stagger > *:nth-child(12) { animation-delay: 880ms; }
+  3482→
+  3483→.animate-in-cascade > *:nth-child(1)  { animation-delay: 0ms; }
+  3484→.animate-in-cascade > *:nth-child(2)  { animation-delay: 50ms; }
+  3485→.animate-in-cascade > *:nth-child(3)  { animation-delay: 100ms; }
+  3486→.animate-in-cascade > *:nth-child(4)  { animation-delay: 150ms; }
+  3487→.animate-in-cascade > *:nth-child(5)  { animation-delay: 200ms; }
+  3488→.animate-in-cascade > *:nth-child(6)  { animation-delay: 250ms; }
+  3489→.animate-in-cascade > *:nth-child(7)  { animation-delay: 300ms; }
+  3490→.animate-in-cascade > *:nth-child(8)  { animation-delay: 350ms; }
+  3491→.animate-in-cascade > *:nth-child(9)  { animation-delay: 400ms; }
+  3492→.animate-in-cascade > *:nth-child(10) { animation-delay: 450ms; }
+  3493→.animate-in-cascade > *:nth-child(11) { animation-delay: 500ms; }
+  3494→.animate-in-cascade > *:nth-child(12) { animation-delay: 550ms; }
+  3495→
+  3496→.animate-pop-in {
+  3497→  animation: pop-in-overshoot 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  3498→  will-change: transform, opacity;
+  3499→}
+  3500→
+  3501→.animate-slide-in-stack > *:nth-child(1)  { animation-delay: 0ms; }
+  3502→.animate-slide-in-stack > *:nth-child(2)  { animation-delay: 120ms; }
+  3503→.animate-slide-in-stack > *:nth-child(3)  { animation-delay: 240ms; }
+  3504→.animate-slide-in-stack > *:nth-child(4)  { animation-delay: 360ms; }
+  3505→.animate-slide-in-stack > *:nth-child(5)  { animation-delay: 480ms; }
+  3506→.animate-slide-in-stack > *:nth-child(6)  { animation-delay: 600ms; }
+  3507→.animate-slide-in-stack > *:nth-child(7)  { animation-delay: 720ms; }
+  3508→.animate-slide-in-stack > *:nth-child(8)  { animation-delay: 840ms; }
+  3509→.animate-slide-in-stack > *:nth-child(9)  { animation-delay: 960ms; }
+  3510→.animate-slide-in-stack > *:nth-child(10) { animation-delay: 1080ms; }
+  3511→.animate-slide-in-stack > *:nth-child(11) { animation-delay: 1200ms; }
+  3512→.animate-slide-in-stack > *:nth-child(12) { animation-delay: 1320ms; }
+  3513→
+  3514→/* ===================================================================
+  3515→   86. BORDER ANIMATION
+  3516→   Rotating conic-gradient border and pulsing border glow.
+  3517→   =================================================================== */
+  3518→@keyframes border-glow-pulse-key {
+  3519→  0%, 100% {
+  3520→    border-color: rgba(255, 255, 255, 0.06);
+  3521→  }
+  3522→  50% {
+  3523→    border-color: rgba(212, 165, 116, 0.3);
+  3524→  }
+  3525→}
+  3526→
+  3527→@keyframes conic-rotate {
+  3528→  0% { --conic-angle: 0deg; }
+  3529→  100% { --conic-angle: 360deg; }
+  3530→}
+  3531→
+  3532→.border-spin {
+  3533→  position: relative;
+  3534→  border-radius: var(--radius);
+  3535→  overflow: hidden;
+  3536→  border: none;
+  3537→  padding: 1px;
+  3538→}
+  3539→
+  3540→.border-spin::before {
+  3541→  content: "";
+  3542→  position: absolute;
+  3543→  inset: -2px;
+  3544→  border-radius: inherit;
+  3545→  background: conic-gradient(
+  3546→    from var(--conic-angle, 0deg),
+  3547→    #D4A574,
+  3548→    #FBBF24,
+  3549→    #E8C9A8,
+  3550→    transparent,
+  3551→    #D4A574
+  3552→  );
+  3553→  animation: conic-rotate 3s linear infinite;
+  3554→  z-index: -1;
+  3555→  /* Fallback for browsers without @property support */
+  3556→  background: conic-gradient(
+  3557→    #D4A574,
+  3558→    #FBBF24,
+  3559→    #E8C9A8,
+  3560→    transparent,
+  3561→    #D4A574
+  3562→  );
+  3563→  animation: conic-rotate 3s linear infinite;
+  3564→  filter: blur(4px);
+  3565→  opacity: 0.6;
+  3566→}
+  3567→
+  3568→@supports (background: conic-gradient(from 0deg, red, blue)) {
+  3569→  .border-spin::before {
+  3570→    background: conic-gradient(
+  3571→      from var(--conic-angle, 0deg),
+  3572→      #D4A574,
+  3573→      #FBBF24,
+  3574→      #E8C9A8,
+  3575→      transparent,
+  3576→      #D4A574
+  3577→    );
+  3578→  }
+  3579→}
+  3580→
+  3581→@property --conic-angle {
+  3582→  syntax: '<angle>';
+  3583→  inherits: false;
+  3584→  initial-value: 0deg;
+  3585→}
+  3586→
+  3587→.border-glow-pulse {
+  3588→  animation: border-glow-pulse-key 3s ease-in-out infinite;
+  3589→  will-change: border-color;
+  3590→}
+  3591→
+  3592→/* ===================================================================
+  3593→   87. SCROLL-LINKED EFFECTS
+  3594→   Fade-in and scale-in when scrolled into view.
+  3595→   Uses CSS scroll-driven animations where supported, falls back
+  3596→   to intersection observer pattern.
+  3597→   =================================================================== */
+  3598→@keyframes scroll-fade-in-key {
+  3599→  from {
+  3600→    opacity: 0;
+  3601→    transform: translateY(20px);
+  3602→  }
+  3603→  to {
+  3604→    opacity: 1;
+  3605→    transform: translateY(0);
+  3606→  }
+  3607→}
+  3608→
+  3609→@keyframes scroll-scale-in-key {
+  3610→  from {
+  3611→    opacity: 0;
+  3612→    transform: scale(0.92);
+  3613→  }
+  3614→  to {
+  3615→    opacity: 1;
+  3616→    transform: scale(1);
+  3617→  }
+  3618→}
+  3619→
+  3620→.scroll-fade-in {
+  3621→  opacity: 0;
+  3622→  transform: translateY(20px);
+  3623→  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+  3624→              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  3625→  will-change: opacity, transform;
+  3626→}
+  3627→.scroll-fade-in.is-visible {
+  3628→  opacity: 1;
+  3629→  transform: translateY(0);
+  3630→}
+  3631→
+  3632→.scroll-scale-in {
+  3633→  opacity: 0;
+  3634→  transform: scale(0.92);
+  3635→  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+  3636→              transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  3637→  will-change: opacity, transform;
+  3638→}
+  3639→.scroll-scale-in.is-visible {
+  3640→  opacity: 1;
+  3641→  transform: scale(1);
+  3642→}
+  3643→
+  3644→/* Scroll-driven animation support (Chrome 115+) */
+  3645→@supports (animation-timeline: view()) {
+  3646→  .scroll-fade-in {
+  3647→    opacity: 0;
+  3648→    transform: translateY(20px);
+  3649→    animation: scroll-fade-in-key linear both;
+  3650→    animation-timeline: view();
+  3651→    animation-range: entry 0% entry 40%;
+  3652→  }
+  3653→  .scroll-fade-in.is-visible {
+  3654→    opacity: unset;
+  3655→    transform: unset;
+  3656→  }
+  3657→
+  3658→  .scroll-scale-in {
+  3659→    opacity: 0;
+  3660→    transform: scale(0.92);
+  3661→    animation: scroll-scale-in-key linear both;
+  3662→    animation-timeline: view();
+  3663→    animation-range: entry 0% entry 40%;
+  3664→  }
+  3665→  .scroll-scale-in.is-visible {
+  3666→    opacity: unset;
+  3667→    transform: unset;
+  3668→  }
+  3669→}
+  3670→
+  3671→/* ===================================================================
+  3672→   88. CARD DEPTH EFFECTS
+  3673→   Multi-layer box-shadow classes for card elevation depth.
+  3674→   =================================================================== */
+  3675→.card-depth-1 {
+  3676→  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  3677→}
+  3678→.card-depth-2 {
+  3679→  box-shadow:
+  3680→    0 4px 16px rgba(0, 0, 0, 0.4),
+  3681→    0 2px 4px rgba(0, 0, 0, 0.2);
+  3682→}
+  3683→.card-depth-3 {
+  3684→  box-shadow:
+  3685→    0 8px 32px rgba(0, 0, 0, 0.5),
+  3686→    0 4px 8px rgba(0, 0, 0, 0.3),
+  3687→    0 0 0 1px rgba(212, 165, 116, 0.1);
+  3688→}
+  3689→
+  3690→/* ===================================================================
+  3691→   89. TEXT EFFECTS
+  3692→   Amber text-shadow, animated glow, and outline stroke utilities.
+  3693→   =================================================================== */
+  3694→.text-shadow-amber {
+  3695→  text-shadow: 0 0 20px rgba(212, 165, 116, 0.3);
+  3696→}
+  3697→@keyframes text-glow-pulse {
+  3698→  0%, 100% {
+  3699→    text-shadow: 0 0 10px rgba(212, 165, 116, 0.2);
+  3700→  }
+  3701→  50% {
+  3702→    text-shadow: 0 0 25px rgba(212, 165, 116, 0.4), 0 0 50px rgba(212, 165, 116, 0.1);
+  3703→  }
+  3704→}
+  3705→.text-shadow-glow {
+  3706→  animation: text-glow-pulse 2s ease-in-out infinite;
+  3707→}
+  3708→.text-outline {
+  3709→  -webkit-text-stroke: 1px currentColor;
+  3710→  color: transparent;
+  3711→}
+  3712→
+  3713→/* ===================================================================
+  3714→   90. CONTAINER EFFECTS
+  3715→   Glow, gradient border, and noise texture for container elements.
+  3716→   =================================================================== */
+  3717→.container-glow {
+  3718→  box-shadow: inset 0 0 30px rgba(212, 165, 116, 0.05);
+  3719→  border: 1px solid rgba(212, 165, 116, 0.1);
+  3720→  border-radius: var(--radius);
+  3721→}
+  3722→.container-gradient {
+  3723→  position: relative;
+  3724→  border-radius: var(--radius);
+  3725→  background: var(--card);
+  3726→}
+  3727→.container-gradient::before {
+  3728→  content: "";
+  3729→  position: absolute;
+  3730→  inset: 0;
+  3731→  border-radius: inherit;
+  3732→  padding: 1px;
+  3733→  background: conic-gradient(
+  3734→    from 0deg,
+  3735→    rgba(212, 165, 116, 0.3),
+  3736→    rgba(74, 222, 128, 0.1),
+  3737→    rgba(56, 189, 248, 0.1),
+  3738→    rgba(212, 165, 116, 0.3)
+  3739→  );
+  3740→  -webkit-mask:
+  3741→    linear-gradient(#fff 0 0) content-box,
+  3742→    linear-gradient(#fff 0 0);
+  3743→  -webkit-mask-composite: xor;
+  3744→  mask:
+  3745→    linear-gradient(#fff 0 0) content-box,
+  3746→    linear-gradient(#fff 0 0);
+  3747→  mask-composite: exclude;
+  3748→  pointer-events: none;
+  3749→}
+  3750→.container-noise {
+  3751→  position: relative;
+  3752→}
+  3753→.container-noise::before {
+  3754→  content: "";
+  3755→  position: absolute;
+  3756→  inset: 0;
+  3757→  border-radius: inherit;
+  3758→  z-index: 0;
+  3759→  pointer-events: none;
+  3760→  opacity: 0.03;
+  3761→  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  3762→}
+  3763→.container-noise > * {
+  3764→  position: relative;
+  3765→  z-index: 1;
+  3766→}
+  3767→
+  3768→/* ===================================================================
+  3769→   91. INTERACTIVE FEEDBACK
+  3770→   Press scale, hover brightness, and hover saturation effects.
+  3771→   =================================================================== */
+  3772→.press-scale {
+  3773→  transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  3774→}
+  3775→.press-scale:active {
+  3776→  transform: scale(0.97);
+  3777→}
+  3778→.hover-brighten {
+  3779→  transition: filter 300ms ease;
+  3780→}
+  3781→.hover-brighten:hover {
+  3782→  filter: brightness(1.1);
+  3783→}
+  3784→.hover-saturate {
+  3785→  transition: filter 300ms ease;
+  3786→}
+  3787→.hover-saturate:hover {
+  3788→  filter: saturate(1.2);
+  3789→}
+  3790→
+  3791→/* ===================================================================
+  3792→   92. BADGE & TAG STYLES
+  3793→   Pill-shaped tags with colored backgrounds and borders.
+  3794→   =================================================================== */
+  3795→.tag-amber {
+  3796→  background: rgba(212, 165, 116, 0.15);
+  3797→  color: #D4A574;
+  3798→  border: 1px solid rgba(212, 165, 116, 0.2);
+  3799→  border-radius: 9999px;
+  3800→  padding: 2px 10px;
+  3801→  font-size: 0.75rem;
+  3802→  font-weight: 500;
+  3803→  display: inline-flex;
+  3804→  align-items: center;
+  3805→}
+  3806→.tag-emerald {
+  3807→  background: rgba(52, 211, 153, 0.15);
+  3808→  color: #34D399;
+  3809→  border: 1px solid rgba(52, 211, 153, 0.2);
+  3810→  border-radius: 9999px;
+  3811→  padding: 2px 10px;
+  3812→  font-size: 0.75rem;
+  3813→  font-weight: 500;
+  3814→  display: inline-flex;
+  3815→  align-items: center;
+  3816→}
+  3817→.tag-rose {
+  3818→  background: rgba(244, 114, 182, 0.15);
+  3819→  color: #F472B6;
+  3820→  border: 1px solid rgba(244, 114, 182, 0.2);
+  3821→  border-radius: 9999px;
+  3822→  padding: 2px 10px;
+  3823→  font-size: 0.75rem;
+  3824→  font-weight: 500;
+  3825→  display: inline-flex;
+  3826→  align-items: center;
+  3827→}
+  3828→
+  3829→/* ===================================================================
+  3830→   93. RESPONSIVE TYPOGRAPHY
+  3831→   Fluid font-size using clamp() for responsive text scaling.
+  3832→   =================================================================== */
+  3833→.text-responsive-sm {
+  3834→  font-size: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+  3835→}
+  3836→.text-responsive-base {
+  3837→  font-size: clamp(0.875rem, 0.8rem + 0.3vw, 1rem);
+  3838→}
+  3839→.text-responsive-lg {
+  3840→  font-size: clamp(1rem, 0.9rem + 0.5vw, 1.25rem);
+  3841→}
+  3842→
+  3843→/* ===================================================================
+  3844→   94. FOCUS RING UTILITIES
+  3845→   Accessible focus outlines in amber, emerald, or none.
+  3846→   =================================================================== */
+  3847→.focus-ring-amber:focus {
+  3848→  outline: 2px solid #D4A574;
+  3849→  outline-offset: 2px;
+  3850→}
+  3851→.focus-ring-emerald:focus {
+  3852→  outline: 2px solid #34D399;
+  3853→  outline-offset: 2px;
+  3854→}
+  3855→.focus-ring-none:focus {
+  3856→  outline: none;
+  3857→}
+  3858→
+  3859→/* ===================================================================
+  3860→   95. PRINT UTILITIES
+  3861→   Toggle element visibility between screen and print media.
+  3862→   =================================================================== */
+  3863→.print-only {
+  3864→  @media screen {
+  3865→    display: none !important;
+  3866→  }
+  3867→  @media print {
+  3868→    display: block !important;
+  3869→  }
+  3870→}
+  3871→.screen-only {
+  3872→  @media print {
+  3873→    display: none !important;
+  3874→  }
+  3875→}
+  3876→
+  3877→/* ===================================================================
+  3878→   96. THEME TRANSITION
+  3879→   Smooth transition for theme-dependent properties (color, bg, border).
+  3880→   =================================================================== */
+  3881→.theme-transition {
+  3882→  transition: background-color 0.3s, color 0.3s, border-color 0.3s, box-shadow 0.3s;
+  3883→}
+  3884→
+  3885→/* ===================================================================
+  3886→   45. ANIMATED BORDER GLOW
+  3887→   A subtle traveling amber glow along card borders (moving light).
+  3888→   =================================================================== */
+  3889→@keyframes border-glow-travel {
+  3890→  0% { background-position: 0% 0%; }
+  3891→  25% { background-position: 100% 0%; }
+  3892→  50% { background-position: 100% 100%; }
+  3893→  75% { background-position: 0% 100%; }
+  3894→  100% { background-position: 0% 0%; }
+  3895→}
+  3896→.animate-border-glow {
+  3897→  position: relative;
+  3898→}
+  3899→.animate-border-glow::before {
+
+[showing lines 1900-3899 of 3971; use offset=3900 with limit to continue reading]

@@ -141,7 +141,7 @@ export default function AiAssistant() {
         addChatMessage({
           id: generateId(),
           role: 'assistant',
-          content: data.reply ?? data.message ?? data.content ?? 'عذراً، لم أتمكن من معالجة طلبك.',
+          content: data.response ?? data.reply ?? data.message ?? data.content ?? 'عذراً، لم أتمكن من معالجة طلبك.',
           timestamp: new Date().toISOString(),
         });
       } catch {

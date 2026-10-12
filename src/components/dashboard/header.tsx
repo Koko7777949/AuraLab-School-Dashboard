@@ -82,11 +82,14 @@ const SEARCH_SUGGESTIONS = [
 // Header Component
 // ---------------------------------------------------------------------------
 export default function Header() {
-  const { searchQuery, setSearchQuery, setActiveSection, sidebarOpen } = useAppStore();
+  const { searchQuery, setSearchQuery, setActiveSection, sidebarOpen, notifications } = useAppStore();
   const [lang, setLang] = useState<'AR' | 'EN'>('AR');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [filteredSuggestions, setFilteredSuggestions] = useState<typeof SEARCH_SUGGESTIONS>([]);
   const searchRef = useRef<HTMLDivElement>(null);
+
+  // Dynamic unread notification count
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   // Live clock
   const [currentTime, setCurrentTime] = useState('');
@@ -357,11 +360,19 @@ export default function Header() {
                   active:scale-[0.98]"
               >
                 <Bell size={18} strokeWidth={1.8} />
-                {/* Red dot indicator */}
-                <span
-                  className="absolute top-1.5 left-1.5 h-2 w-2 rounded-full border border-[#121218]"
-                  style={{ background: '#EF4444' }}
-                />
+                {/* Dynamic notification count badge */}
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -left-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white px-1 tabular-nums shadow-lg">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+                {/* Fallback red dot when count is 0 */}
+                {unreadCount === 0 && (
+                  <span
+                    className="absolute top-1.5 left-1.5 h-2 w-2 rounded-full border border-[#121218]"
+                    style={{ background: '#EF4444' }}
+                  />
+                )}
               </button>
             </TooltipTrigger>
             <TooltipContent

@@ -57,6 +57,7 @@ export default function CalendarWidget() {
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState<number | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number; day: number } | null>(null);
+  const [monthKey, setMonthKey] = useState(0); // for transition animation
   const calendarRef = useRef<HTMLDivElement>(null);
 
   const events = useMemo(
@@ -121,6 +122,7 @@ export default function CalendarWidget() {
     }
     setSelectedDate(null);
     setTooltipPos(null);
+    setMonthKey((k) => k + 1);
   };
 
   const navigateNext = () => {
@@ -132,6 +134,7 @@ export default function CalendarWidget() {
     }
     setSelectedDate(null);
     setTooltipPos(null);
+    setMonthKey((k) => k + 1);
   };
 
   const handleDateClick = (day: number, event: React.MouseEvent<HTMLButtonElement>) => {
@@ -176,7 +179,7 @@ export default function CalendarWidget() {
         <button
           onClick={navigateNext}
           className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400
-            transition-all duration-200 hover:bg-white/[0.06] hover:text-[#D4A574]
+            transition-all duration-300 hover:bg-white/[0.06] hover:text-[#D4A574] hover:scale-110
             active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A574]/50"
           aria-label="الشهر التالي"
         >
@@ -195,7 +198,7 @@ export default function CalendarWidget() {
         <button
           onClick={navigatePrev}
           className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400
-            transition-all duration-200 hover:bg-white/[0.06] hover:text-[#D4A574]
+            transition-all duration-300 hover:bg-white/[0.06] hover:text-[#D4A574] hover:scale-110
             active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A574]/50"
           aria-label="الشهر السابق"
         >
@@ -215,8 +218,8 @@ export default function CalendarWidget() {
         ))}
       </div>
 
-      {/* ── Calendar Grid ── */}
-      <div className="grid grid-cols-7 gap-1">
+      {/* ── Calendar Grid with smooth transition ── */}
+      <div key={monthKey} className="grid grid-cols-7 gap-1 animate-calendar-month-in">
         {calendarGrid.map((day, index) => {
           if (day === null) {
             return <div key={`empty-${index}`} className="h-9" />;
@@ -234,10 +237,13 @@ export default function CalendarWidget() {
                 relative flex flex-col items-center justify-center h-9 rounded-lg
                 transition-all duration-200 cursor-pointer
                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A574]/50
-                ${todayHighlight || isSelected
-                  ? 'bg-[#D4A574]/15 text-[#D4A574]'
-                  : 'text-slate-300 hover:bg-white/[0.06] hover:text-white'
+                ${todayHighlight
+                  ? 'bg-[#D4A574]/15 text-[#D4A574] animate-calendar-today-glow'
+                  : isSelected
+                    ? 'bg-[#D4A574]/15 text-[#D4A574]'
+                    : 'text-slate-300 hover:bg-white/[0.08] hover:text-white hover:scale-105'
                 }
+                active:scale-95
               `}
               aria-label={`${day} ${ARABIC_MONTHS[currentMonth]}`}
             >
@@ -252,16 +258,16 @@ export default function CalendarWidget() {
                   {dayEvents.slice(0, 3).map((ev, i) => (
                     <span
                       key={i}
-                      className="h-[4px] w-[4px] rounded-full"
+                      className="h-[4px] w-[4px] rounded-full transition-transform duration-200 hover:scale-150"
                       style={{ backgroundColor: ev.color }}
                     />
                   ))}
                 </div>
               )}
 
-              {/* Today indicator ring */}
+              {/* Today indicator ring — glowing */}
               {todayHighlight && (
-                <span className="absolute inset-0 rounded-lg border border-[#D4A574]/40 pointer-events-none" />
+                <span className="absolute inset-0 rounded-lg border-2 border-[#D4A574]/40 pointer-events-none" />
               )}
             </button>
           );
@@ -331,10 +337,11 @@ export default function CalendarWidget() {
             setCurrentYear(today.getFullYear());
             setSelectedDate(null);
             setTooltipPos(null);
+            setMonthKey((k) => k + 1);
           }}
           className="mt-3 w-full rounded-lg py-2 text-[12px] font-medium text-[#D4A574]
             bg-[#D4A574]/10 border border-[#D4A574]/20
-            transition-all duration-200 hover:bg-[#D4A574]/20 active:scale-[0.98]
+            transition-all duration-300 hover:bg-[#D4A574]/20 hover:scale-[1.02] active:scale-[0.98]
             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A574]/50"
         >
           العودة إلى اليوم

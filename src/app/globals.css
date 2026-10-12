@@ -3968,3 +3968,356 @@ html {
   animation: banner-shimmer 4s ease-in-out infinite;
   pointer-events: none;
 }
+
+/* ===================================================================
+   50. ANIMATED SHIMMER FOR WELCOME BANNER (CSS animation)
+   Traveling light effect overlay
+   =================================================================== */
+@keyframes shimmer-slide {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.animate-shimmer {
+  animation: shimmer-slide 5s ease-in-out infinite;
+}
+
+/* ===================================================================
+   51. SPARKLE / PARTICLE EFFECTS FOR WELCOME BANNER
+   Floating sparkle dots with staggered delays
+   =================================================================== */
+@keyframes sparkle-float-1 {
+  0%, 100% { opacity: 0; transform: translateY(0) scale(0.5); }
+  25% { opacity: 1; transform: translateY(-6px) scale(1); }
+  75% { opacity: 0.6; transform: translateY(-12px) scale(0.8); }
+}
+@keyframes sparkle-float-2 {
+  0%, 100% { opacity: 0; transform: translateY(0) scale(0.6); }
+  30% { opacity: 0.8; transform: translateY(-8px) scale(1.1); }
+  70% { opacity: 0.4; transform: translateY(-14px) scale(0.7); }
+}
+@keyframes sparkle-float-3 {
+  0%, 100% { opacity: 0; transform: translateY(0) scale(0.4); }
+  20% { opacity: 0.9; transform: translateY(-5px) scale(1.2); }
+  80% { opacity: 0.3; transform: translateY(-10px) scale(0.6); }
+}
+.animate-sparkle-1 {
+  animation: sparkle-float-1 3s ease-in-out infinite;
+}
+.animate-sparkle-2 {
+  animation: sparkle-float-2 3.5s ease-in-out infinite;
+  animation-delay: 0.3s;
+}
+.animate-sparkle-3 {
+  animation: sparkle-float-3 4s ease-in-out infinite;
+  animation-delay: 0.6s;
+}
+
+/* ===================================================================
+   52. STAT CARD ENHANCED HOVER EFFECTS
+   Gradient border animation on hover, lift effect
+   =================================================================== */
+@keyframes gradient-border-rotate {
+  0% { --gradient-angle: 0deg; }
+  100% { --gradient-angle: 360deg; }
+}
+.stat-card-gradient-border {
+  position: relative;
+  overflow: hidden;
+}
+.stat-card-gradient-border::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--gradient-angle, 0deg),
+    rgba(212, 165, 116, 0.4),
+    transparent 40%,
+    transparent 60%,
+    rgba(212, 165, 116, 0.4)
+  );
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  z-index: -1;
+  animation: gradient-border-rotate 3s linear infinite;
+}
+.stat-card-gradient-border:hover::before {
+  opacity: 1;
+}
+
+/* ===================================================================
+   53. STAT VALUE PULSE ANIMATION
+   Brief pulse/scale when the value animates in
+   =================================================================== */
+@keyframes value-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+.animate-value-pulse {
+  animation: value-pulse 0.4s ease-out;
+}
+
+/* ===================================================================
+   54. ICON GLOW EFFECT FOR STAT CARDS
+   Subtle ambient glow around icon containers
+   =================================================================== */
+@keyframes icon-glow {
+  0%, 100% { box-shadow: 0 0 8px var(--glow-color, rgba(212,165,116,0.15)); }
+  50% { box-shadow: 0 0 16px var(--glow-color, rgba(212,165,116,0.25)); }
+}
+.animate-icon-glow {
+  animation: icon-glow 2.5s ease-in-out infinite;
+}
+
+/* ===================================================================
+   55. SESSION TIMER SOUND WAVE ANIMATION
+   Animated bars resembling a sound wave when timer is running
+   =================================================================== */
+@keyframes sound-wave-1 {
+  0%, 100% { height: 4px; }
+  50% { height: 14px; }
+}
+@keyframes sound-wave-2 {
+  0%, 100% { height: 8px; }
+  50% { height: 18px; }
+}
+@keyframes sound-wave-3 {
+  0%, 100% { height: 6px; }
+  50% { height: 16px; }
+}
+.animate-sound-wave-1 {
+  animation: sound-wave-1 0.8s ease-in-out infinite;
+}
+.animate-sound-wave-2 {
+  animation: sound-wave-2 0.6s ease-in-out infinite;
+  animation-delay: 0.1s;
+}
+.animate-sound-wave-3 {
+  animation: sound-wave-3 0.7s ease-in-out infinite;
+  animation-delay: 0.2s;
+}
+
+/* ===================================================================
+   56. CALENDAR GLOWING RING FOR TODAY
+   Pulsing ring around today's date in the calendar
+   =================================================================== */
+@keyframes calendar-today-glow {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(212, 165, 116, 0.3), 0 0 8px rgba(212, 165, 116, 0.1); }
+  50% { box-shadow: 0 0 0 2px rgba(212, 165, 116, 0.5), 0 0 14px rgba(212, 165, 116, 0.2); }
+}
+.animate-calendar-today-glow {
+  animation: calendar-today-glow 2s ease-in-out infinite;
+}
+
+/* ===================================================================
+   57. CALENDAR MONTH TRANSITION
+   Smooth fade transition when changing months
+   =================================================================== */
+@keyframes calendar-month-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-calendar-month-in {
+  animation: calendar-month-in 250ms ease-out both;
+}
+
+/* ===================================================================
+   58. COMMAND PALETTE STYLES
+   Custom styling for the command palette overlay
+   =================================================================== */
+@keyframes command-enter {
+  from { opacity: 0; transform: scale(0.96) translateY(-8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.animate-command-enter {
+  animation: command-enter 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ===================================================================
+   PRINT STYLES
+   Clean, readable print output for the dashboard
+   =================================================================== */
+@media print {
+  /* Reset all backgrounds to white for print */
+  body {
+    background: white !important;
+    color: #1a1a2e !important;
+    font-size: 12pt !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Hide non-content elements */
+  header,
+  nav,
+  aside,
+  .sidebar,
+  footer,
+  [class*="fixed"],
+  [class*="z-30"],
+  [class*="z-40"],
+  [class*="z-50"],
+  [class*="z-[9999]"],
+  [class*="ambient-orb"],
+  [class*="loading-overlay"],
+  [class*="keyboard-shortcuts"],
+  button[aria-label="تغيير اللغة"],
+  [class*="ripple-effect"],
+  [class*="animate-ping"],
+  [class*="animate-pulse"] {
+    display: none !important;
+  }
+
+  /* Remove decorative background effects */
+  [style*="background-image"],
+  [style*="radial-gradient"],
+  [class*="animate-shimmer"],
+  [class*="animate-sparkle"],
+  [class*="glass-card"],
+  [class*="divider-ornament"],
+  [class*="aurora-bg"] {
+    background: none !important;
+    background-image: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Make cards print-friendly */
+  [class*="bg-[#1A1A24]"],
+  [class*="bg-[#121218]"],
+  [class*="bg-background"] {
+    background: white !important;
+    border-color: #e5e7eb !important;
+    color: #1a1a2e !important;
+  }
+
+  /* Reset text colors for print */
+  [class*="text-white"],
+  [class*="text-foreground"],
+  [class*="text-slate-300"],
+  [class*="text-slate-200"],
+  [class*="text-[#E4E4EC]"],
+  [class*="text-[#C4C4D4]"],
+  [class*="text-[#D0D0E0]"] {
+    color: #1a1a2e !important;
+  }
+
+  /* Keep accent color for headings */
+  [class*="text-[#D4A574]"],
+  [class*="text-amber-400"] {
+    color: #B8895A !important;
+  }
+
+  /* Muted text for print */
+  [class*="text-muted-foreground"],
+  [class*="text-slate-500"],
+  [class*="text-slate-600"],
+  [class*="text-[#8B8B9E]"],
+  [class*="text-[#A0A0B8]"],
+  [class*="text-[#B0B0C0]"] {
+    color: #6b7280 !important;
+  }
+
+  /* Status colors for print */
+  [class*="text-emerald-400"],
+  [class*="text-emerald-500"] {
+    color: #10b981 !important;
+  }
+  [class*="text-rose-400"],
+  [class*="text-rose-500"] {
+    color: #ef4444 !important;
+  }
+  [class*="text-sky-400"],
+  [class*="text-sky-500"] {
+    color: #3b82f6 !important;
+  }
+
+  /* Remove shadows and glows */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Remove borders that were decorative in dark mode */
+  [class*="border-white/"],
+  [class*="border-[#2A2A38]"] {
+    border-color: #e5e7eb !important;
+  }
+
+  /* Ensure main content takes full width */
+  main {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 1rem !important;
+  }
+
+  /* Page break rules */
+  h1, h2, h3 {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  table, figure, img {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Avoid breaking inside cards */
+  [class*="rounded-xl"],
+  [class*="rounded-2xl"],
+  [class*="SectionCard"],
+  [class*="WidgetContainer"] {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Force page break before major sections */
+  .print-break-before {
+    page-break-before: always !important;
+    break-before: always !important;
+  }
+
+  /* Keep tables on same page if possible */
+  table {
+    page-break-inside: auto !important;
+  }
+  tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Remove animations in print */
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Print-specific utility class to show only in print */
+  .print-only {
+    display: block !important;
+  }
+
+  /* Hide elements that should not appear in print */
+  .no-print {
+    display: none !important;
+  }
+
+  /* Add print header */
+  .print-header::before {
+    content: "AuraLab — نظام إدارة المدرسة الذكية";
+    display: block;
+    font-size: 14pt;
+    font-weight: bold;
+    color: #B8895A;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #B8895A;
+    padding-bottom: 0.5rem;
+  }
+
+  /* Grid layouts should be simple in print */
+  [class*="grid-cols-"] {
+    display: block !important;
+  }
+}
+

@@ -181,12 +181,26 @@ function ProgressRing({ percentage, color }: { percentage: number; color: string
 function TrendIcon({ trend }: { trend: Trend }) {
   switch (trend) {
     case 'up':
-      return <TrendingUp className="h-4 w-4 text-green-400" />
+      return (
+        <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-400">
+          <TrendingUp className="h-3.5 w-3.5" />
+          صعود
+        </span>
+      )
     case 'down':
-      return <TrendingDown className="h-4 w-4 text-red-400" />
+      return (
+        <span className="flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-0.5 text-[11px] font-semibold text-red-400">
+          <TrendingDown className="h-3.5 w-3.5" />
+          هبوط
+        </span>
+      )
     case 'neutral':
     default:
-      return <Minus className="h-4 w-4 text-slate-400" />
+      return (
+        <span className="flex items-center gap-1 rounded-full bg-slate-500/10 px-2 py-0.5 text-[11px] font-semibold text-slate-400">
+          <Minus className="h-3.5 w-3.5" />
+        </span>
+      )
   }
 }
 
@@ -204,11 +218,23 @@ export default function StatCard({
 
   return (
     <div
-      className="group relative rounded-xl bg-[#1A1A24] border border-white/[0.06] p-5 hover-lift cursor-default hover:border-amber-500/20"
+      className="group relative rounded-xl bg-[#1A1A24] border border-white/[0.06] p-5 cursor-default
+        transition-all duration-300 ease-out
+        hover:-translate-y-1 hover:shadow-xl hover:shadow-black/25
+        hover:border-[#D4A574]/20"
       style={{
         backgroundColor: '#1A1A24',
       }}
     >
+      {/* ── Animated gradient border on hover ── */}
+      <div
+        className="pointer-events-none absolute -inset-[1px] rounded-xl opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+        style={{
+          background: `conic-gradient(from 0deg, ${color}40, transparent 30%, transparent 70%, ${color}40)`,
+          zIndex: -1,
+        }}
+      />
+
       {/* ── Subtle gradient overlay at top ── */}
       <div
         className="pointer-events-none absolute inset-x-0 top-0 h-20 rounded-t-xl opacity-50"
@@ -219,13 +245,14 @@ export default function StatCard({
 
       {/* ── Top row: icon container with gradient + status badge with pulse dot ── */}
       <div className="relative flex items-center justify-between mb-4">
-        {/* Icon container with gradient background */}
+        {/* Icon container with gradient background and glow */}
         <div
-          className="flex items-center justify-center h-11 w-11 rounded-xl transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg"
+          className="flex items-center justify-center h-11 w-11 rounded-xl transition-all duration-300 group-hover:scale-110 animate-icon-glow"
           style={{
             background: `linear-gradient(135deg, ${color}18, ${color}08)`,
             boxShadow: `0 2px 12px ${color}15`,
-          }}
+            '--glow-color': `${color}25`,
+          } as React.CSSProperties}
         >
           <div style={{ color }} className="transition-colors duration-300">
             {icon}

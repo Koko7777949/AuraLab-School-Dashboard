@@ -1,0 +1,502 @@
+   901→   901→   901→// ---------------------------------------------------------------------------
+   902→   902→   902→// Quick Stats Ribbon
+   903→   903→   903→// ---------------------------------------------------------------------------
+   904→   904→   904→
+   905→   905→   905→function QuickStatsRibbon({ apiStats }: { apiStats: DashboardStats | null }) {
+   906→   906→   906→  const { students, teachers, classes, exams, messages, setActiveSection } = useAppStore();
+   907→   907→   907→
+   908→   908→   908→  const unreadMessages = messages.filter(m => !m.isRead && !m.isArchived).length;
+   909→   909→   909→  const outstandingFees = students.filter(s => s.status === 'inactive').length;
+   910→   910→   910→
+   911→   911→   911→  const statsData = [
+   912→   912→   912→    { label: 'طالب', value: String(apiStats?.totalStudents || students.length || 320), icon: GraduationCap, color: '#D4A574', section: 'students' as const },
+   913→   913→   913→    { label: 'معلم', value: String(apiStats?.totalTeachers || teachers.length || 24), icon: Users, color: '#D4A574', section: 'teachers' as const },
+   914→   914→   914→    { label: 'فصل', value: String(apiStats?.totalClasses || classes.length || 12), icon: BookOpen, color: '#D4A574', section: 'classes' as const },
+   915→   915→   915→    { label: 'امتحان', value: String(apiStats?.totalExams || exams.length || 156), icon: FileText, color: '#D4A574', section: 'exams' as const },
+   916→   916→   916→    { label: 'الرسوم المستحقة', value: String(outstandingFees || 8), icon: DollarSign, color: '#f59e0b', section: 'students' as const },
+   917→   917→   917→    { label: 'الرسائل الجديدة', value: String(apiStats?.alertsCount || unreadMessages || 5), icon: MessageSquare, color: '#38bdf8', section: 'notifications' as const },
+   918→   918→   918→  ];
+   919→   919→   919→
+   920→   920→   920→  return (
+   921→   921→   921→    <div className="animate-fade-in-up opacity-0" style={{ animationDelay: '550ms' }}>
+   922→   922→   922→      <div className="flex items-center gap-2 mb-3">
+   923→   923→   923→        <BarChart3 className="h-4 w-4 text-[#D4A574]" />
+   924→   924→   924→        <h3 className="text-sm font-semibold text-muted-foreground">إحصائيات سريعة</h3>
+   925→   925→   925→      </div>
+   926→   926→   926→      <div className="scroll-snap-x hide-scrollbar flex gap-3 overflow-x-auto pb-2">
+   927→   927→   927→        {statsData.map((stat) => {
+   928→   928→   928→          const StatIcon = stat.icon;
+   929→   929→   929→          return (
+   930→   930→   930→            <button
+   931→   931→   931→              key={stat.label}
+   932→   932→   932→              onClick={() => setActiveSection(stat.section)}
+   933→   933→   933→              className="scroll-snap-x shrink-0 w-[130px] sm:w-auto sm:shrink sm:flex-1 rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-3 flex flex-col items-center gap-2 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/[0.05] hover:border-white/[0.1] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A574]/50"
+   934→   934→   934→            >
+   935→   935→   935→              <StatIcon className="h-5 w-5" style={{ color: stat.color }} />
+   936→   936→   936→              <span className="text-lg font-bold text-white tabular-nums">{stat.value}</span>
+   937→   937→   937→              <span className="text-[11px] text-muted-foreground font-medium">{stat.label}</span>
+   938→   938→   938→            </button>
+   939→   939→   939→          );
+   940→   940→   940→        })}
+   941→   941→   941→      </div>
+   942→   942→   942→    </div>
+   943→   943→   943→  );
+   944→   944→   944→}
+   945→   945→   945→
+   946→   946→   946→// ---------------------------------------------------------------------------
+   947→   947→   947→// Activity Feed Widget
+   948→   948→   948→// ---------------------------------------------------------------------------
+   949→   949→   949→
+   950→   950→   950→function ActivityFeed() {
+   951→   951→   951→  return (
+   952→   952→   952→    <div className="flex flex-col gap-0">
+   953→   953→   953→      {activityFeedData.map((item, index) => {
+   954→   954→   954→        const ItemIcon = item.icon;
+   955→   955→   955→        const isLast = index === activityFeedData.length - 1;
+   956→   956→   956→        return (
+   957→   957→   957→          <div key={item.id} className="flex gap-3 relative">
+   958→   958→   958→            {/* Timeline column */}
+   959→   959→   959→            <div className="flex flex-col items-center">
+   960→   960→   960→              <div className="relative flex items-center justify-center">
+   961→   961→   961→                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${item.bgColor} z-10`}>
+   962→   962→   962→                  <ItemIcon className="h-3.5 w-3.5" style={{ color: item.color }} />
+   963→   963→   963→                </div>
+   964→   964→   964→              </div>
+   965→   965→   965→              {/* Connector line */}
+   966→   966→   966→              {!isLast && (
+   967→   967→   967→                <div className="w-0.5 flex-1 min-h-[32px] bg-white/[0.06]" />
+   968→   968→   968→              )}
+   969→   969→   969→            </div>
+   970→   970→   970→
+   971→   971→   971→            {/* Content */}
+   972→   972→   972→            <div className={`flex-1 pb-4 data-row-hover rounded-lg px-2 -mx-2 transition-colors duration-200 ${!isLast ? '' : ''}`}>
+   973→   973→   973→              <p className="text-sm leading-relaxed text-slate-300">{item.description}</p>
+   974→   974→   974→              <span className="text-[11px] text-[#A0A0B8] font-medium mt-1 block">{item.time}</span>
+   975→   975→   975→            </div>
+   976→   976→   976→          </div>
+   977→   977→   977→        );
+   978→   978→   978→      })}
+   979→   979→   979→      {/* View All link */}
+   980→   980→   980→      <button className="mt-1 self-center flex items-center gap-1.5 text-xs font-medium text-[#D4A574] hover:text-[#E8C9A8] transition-colors duration-200 smooth-underline cursor-pointer">
+   981→   981→   981→        عرض الكل
+   982→   982→   982→        <ChevronLeft className="h-3 w-3" />
+   983→   983→   983→      </button>
+   984→   984→   984→    </div>
+   985→   985→   985→  );
+   986→   986→   986→}
+   987→   987→   987→
+   988→   988→   988→// ---------------------------------------------------------------------------
+   989→   989→   989→// Weekly Goals Progress
+   990→   990→   990→// ---------------------------------------------------------------------------
+   991→   991→   991→
+   992→   992→   992→function WeeklyGoalsProgress() {
+   993→   993→   993→  return (
+   994→   994→   994→    <div className="glass-card-elevated rounded-xl p-5">
+   995→   995→   995→      <div className="flex items-center gap-2 mb-5">
+   996→   996→   996→        <Target className="h-4 w-4 text-[#D4A574]" />
+   997→   997→   997→        <h3 className="text-sm font-semibold text-white">أهداف الأسبوع</h3>
+   998→   998→   998→      </div>
+   999→   999→   999→      <div className="flex flex-col gap-5">
+  1000→  1000→  1000→        {weeklyGoalsData.map((goal, index) => {
+  1001→  1001→  1001→          const percentage = Math.round((goal.current / goal.target) * 100);
+  1002→  1002→  1002→          return (
+  1003→  1003→  1003→            <div key={goal.label} className="animate-fade-in-up opacity-0" style={{ animationDelay: `${index * 100}ms` }}>
+  1004→  1004→  1004→              <div className="flex items-center justify-between mb-1.5">
+  1005→  1005→  1005→                <span className="text-xs font-medium text-slate-300">{goal.label}</span>
+  1006→  1006→  1006→                <span className="text-xs font-semibold tabular-nums" style={{ color: goal.color }}>
+  1007→  1007→  1007→                  {goal.current}/{goal.target}{goal.unit}
+  1008→  1008→  1008→                  <span className="text-[#A0A0B8] mr-1">({percentage}%)</span>
+  1009→  1009→  1009→                </span>
+  1010→  1010→  1010→              </div>
+  1011→  1011→  1011→              <div className="h-2 w-full rounded-full bg-white/[0.06] overflow-hidden">
+  1012→  1012→  1012→                <div
+  1013→  1013→  1013→                  className={`h-full rounded-full ${goal.bgColor} transition-all duration-1000 ease-out`}
+  1014→  1014→  1014→                  style={{ width: `${percentage}%`, transitionDelay: `${300 + index * 150}ms` }}
+  1015→  1015→  1015→                />
+  1016→  1016→  1016→              </div>
+  1017→  1017→  1017→            </div>
+  1018→  1018→  1018→          );
+  1019→  1019→  1019→        })}
+  1020→  1020→  1020→      </div>
+  1021→  1021→  1021→    </div>
+  1022→  1022→  1022→  );
+  1023→  1023→  1023→}
+  1024→  1024→  1024→
+  1025→  1025→  1025→// ---------------------------------------------------------------------------
+  1026→  1026→  1026→// Student Leaderboard Widget
+  1027→  1027→  1027→// ---------------------------------------------------------------------------
+  1028→  1028→  1028→
+  1029→  1029→  1029→function StudentLeaderboard() {
+  1030→  1030→  1030→  const rankColors: Record<number, { bg: string; text: string; border: string }> = {
+  1031→  1031→  1031→    1: { bg: 'bg-amber-500/15', text: 'text-amber-400', border: 'border-amber-500/30' },
+  1032→  1032→  1032→    2: { bg: 'bg-slate-400/15', text: 'text-slate-300', border: 'border-slate-400/30' },
+  1033→  1033→  1033→    3: { bg: 'bg-amber-700/15', text: 'text-amber-600', border: 'border-amber-700/30' },
+  1034→  1034→  1034→  };
+  1035→  1035→  1035→
+  1036→  1036→  1036→  return (
+  1037→  1037→  1037→    <div className="flex flex-col gap-1.5">
+  1038→  1038→  1038→      {topStudentsData.map((student) => {
+  1039→  1039→  1039→        const rankStyle = rankColors[student.rank];
+  1040→  1040→  1040→        const isTop3 = !!rankStyle;
+  1041→  1041→  1041→        return (
+  1042→  1042→  1042→          <div
+  1043→  1043→  1043→            key={student.rank}
+  1044→  1044→  1044→            className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-200 data-row-hover cursor-default ${isTop3 ? `${rankStyle.bg} border ${rankStyle.border}` : 'hover:bg-white/[0.03]'}`}
+  1045→  1045→  1045→          >
+  1046→  1046→  1046→            {/* Rank badge */}
+  1047→  1047→  1047→            <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${isTop3 ? `${rankStyle.bg} ${rankStyle.text}` : 'bg-white/[0.04] text-muted-foreground'}`}>
+  1048→  1048→  1048→              {student.rank <= 3 ? (
+  1049→  1049→  1049→                <Medal className="h-3.5 w-3.5" />
+  1050→  1050→  1050→              ) : (
+  1051→  1051→  1051→                <span className="tabular-nums">{student.rank}</span>
+  1052→  1052→  1052→              )}
+  1053→  1053→  1053→            </div>
+  1054→  1054→  1054→
+  1055→  1055→  1055→            {/* Avatar */}
+  1056→  1056→  1056→            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${isTop3 ? 'bg-[#D4A574]/15 text-[#D4A574]' : 'bg-white/[0.06] text-muted-foreground'}`}>
+  1057→  1057→  1057→              {student.initial}
+  1058→  1058→  1058→            </div>
+  1059→  1059→  1059→
+  1060→  1060→  1060→            {/* Name & Score */}
+  1061→  1061→  1061→            <div className="flex-1 min-w-0">
+  1062→  1062→  1062→              <span className="text-sm font-medium text-white truncate block group-hover:text-[#D4A574] transition-colors duration-200">
+  1063→  1063→  1063→                {student.name}
+  1064→  1064→  1064→              </span>
+  1065→  1065→  1065→            </div>
+  1066→  1066→  1066→
+  1067→  1067→  1067→            {/* Score */}
+  1068→  1068→  1068→            <span className={`text-sm font-bold tabular-nums shrink-0 ${isTop3 ? rankStyle.text : 'text-muted-foreground'}`}>
+  1069→  1069→  1069→              {student.score}
+  1070→  1070→  1070→            </span>
+  1071→  1071→  1071→          </div>
+  1072→  1072→  1072→        );
+  1073→  1073→  1073→      })}
+  1074→  1074→  1074→    </div>
+  1075→  1075→  1075→  );
+  1076→  1076→  1076→}
+  1077→  1077→  1077→
+  1078→  1078→  1078→// ---------------------------------------------------------------------------
+  1079→  1079→  1079→// NEW: Recent Students Data Table
+  1080→  1080→  1080→// ---------------------------------------------------------------------------
+  1081→  1081→  1081→
+  1082→  1082→  1082→const studentStatusConfig = {
+  1083→  1083→  1083→  active: { label: 'نشط', bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30' },
+  1084→  1084→  1084→  inactive: { label: 'غير نشط', bg: 'bg-amber-500/15', text: 'text-amber-400', border: 'border-amber-500/30' },
+  1085→  1085→  1085→  graduated: { label: 'متخرّج', bg: 'bg-sky-500/15', text: 'text-sky-400', border: 'border-sky-500/30' },
+  1086→  1086→  1086→};
+  1087→  1087→  1087→
+  1088→  1088→  1088→function RecentStudentsTable({ students, onViewAll }: { students: { id: string; name: string; className?: string; status: 'active' | 'inactive' | 'graduated'; createdAt: string }[]; onViewAll: () => void }) {
+  1089→  1089→  1089→  const recentStudents = [...students]
+  1090→  1090→  1090→    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  1091→  1091→  1091→    .slice(0, 5);
+  1092→  1092→  1092→
+  1093→  1093→  1093→  if (recentStudents.length === 0) {
+  1094→  1094→  1094→    return (
+  1095→  1095→  1095→      <div className="data-empty-state flex flex-col items-center justify-center py-10">
+  1096→  1096→  1096→        <Users className="h-10 w-10 text-[#A0A0B8] mb-3" />
+  1097→  1097→  1097→        <p className="text-sm text-[#B0B0C0]">لا يوجد طلاب مسجلين بعد</p>
+  1098→  1098→  1098→        <button
+  1099→  1099→  1099→          onClick={onViewAll}
+  1100→  1100→  1100→          className="mt-3 text-xs font-medium text-[#D4A574] hover:text-[#E8C9A8] transition-colors duration-200 cursor-pointer"
+  1101→  1101→  1101→        >
+  1102→  1102→  1102→          إضافة طالب جديد
+  1103→  1103→  1103→        </button>
+  1104→  1104→  1104→      </div>
+  1105→  1105→  1105→    );
+  1106→  1106→  1106→  }
+  1107→  1107→  1107→
+  1108→  1108→  1108→  return (
+  1109→  1109→  1109→    <div>
+  1110→  1110→  1110→      <div className="overflow-x-auto hide-scrollbar">
+  1111→  1111→  1111→        <table className="w-full min-w-[480px]">
+  1112→  1112→  1112→          <thead>
+  1113→  1113→  1113→            <tr className="border-b border-white/[0.06]">
+  1114→  1114→  1114→              <th className="text-right text-[11px] font-semibold text-muted-foreground pb-3 pr-2">الاسم</th>
+  1115→  1115→  1115→              <th className="text-right text-[11px] font-semibold text-muted-foreground pb-3 pr-2">الفصل</th>
+  1116→  1116→  1116→              <th className="text-right text-[11px] font-semibold text-muted-foreground pb-3 pr-2">الحالة</th>
+  1117→  1117→  1117→              <th className="text-left text-[11px] font-semibold text-muted-foreground pb-3 pl-2">تاريخ التسجيل</th>
+  1118→  1118→  1118→            </tr>
+  1119→  1119→  1119→          </thead>
+  1120→  1120→  1120→          <tbody>
+  1121→  1121→  1121→            {recentStudents.map((student) => {
+  1122→  1122→  1122→              const status = studentStatusConfig[student.status];
+  1123→  1123→  1123→              return (
+  1124→  1124→  1124→                <tr key={student.id} className="data-row-hover transition-colors duration-200">
+  1125→  1125→  1125→                  <td className="py-2.5 pr-2">
+  1126→  1126→  1126→                    <div className="flex items-center gap-2.5">
+  1127→  1127→  1127→                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#D4A574]/15 text-[10px] font-bold text-[#D4A574]">
+  1128→  1128→  1128→                        {student.name.charAt(0)}
+  1129→  1129→  1129→                      </div>
+  1130→  1130→  1130→                      <span className="text-sm font-medium text-white truncate max-w-[140px]">{student.name}</span>
+  1131→  1131→  1131→                    </div>
+  1132→  1132→  1132→                  </td>
+  1133→  1133→  1133→                  <td className="py-2.5 pr-2 text-sm text-slate-400">{student.className || '—'}</td>
+  1134→  1134→  1134→                  <td className="py-2.5 pr-2">
+  1135→  1135→  1135→                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${status.bg} ${status.text} border ${status.border}`}>
+  1136→  1136→  1136→                      {status.label}
+  1137→  1137→  1137→                    </span>
+  1138→  1138→  1138→                  </td>
+  1139→  1139→  1139→                  <td className="py-2.5 pl-2 text-xs text-[#B0B0C0] tabular-nums">
+  1140→  1140→  1140→                    {new Date(student.createdAt).toLocaleDateString('ar-SA', { month: 'short', day: 'numeric' })}
+  1141→  1141→  1141→                  </td>
+  1142→  1142→  1142→                </tr>
+  1143→  1143→  1143→              );
+  1144→  1144→  1144→            })}
+  1145→  1145→  1145→          </tbody>
+  1146→  1146→  1146→        </table>
+  1147→  1147→  1147→      </div>
+  1148→  1148→  1148→      <button
+  1149→  1149→  1149→        onClick={onViewAll}
+  1150→  1150→  1150→        className="mt-3 flex items-center gap-1.5 text-xs font-medium text-[#D4A574] hover:text-[#E8C9A8] transition-colors duration-200 cursor-pointer mr-auto"
+  1151→  1151→  1151→      >
+  1152→  1152→  1152→        عرض الكل
+  1153→  1153→  1153→        <ChevronLeft className="h-3 w-3" />
+  1154→  1154→  1154→      </button>
+  1155→  1155→  1155→    </div>
+  1156→  1156→  1156→  );
+  1157→  1157→  1157→}
+  1158→  1158→  1158→
+  1159→  1159→  1159→// ---------------------------------------------------------------------------
+  1160→  1160→  1160→// NEW: Today's Attendance Overview (percentage rings)
+  1161→  1161→  1161→// ---------------------------------------------------------------------------
+  1162→  1162→  1162→
+  1163→  1163→  1163→function TodayAttendanceOverview({ pills, onClick }: {
+  1164→  1164→  1164→  pills: typeof attendancePills;
+  1165→  1165→  1165→  onClick: () => void;
+  1166→  1166→  1166→}) {
+  1167→  1167→  1167→  return (
+  1168→  1168→  1168→    <button
+  1169→  1169→  1169→      onClick={onClick}
+  1170→  1170→  1170→      className="w-full text-right cursor-pointer group"
+  1171→  1171→  1171→    >
+  1172→  1172→  1172→      <div className="grid grid-cols-4 gap-2">
+  1173→  1173→  1173→        {pills.map((item) => {
+  1174→  1174→  1174→          const Icon = item.icon;
+  1175→  1175→  1175→          const radius = 22;
+  1176→  1176→  1176→          const circumference = 2 * Math.PI * radius;
+  1177→  1177→  1177→          const strokeDashoffset = circumference - (item.percentage / 100) * circumference;
+  1178→  1178→  1178→
+  1179→  1179→  1179→          return (
+  1180→  1180→  1180→            <div
+  1181→  1181→  1181→              key={item.id}
+  1182→  1182→  1182→              className="flex flex-col items-center gap-1.5 transition-transform duration-300 group-hover:scale-105"
+  1183→  1183→  1183→            >
+  1184→  1184→  1184→              {/* SVG percentage ring */}
+  1185→  1185→  1185→              <div className="relative">
+  1186→  1186→  1186→                <svg width="56" height="56" viewBox="0 0 56 56">
+  1187→  1187→  1187→                  {/* Background track */}
+  1188→  1188→  1188→                  <circle
+  1189→  1189→  1189→                    cx="28" cy="28" r={radius}
+  1190→  1190→  1190→                    fill="none"
+  1191→  1191→  1191→                    stroke="rgba(255,255,255,0.06)"
+  1192→  1192→  1192→                    strokeWidth="3.5"
+  1193→  1193→  1193→                  />
+  1194→  1194→  1194→                  {/* Progress arc */}
+  1195→  1195→  1195→                  <circle
+  1196→  1196→  1196→                    cx="28" cy="28" r={radius}
+  1197→  1197→  1197→                    fill="none"
+  1198→  1198→  1198→                    stroke={item.color}
+  1199→  1199→  1199→                    strokeWidth="3.5"
+  1200→  1200→  1200→                    strokeLinecap="round"
+  1201→  1201→  1201→                    strokeDasharray={circumference}
+  1202→  1202→  1202→                    strokeDashoffset={strokeDashoffset}
+  1203→  1203→  1203→                    transform="rotate(-90 28 28)"
+  1204→  1204→  1204→                    className="transition-all duration-1000 ease-out"
+  1205→  1205→  1205→                  />
+  1206→  1206→  1206→                </svg>
+  1207→  1207→  1207→                <div className="absolute inset-0 flex items-center justify-center">
+  1208→  1208→  1208→                  <Icon className="h-3.5 w-3.5" style={{ color: item.color }} />
+  1209→  1209→  1209→                </div>
+  1210→  1210→  1210→              </div>
+  1211→  1211→  1211→              {/* Label + percentage */}
+  1212→  1212→  1212→              <div className="text-center">
+  1213→  1213→  1213→                <span className="block text-[11px] font-semibold text-white">{item.label}</span>
+  1214→  1214→  1214→                <span className={`block text-[10px] font-bold tabular-nums ${item.textColor}`}>
+  1215→  1215→  1215→                  {item.percentage}%
+  1216→  1216→  1216→                </span>
+  1217→  1217→  1217→              </div>
+  1218→  1218→  1218→            </div>
+  1219→  1219→  1219→          );
+  1220→  1220→  1220→        })}
+  1221→  1221→  1221→      </div>
+  1222→  1222→  1222→    </button>
+  1223→  1223→  1223→  );
+  1224→  1224→  1224→}
+  1225→  1225→  1225→
+  1226→  1226→  1226→// ---------------------------------------------------------------------------
+  1227→  1227→  1227→// KPI Card Data
+  1228→  1228→  1228→// ---------------------------------------------------------------------------
+  1229→  1229→  1229→
+  1230→  1230→  1230→interface KpiCardConfig {
+  1231→  1231→  1231→  label: string;
+  1232→  1232→  1232→  value: string;
+  1233→  1233→  1233→  percentage?: number;
+  1234→  1234→  1234→  status: 'stable' | 'improved' | 'needs-attention' | 'active' | 'completed' | 'critical';
+  1235→  1235→  1235→  icon: React.ReactNode;
+  1236→  1236→  1236→  color: string;
+  1237→  1237→  1237→  subtext: string;
+  1238→  1238→  1238→}
+  1239→  1239→  1239→
+  1240→  1240→  1240→function buildKpiCards(stats: DashboardStats | null): KpiCardConfig[] {
+  1241→  1241→  1241→  const totalStudents = stats?.totalStudents ?? 320;
+  1242→  1242→  1242→  const topStudentsCount = stats?.topStudents?.length ?? 24;
+  1243→  1243→  1243→  const attendanceRate = stats?.attendanceRate ?? 85;
+  1244→  1244→  1244→
+  1245→  1245→  1245→  return [
+  1246→  1246→  1246→    {
+  1247→  1247→  1247→      label: 'التحصيل الأكاديمي',
+  1248→  1248→  1248→      value: stats ? `${Math.round(stats.avgScore)}%` : '87%',
+  1249→  1249→  1249→      percentage: stats ? Math.round(stats.avgScore) : 87,
+  1250→  1250→  1250→      status: (stats ? stats.avgScore : 87) >= 80 ? 'stable' : 'needs-attention',
+  1251→  1251→  1251→      icon: <BookOpen className="h-5 w-5" />,
+  1252→  1252→  1252→      color: '#10b981',
+  1253→  1253→  1253→      subtext: 'مقارنة بالفصل السابق',
+  1254→  1254→  1254→    },
+  1255→  1255→  1255→    {
+  1256→  1256→  1256→      label: 'التركيز والانتباه',
+  1257→  1257→  1257→      value: stats ? `${Math.round(stats.avgFocus)}%` : '78%',
+  1258→  1258→  1258→      percentage: stats ? Math.round(stats.avgFocus) : 78,
+  1259→  1259→  1259→      status: 'improved',
+  1260→  1260→  1260→      icon: <Eye className="h-5 w-5" />,
+  1261→  1261→  1261→      color: '#38bdf8',
+  1262→  1262→  1262→      subtext: '+5% عن الأسبوع الماضي',
+  1263→  1263→  1263→    },
+  1264→  1264→  1264→    {
+  1265→  1265→  1265→      label: 'التفاعل الصفي',
+  1266→  1266→  1266→      value: stats ? `${Math.round(stats.avgEngagement)}%` : '65%',
+  1267→  1267→  1267→      percentage: stats ? Math.round(stats.avgEngagement) : 65,
+  1268→  1268→  1268→      status: (stats ? stats.avgEngagement : 65) < 70 ? 'needs-attention' : 'improved',
+  1269→  1269→  1269→      icon: <MessageSquare className="h-5 w-5" />,
+  1270→  1270→  1270→      color: '#f59e0b',
+  1271→  1271→  1271→      subtext: (stats ? stats.avgEngagement : 65) < 70 ? 'يحتاج متابعة إضافية' : 'تحسن ملحوظ',
+  1272→  1272→  1272→    },
+  1273→  1273→  1273→    {
+  1274→  1274→  1274→      label: 'نسبة الحضور',
+  1275→  1275→  1275→      value: `${Math.round(attendanceRate)}%`,
+  1276→  1276→  1276→      percentage: Math.round(attendanceRate),
+  1277→  1277→  1277→      status: attendanceRate >= 90 ? 'improved' : attendanceRate >= 80 ? 'stable' : 'needs-attention',
+  1278→  1278→  1278→      icon: <Users className="h-5 w-5" />,
+  1279→  1279→  1279→      color: '#8b5cf6',
+  1280→  1280→  1280→      subtext: attendanceRate >= 90 ? 'ممتاز هذا الأسبوع' : '+3% عن الأسبوع الماضي',
+  1281→  1281→  1281→    },
+  1282→  1282→  1282→    {
+  1283→  1283→  1283→      label: 'الطلاب المتفوقون',
+  1284→  1284→  1284→      value: String(topStudentsCount),
+  1285→  1285→  1285→      status: 'active',
+  1286→  1286→  1286→      icon: <Award className="h-5 w-5" />,
+  1287→  1287→  1287→      color: '#f43f5e',
+  1288→  1288→  1288→      subtext: `من إجمالي ${totalStudents} طالب`,
+  1289→  1289→  1289→    },
+  1290→  1290→  1290→    {
+  1291→  1291→  1291→      label: 'الحصص المسجلة',
+  1292→  1292→  1292→      value: String(stats?.totalSessions ?? 156),
+  1293→  1293→  1293→      status: 'completed',
+  1294→  1294→  1294→      icon: <Video className="h-5 w-5" />,
+  1295→  1295→  1295→      color: '#10b981',
+  1296→  1296→  1296→      subtext: 'منذ بداية الفصل الدراسي',
+  1297→  1297→  1297→    },
+  1298→  1298→  1298→  ];
+  1299→  1299→  1299→}
+  1300→  1300→  1300→
+  1301→  1301→  1301→// ---------------------------------------------------------------------------
+  1302→  1302→  1302→// Main DashboardOverview Component
+  1303→  1303→  1303→// ---------------------------------------------------------------------------
+  1304→  1304→  1304→
+  1305→  1305→  1305→export default function DashboardOverview() {
+  1306→  1306→  1306→  const { students, teachers, classes, exams, messages, setActiveSection, setStudents } = useAppStore();
+  1307→  1307→  1307→  const [stats, setStats] = useState<DashboardStats | null>(null);
+  1308→  1308→  1308→  const [loading, setLoading] = useState(true);
+  1309→  1309→  1309→  const [error, setError] = useState<string | null>(null);
+  1310→  1310→  1310→  const [showBanner, setShowBanner] = useState(true);
+  1311→  1311→  1311→  const [activePill, setActivePill] = useState<string | null>(null);
+  1312→  1312→  1312→  const [lastUpdated] = useState(() => new Date().toLocaleTimeString('ar-SA', {
+  1313→  1313→  1313→    hour: '2-digit',
+  1314→  1314→  1314→    minute: '2-digit',
+  1315→  1315→  1315→  }));
+  1316→  1316→  1316→
+  1317→  1317→  1317→  // Seed mock students if store is empty (so RecentStudentsTable shows data)
+  1318→  1318→  1318→  const studentsSeeded = useRef(false);
+  1319→  1319→  1319→  useEffect(() => {
+  1320→  1320→  1320→    if (!studentsSeeded.current && students.length === 0) {
+  1321→  1321→  1321→      studentsSeeded.current = true;
+  1322→  1322→  1322→      setStudents([
+  1323→  1323→  1323→        { id: 's1', name: 'أحمد العتيبي', studentId: 'STD-001', classId: 'c1', status: 'active', notes: '', psychBackground: '', avatar: '', className: 'الصف الأول أ', createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), updatedAt: new Date().toISOString() },
+  1324→  1324→  1324→        { id: 's2', name: 'سارة القحطاني', studentId: 'STD-002', classId: 'c2', status: 'active', notes: '', psychBackground: '', avatar: '', className: 'الصف الثاني ب', createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(), updatedAt: new Date().toISOString() },
+  1325→  1325→  1325→        { id: 's3', name: 'نورة الدوسري', studentId: 'STD-003', classId: 'c1', status: 'active', notes: '', psychBackground: '', avatar: '', className: 'الصف الأول أ', createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), updatedAt: new Date().toISOString() },
+  1326→  1326→  1326→        { id: 's4', name: 'خالد الحربي', studentId: 'STD-004', classId: 'c3', status: 'inactive', notes: '', psychBackground: '', avatar: '', className: 'الصف الثالث', createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), updatedAt: new Date().toISOString() },
+  1327→  1327→  1327→        { id: 's5', name: 'فاطمة الشمري', studentId: 'STD-005', classId: 'c2', status: 'graduated', notes: '', psychBackground: '', avatar: '', className: 'الصف الثاني أ', createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), updatedAt: new Date().toISOString() },
+  1328→  1328→  1328→        { id: 's6', name: 'محمد الغامدي', studentId: 'STD-006', classId: 'c1', status: 'active', notes: '', psychBackground: '', avatar: '', className: 'الصف الأول ب', createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), updatedAt: new Date().toISOString() },
+  1329→  1329→  1329→      ]);
+  1330→  1330→  1330→    }
+  1331→  1331→  1331→  }, []);
+  1332→  1332→  1332→
+  1333→  1333→  1333→  const dismissBanner = useCallback(() => setShowBanner(false), []);
+  1334→  1334→  1334→
+  1335→  1335→  1335→  // ── Extended API stats for attendance, score distribution, etc. ──
+  1336→  1336→  1336→  const [apiAttendance, setApiAttendance] = useState<{ rate: number; present: number; absent: number; late: number; excused: number; total: number } | null>(null);
+  1337→  1337→  1337→  const [apiScoreDistribution, setApiScoreDistribution] = useState<{ excellent: number; veryGood: number; good: number; pass: number; fail: number } | null>(null);
+  1338→  1338→  1338→
+  1339→  1339→  1339→  // ── Fetch dashboard stats from API ──
+  1340→  1340→  1340→  useEffect(() => {
+  1341→  1341→  1341→    let cancelled = false;
+  1342→  1342→  1342→
+  1343→  1343→  1343→    async function fetchStats() {
+  1344→  1344→  1344→      try {
+  1345→  1345→  1345→        const res = await fetch('/api/dashboard/stats');
+  1346→  1346→  1346→        if (!res.ok) throw new Error('فشل في جلب البيانات');
+  1347→  1347→  1347→        const json = await res.json();
+  1348→  1348→  1348→        if (cancelled) return;
+  1349→  1349→  1349→        if (json.success && json.data) {
+  1350→  1350→  1350→          // Map API response to DashboardStats shape
+  1351→  1351→  1351→          const d = json.data;
+  1352→  1352→  1352→          const mapped: DashboardStats = {
+  1353→  1353→  1353→            totalStudents: d.overview?.totalStudents ?? 0,
+  1354→  1354→  1354→            activeStudents: d.studentStats?.byStatus?.active ?? 0,
+  1355→  1355→  1355→            totalTeachers: d.overview?.totalTeachers ?? 0,
+  1356→  1356→  1356→            totalClasses: d.overview?.totalClasses ?? 0,
+  1357→  1357→  1357→            avgEngagement: d.engagement?.averageScore ?? 0,
+  1358→  1358→  1358→            avgFocus: d.engagement?.averageFocus ?? Math.round((d.engagement?.averageScore ?? 78) * 0.93),
+  1359→  1359→  1359→            avgScore: d.examStats?.averageScore ?? 0,
+  1360→  1360→  1360→            attendanceRate: d.attendance?.rate ?? 0,
+  1361→  1361→  1361→            totalExams: d.overview?.totalExams ?? 0,
+  1362→  1362→  1362→            totalSessions: d.overview?.totalSessions ?? 0,
+  1363→  1363→  1363→            alertsCount: d.overview?.unreadNotifications ?? 0,
+  1364→  1364→  1364→            topStudents: [],
+  1365→  1365→  1365→          };
+  1366→  1366→  1366→          setStats(mapped);
+  1367→  1367→  1367→
+  1368→  1368→  1368→          // Store extended data for sub-components
+  1369→  1369→  1369→          if (d.attendance) {
+  1370→  1370→  1370→            setApiAttendance({
+  1371→  1371→  1371→              rate: d.attendance.rate ?? 0,
+  1372→  1372→  1372→              present: d.attendance.present ?? 0,
+  1373→  1373→  1373→              absent: d.attendance.absent ?? 0,
+  1374→  1374→  1374→              late: d.attendance.late ?? 0,
+  1375→  1375→  1375→              excused: d.attendance.excused ?? 0,
+  1376→  1376→  1376→              total: d.attendance.total ?? 0,
+  1377→  1377→  1377→            });
+  1378→  1378→  1378→          }
+  1379→  1379→  1379→          if (d.examStats?.scoreDistribution) {
+  1380→  1380→  1380→            setApiScoreDistribution(d.examStats.scoreDistribution);
+  1381→  1381→  1381→          }
+  1382→  1382→  1382→        }
+  1383→  1383→  1383→      } catch (err) {
+  1384→  1384→  1384→        if (!cancelled) {
+  1385→  1385→  1385→          setError(err instanceof Error ? err.message : 'حدث خطأ غير متوقع');
+  1386→  1386→  1386→        }
+  1387→  1387→  1387→      } finally {
+  1388→  1388→  1388→        if (!cancelled) {
+  1389→  1389→  1389→          setLoading(false);
+  1390→  1390→  1390→        }
+  1391→  1391→  1391→      }
+  1392→  1392→  1392→    }
+  1393→  1393→  1393→
+  1394→  1394→  1394→    fetchStats();
+  1395→  1395→  1395→    return () => {
+  1396→  1396→  1396→      cancelled = true;
+  1397→  1397→  1397→    };
+  1398→  1398→  1398→  }, []);
+  1399→  1399→  1399→
+  1400→  1400→  1400→  // ── Derived values ──
+
+[showing lines 901-1400 of 1764; use offset=1401 with limit to continue reading]

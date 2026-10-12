@@ -25,6 +25,7 @@ import SettingsSection from '@/components/dashboard/settings-section';
 import LibrarySection from '@/components/dashboard/library-section';
 import FeesSection from '@/components/dashboard/fees-section';
 import KeyboardShortcuts from '@/components/dashboard/keyboard-shortcuts';
+import CommandPalette from '@/components/dashboard/command-palette';
 import type { ActiveSection } from '@/lib/types';
 
 function SectionRenderer({ section }: { section: ActiveSection }) {
@@ -271,6 +272,9 @@ export default function Home() {
 
       {/* Keyboard Shortcuts Overlay (global) */}
       <KeyboardShortcuts />
+
+      {/* Command Palette (Cmd+K) */}
+      <CommandPalette />
     </>
   );
 }
