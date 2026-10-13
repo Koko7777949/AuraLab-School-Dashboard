@@ -66,6 +66,37 @@ export function exportToCSV<T extends Record<string, unknown>>(
 }
 
 /**
+ * Export CSV with optional per-column format functions.
+ * Used by data-export.ts to delegate.
+ */
+export function exportToCSVWithFormat<T extends Record<string, unknown>>(
+  data: T[],
+  filename: string,
+  columns: { key: keyof T; label: string; format?: (value: unknown) => string }[],
+): void {
+  const BOM = '\uFEFF';
+  const header = columns.map((col) => escapeField(col.label)).join(',');
+  const rows = data.map((row) =>
+    columns.map((col) => {
+      const rawValue = row[col.key];
+      const formatted = col.format ? col.format(rawValue) : String(rawValue ?? '');
+      return escapeField(formatted);
+    }).join(','),
+  );
+  const csv = BOM + [header, ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', `${filename}.csv`);
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+/**
  * Format an ISO date string to Arabic locale format.
  *
  * @param dateStr - ISO date string (e.g. `"2024-09-01T08:00:00.000Z"`)

@@ -236,6 +236,16 @@ const upcomingEvents = [
 
 // (quickStatsData removed — QuickStatsRibbon now builds stats dynamically from store)
 
+// Sparkline data for KPI cards (last 7 days trend)
+const KPI_SPARKLINES: number[][] = [
+  [82, 85, 79, 87, 90, 86, 87],   // التحصيل الأكاديمي
+  [70, 72, 75, 78, 76, 80, 78],   // التركيز والانتباه
+  [58, 60, 63, 65, 62, 67, 65],   // التفاعل الصفي
+  [80, 82, 84, 83, 86, 84, 85],   // نسبة الحضور
+  [20, 21, 22, 23, 22, 24, 24],   // الطلاب المتفوقون
+  [140, 142, 148, 150, 152, 155, 156], // الحصص المسجلة
+];
+
 // Activity Feed mock data
 const activityFeedData = [
   { id: 1, type: 'registration' as const, description: 'تم تسجيل الطالبة نورا أحمد في الصف الثالث', time: 'منذ 5 دقائق', icon: UserPlus, color: '#10b981', bgColor: 'bg-emerald-500/15' },
@@ -1459,8 +1469,13 @@ export default function DashboardOverview() {
         />
       </div>
 
-      {/* ── KPI Cards Grid (with staggered animation) ── */}
-      <div className="aurora-bg glass-medium rounded-2xl p-1 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {/* ── KPI Cards Grid (responsive CSS Grid with staggered animation) ── */}
+      <div
+        className="aurora-bg glass-medium rounded-2xl p-1 grid gap-4"
+        style={{
+          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+        }}
+      >
         {kpiCards.map((card, index) => (
           <div
             key={card.label}
@@ -1475,6 +1490,7 @@ export default function DashboardOverview() {
               icon={card.icon}
               color={card.color}
               subtext={card.subtext}
+              sparklineData={KPI_SPARKLINES[index]}
             />
           </div>
         ))}
@@ -1556,13 +1572,16 @@ export default function DashboardOverview() {
         />
       </div>
 
-      {/* ── Analytics Row ── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5 animate-fade-in-up opacity-0" style={{ animationDelay: '800ms' }}>
+      {/* ── Analytics Row (responsive CSS Grid) ── */}
+      <div
+        className="grid gap-6 animate-fade-in-up opacity-0"
+        style={{ animationDelay: '800ms', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}
+      >
         {/* Weekly Interaction Chart — takes 3 cols */}
         <WidgetContainer
           title="تحليل التفاعل الأسبوعي"
           icon={<MessageSquare className="h-4 w-4" />}
-          className="lg:col-span-3"
+          className="min-[960px]:col-span-2"
           onRefresh={() => setStats(null)}
           badge={weeklyInteractionData.length}
         >
@@ -1573,7 +1592,7 @@ export default function DashboardOverview() {
         <WidgetContainer
           title="آخر التنبيهات"
           icon={<Bell className="h-4 w-4" />}
-          className="lg:col-span-2"
+          className="min-[960px]:col-span-1"
           badge={notificationsData.length}
         >
           <div className="flex flex-col divide-y divide-white/[0.04]">
@@ -1590,11 +1609,14 @@ export default function DashboardOverview() {
       </div>
 
       {/* ── Activity Feed + Student Leaderboard Row ── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 animate-fade-in-up opacity-0" style={{ animationDelay: '850ms' }}>
+      <div
+        className="grid gap-6 animate-fade-in-up opacity-0"
+        style={{ animationDelay: '850ms', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}
+      >
         <WidgetContainer
           title="آخر الأنشطة"
           icon={<Megaphone className="h-4 w-4" />}
-          className="lg:col-span-2"
+          className="min-[960px]:col-span-1"
           onRefresh={() => {}}
           badge={8}
         >
@@ -1683,7 +1705,10 @@ export default function DashboardOverview() {
       <div className="divider-ornament animate-fade-in opacity-0" style={{ animationDelay: '1000ms' }} />
 
       {/* ── Bottom Row: Classroom Map + Attendance + Upcoming Events ── */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 animate-fade-in-up opacity-0" style={{ animationDelay: '1050ms' }}>
+      <div
+        className="grid gap-6 animate-fade-in-up opacity-0"
+        style={{ animationDelay: '1050ms', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}
+      >
         {/* Classroom Map */}
         <WidgetContainer
           title="خريطة الفصل التفاعلية"
@@ -1722,7 +1747,10 @@ export default function DashboardOverview() {
       </div>
 
       {/* ── Calendar + Upcoming Events Row ── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 animate-fade-in-up opacity-0" style={{ animationDelay: '1150ms' }}>
+      <div
+        className="grid gap-6 animate-fade-in-up opacity-0"
+        style={{ animationDelay: '1150ms', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}
+      >
         {/* Calendar Widget */}
         <div className="flex items-start justify-center">
           <CalendarWidget />

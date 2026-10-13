@@ -14,6 +14,11 @@ import {
   BookOpen,
   Download,
   Upload,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  MessageSquare,
+  Mail,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import type { Student } from '@/lib/types';
@@ -63,12 +68,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet';
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
 const ITEMS_PER_PAGE = 10;
+
+type SortField = 'name' | 'studentId' | 'className' | 'status' | 'notes';
+type SortDir = 'asc' | 'desc';
 
 const STATUS_MAP: Record<Student['status'], { label: string; className: string }> = {
   active: {
@@ -266,23 +281,23 @@ function getClassName(classId: string | null): string {
 // Sub-components
 // ---------------------------------------------------------------------------
 
-/** Status badge */
+/** Status badge with colored dot + text */
 function StatusBadge({ status }: { status: Student['status'] }) {
   const config = STATUS_MAP[status];
+  const dotColor = status === 'active' ? '#34d399' : status === 'inactive' ? '#fbbf24' : '#38bdf8';
   return (
-    <Badge
-      variant="outline"
-      className={cn('text-xs font-medium px-2.5 py-0.5 rounded-full', config.className)}
-    >
+    <span className="inline-flex items-center gap-2">
       <span
-        className={cn('inline-block h-1.5 w-1.5 rounded-full', {
-          'bg-emerald-400': status === 'active',
-          'bg-amber-400': status === 'inactive',
-          'bg-sky-400': status === 'graduated',
-        })}
+        className="h-2 w-2 rounded-full shrink-0"
+        style={{ backgroundColor: dotColor, boxShadow: `0 0 6px ${dotColor}40` }}
       />
-      {config.label}
-    </Badge>
+      <Badge
+        variant="outline"
+        className={cn('text-xs font-medium px-2.5 py-0.5 rounded-full', config.className)}
+      >
+        {config.label}
+      </Badge>
+    </span>
   );
 }
 
@@ -638,10 +653,20 @@ function DeleteStudentDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { deleteStudent } = useAppStore();
+  const { deleteStudent, addToTrash } = useAppStore();
 
   const handleDelete = () => {
     if (student) {
+      addToTrash({
+        id: `trash-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        itemType: 'student',
+        itemId: student.id,
+        itemName: student.name,
+        deletedBy: 'المدير',
+        dataJson: JSON.stringify(student),
+        restoredAt: null,
+        createdAt: new Date().toISOString(),
+      });
       deleteStudent(student.id);
       toast.success('تم حذف الطالب');
       onOpenChange(false);
@@ -691,6 +716,34 @@ function DeleteStudentDialog({
 // Main Component
 // ---------------------------------------------------------------------------
 
+/** Avatar initials circle */
+function AvatarInitials({ name }: { name: string }) {
+  const initials = name.split(' ').slice(0, 2).map(w => w.charAt(0)).join('');
+  return (
+    <div className="flex items-center justify-center h-9 w-9 rounded-full bg-gradient-to-br from-[#D4A574]/25 to-[#D4A574]/8 shrink-0 border border-[#D4A574]/15">
+      <span className="text-sm font-bold text-[#D4A574]">{initials}</span>
+    </div>
+  );
+}
+
+/** Sortable column header */
+function SortableHeader({ label, field, sortField, sortDir, onSort }: { label: string; field: SortField; sortField: SortField; sortDir: SortDir; onSort: (f: SortField) => void }) {
+  const isActive = sortField === field;
+  return (
+    <button
+      onClick={() => onSort(field)}
+      className="flex items-center gap-1 text-slate-400 font-semibold text-xs uppercase tracking-wider hover:text-[#D4A574] transition-colors"
+    >
+      {label}
+      {isActive ? (
+        sortDir === 'asc' ? <ArrowUp className="h-3 w-3 text-[#D4A574]" /> : <ArrowDown className="h-3 w-3 text-[#D4A574]" />
+      ) : (
+        <ArrowUpDown className="h-3 w-3 opacity-30" />
+      )}
+    </button>
+  );
+}
+
 export default function StudentsSection() {
   const { students, setStudents, addStudent } = useAppStore();
 
@@ -703,6 +756,10 @@ export default function StudentsSection() {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetStudent, setSheetStudent] = useState<Student | null>(null);
 
   // Initialize mock data once
   const initialized = useRef(false);
@@ -713,7 +770,17 @@ export default function StudentsSection() {
     }
   }, []);  
 
-  // Filtered & searched list
+  // Sort handler
+  const handleSort = useCallback((field: SortField) => {
+    if (sortField === field) {
+      setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDir('asc');
+    }
+  }, [sortField]);
+
+  // Filtered, searched & sorted list
   const filteredStudents = useMemo(() => {
     let result = [...students];
 
@@ -732,8 +799,21 @@ export default function StudentsSection() {
       );
     }
 
+    // Sort
+    result.sort((a, b) => {
+      let cmp = 0;
+      switch (sortField) {
+        case 'name': cmp = a.name.localeCompare(b.name, 'ar'); break;
+        case 'studentId': cmp = a.studentId.localeCompare(b.studentId); break;
+        case 'className': cmp = getClassName(a.classId).localeCompare(getClassName(b.classId), 'ar'); break;
+        case 'status': cmp = a.status.localeCompare(b.status); break;
+        case 'notes': cmp = (a.notes || '').localeCompare(b.notes || '', 'ar'); break;
+      }
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+
     return result;
-  }, [students, statusFilter, localSearch]);
+  }, [students, statusFilter, localSearch, sortField, sortDir]);
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(filteredStudents.length / ITEMS_PER_PAGE));
@@ -756,6 +836,11 @@ export default function StudentsSection() {
   const handleView = (student: Student) => {
     setSelectedStudent(student);
     setViewOpen(true);
+  };
+
+  const handleRowClick = (student: Student) => {
+    setSheetStudent(student);
+    setSheetOpen(true);
   };
 
   const handleCloseProfile = useCallback(() => {
@@ -927,20 +1012,20 @@ export default function StudentsSection() {
           <Table>
             <TableHeader>
               <TableRow className="border-b border-white/[0.06] hover:bg-transparent">
-                <TableHead className="text-slate-400 font-semibold text-xs uppercase tracking-wider py-3.5 px-4">
-                  الاسم
+                <TableHead className="py-3.5 px-4">
+                  <SortableHeader label="الاسم" field="name" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                 </TableHead>
-                <TableHead className="text-slate-400 font-semibold text-xs uppercase tracking-wider py-3.5 px-4">
-                  الرقم التعريفي
+                <TableHead className="py-3.5 px-4">
+                  <SortableHeader label="الرقم التعريفي" field="studentId" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                 </TableHead>
-                <TableHead className="text-slate-400 font-semibold text-xs uppercase tracking-wider py-3.5 px-4 hidden md:table-cell">
-                  الفصل
+                <TableHead className="py-3.5 px-4 hidden md:table-cell">
+                  <SortableHeader label="الفصل" field="className" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                 </TableHead>
-                <TableHead className="text-slate-400 font-semibold text-xs uppercase tracking-wider py-3.5 px-4">
-                  الحالة
+                <TableHead className="py-3.5 px-4">
+                  <SortableHeader label="الحالة" field="status" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                 </TableHead>
-                <TableHead className="text-slate-400 font-semibold text-xs uppercase tracking-wider py-3.5 px-4 hidden lg:table-cell">
-                  الملاحظات
+                <TableHead className="py-3.5 px-4 hidden lg:table-cell">
+                  <SortableHeader label="الملاحظات" field="notes" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                 </TableHead>
                 <TableHead className="text-slate-400 font-semibold text-xs uppercase tracking-wider py-3.5 px-4 text-center">
                   إجراءات
@@ -952,19 +1037,16 @@ export default function StudentsSection() {
                 <TableRow
                   key={student.id}
                   className={cn(
-                    'border-b border-white/[0.04] transition-all duration-200',
-                    'hover:bg-white/[0.04]',
+                    'border-b border-white/[0.04] transition-all duration-200 cursor-pointer',
+                    'hover:bg-[#D4A574]/5',
                     index % 2 === 1 ? 'bg-white/[0.015]' : 'bg-transparent',
                   )}
+                  onClick={() => handleRowClick(student)}
                 >
                   {/* Name */}
                   <TableCell className="py-3.5 px-4">
                     <div className="flex items-center gap-3">
-                      <div className="flex items-center justify-center h-9 w-9 rounded-full bg-gradient-to-br from-[#D4A574]/20 to-[#D4A574]/5 shrink-0 border border-[#D4A574]/10">
-                        <span className="text-sm font-bold text-[#D4A574]">
-                          {student.name.charAt(0)}
-                        </span>
-                      </div>
+                      <AvatarInitials name={student.name} />
                       <span className="text-sm font-medium text-slate-200 truncate max-w-[160px]">
                         {student.name}
                       </span>
@@ -1004,7 +1086,7 @@ export default function StudentsSection() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleView(student)}
+                        onClick={(e) => { e.stopPropagation(); handleView(student); }}
                         className="h-8 w-8 text-slate-400 hover:text-sky-400 hover:bg-sky-400/10 rounded-lg"
                         title="عرض"
                       >
@@ -1015,7 +1097,7 @@ export default function StudentsSection() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleEdit(student)}
+                        onClick={(e) => { e.stopPropagation(); handleEdit(student); }}
                         className="h-8 w-8 text-slate-400 hover:text-amber-400 hover:bg-amber-400/10 rounded-lg"
                         title="تعديل"
                       >
@@ -1026,7 +1108,7 @@ export default function StudentsSection() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleDelete(student)}
+                        onClick={(e) => { e.stopPropagation(); handleDelete(student); }}
                         className="h-8 w-8 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg"
                         title="حذف"
                       >
@@ -1106,6 +1188,121 @@ export default function StudentsSection() {
           )}
         </div>
       )}
+
+      {/* ── Student Quick View Sheet ── */}
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent
+          side="left"
+          dir="rtl"
+          className="bg-[#1A1A24] border-r border-white/[0.06] overflow-y-auto"
+        >
+          <SheetHeader>
+            <SheetTitle className="text-white text-lg">الملف السريع للطالب</SheetTitle>
+            <SheetDescription className="text-muted-foreground text-sm">نظرة سريعة على بيانات الطالب</SheetDescription>
+          </SheetHeader>
+          {sheetStudent && (
+            <div className="flex flex-col gap-5 px-4 pb-6">
+              {/* Avatar + Name */}
+              <div className="flex items-center gap-4">
+                <div className="flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-br from-[#D4A574]/30 to-[#D4A574]/10 border-2 border-[#D4A574]/20 shrink-0">
+                  <span className="text-2xl font-bold text-[#D4A574]">
+                    {sheetStudent.name.split(' ').slice(0, 2).map(w => w.charAt(0)).join('')}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">{sheetStudent.name}</h3>
+                  <p className="text-sm text-muted-foreground font-mono" dir="ltr">{sheetStudent.studentId}</p>
+                </div>
+              </div>
+
+              {/* Class + Status */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg p-3" style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <p className="text-[10px] text-muted-foreground mb-1">الفصل</p>
+                  <p className="text-sm font-semibold text-slate-200">{getClassName(sheetStudent.classId)}</p>
+                </div>
+                <div className="rounded-lg p-3" style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <p className="text-[10px] text-muted-foreground mb-1">الحالة</p>
+                  <StatusBadge status={sheetStudent.status} />
+                </div>
+              </div>
+
+              {/* Grades summary (mock) */}
+              <div className="rounded-lg p-4" style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <h4 className="text-sm font-semibold text-slate-300 mb-3">ملخص الدرجات</h4>
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div>
+                    <p className="text-xl font-bold text-[#D4A574]">87%</p>
+                    <p className="text-[10px] text-muted-foreground">المعدل</p>
+                  </div>
+                  <div>
+                    <p className="text-xl font-bold text-emerald-400">92</p>
+                    <p className="text-[10px] text-muted-foreground">أعلى درجة</p>
+                  </div>
+                  <div>
+                    <p className="text-xl font-bold text-sky-400">5</p>
+                    <p className="text-[10px] text-muted-foreground">مواد</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recent attendance (mock) */}
+              <div className="rounded-lg p-4" style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <h4 className="text-sm font-semibold text-slate-300 mb-3">الحضور الأخير</h4>
+                <div className="flex gap-1.5">
+                  {['ح', 'ح', 'ح', 'غ', 'ح', 'ح', 'م', 'ح', 'ح', 'ح', 'ح', 'ح', 'م', 'ح'].map((d, i) => (
+                    <span
+                      key={i}
+                      className={cn(
+                        'inline-flex items-center justify-center h-6 w-6 rounded text-[10px] font-bold',
+                        d === 'ح' ? 'bg-emerald-500/15 text-emerald-400' :
+                        d === 'غ' ? 'bg-rose-500/15 text-rose-400' :
+                        'bg-amber-500/15 text-amber-400'
+                      )}
+                    >
+                      {d}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Notes */}
+              {sheetStudent.notes && (
+                <div className="rounded-lg p-4" style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <h4 className="text-sm font-semibold text-slate-300 mb-2">ملاحظات</h4>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{sheetStudent.notes}</p>
+                </div>
+              )}
+
+              {/* Quick action buttons */}
+              <div className="flex flex-col gap-2">
+                <Button
+                  onClick={() => { setSheetOpen(false); handleEdit(sheetStudent); }}
+                  className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold gap-2 rounded-lg w-full"
+                >
+                  <Pencil className="h-4 w-4" />
+                  تعديل البيانات
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white gap-2 rounded-lg w-full"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  إرسال رسالة
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => { setSheetOpen(false); handleView(sheetStudent); }}
+                  className="border-[#D4A574]/30 text-[#D4A574] hover:bg-[#D4A574]/10 gap-2 rounded-lg w-full"
+                >
+                  <Eye className="h-4 w-4" />
+                  عرض الملف الكامل
+                </Button>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
 
       {/* ── Dialogs ── */}
       <StudentFormDialog

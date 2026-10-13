@@ -1,0 +1,1321 @@
+     1→'use client';
+     2→
+     3→import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+     4→import {
+     5→  Megaphone,
+     6→  Plus,
+     7→  Pencil,
+     8→  Trash2,
+     9→  Search,
+    10→  Pin,
+    11→  PinOff,
+    12→  ChevronLeft,
+    13→  ChevronRight,
+    14→  Clock,
+    15→  User,
+    16→  AlertTriangle,
+    17→  X,
+    18→  CalendarDays,
+    19→  Filter,
+    20→} from 'lucide-react';
+    21→import { cn } from '@/lib/utils';
+    22→import { toast } from 'sonner';
+    23→
+    24→// shadcn/ui
+    25→import { Button } from '@/components/ui/button';
+    26→import { Input } from '@/components/ui/input';
+    27→import { Label } from '@/components/ui/label';
+    28→import { Badge } from '@/components/ui/badge';
+    29→import { Textarea } from '@/components/ui/textarea';
+    30→import {
+    31→  Dialog,
+    32→  DialogContent,
+    33→  DialogDescription,
+    34→  DialogFooter,
+    35→  DialogHeader,
+    36→  DialogTitle,
+    37→} from '@/components/ui/dialog';
+    38→import {
+    39→  AlertDialog,
+    40→  AlertDialogAction,
+    41→  AlertDialogCancel,
+    42→  AlertDialogContent,
+    43→  AlertDialogDescription,
+    44→  AlertDialogFooter,
+    45→  AlertDialogHeader,
+    46→  AlertDialogTitle,
+    47→} from '@/components/ui/alert-dialog';
+    48→import {
+    49→  Select,
+    50→  SelectContent,
+    51→  SelectItem,
+    52→  SelectTrigger,
+    53→  SelectValue,
+    54→} from '@/components/ui/select';
+    55→
+    56→// ---------------------------------------------------------------------------
+    57→// Types
+    58→// ---------------------------------------------------------------------------
+    59→
+    60→interface Announcement {
+    61→  id: string;
+    62→  title: string;
+    63→  content: string;
+    64→  category: 'general' | 'academic' | 'event' | 'urgent' | 'parent';
+    65→  priority: 'low' | 'normal' | 'high' | 'urgent';
+    66→  author: string;
+    67→  pinned: boolean;
+    68→  expiresAt: string | null;
+    69→  createdAt: string;
+    70→  updatedAt: string;
+    71→}
+    72→
+    73→// ---------------------------------------------------------------------------
+    74→// Constants
+    75→// ---------------------------------------------------------------------------
+    76→
+    77→const ITEMS_PER_PAGE = 10;
+    78→
+    79→const CATEGORY_CONFIG: Record<Announcement['category'], { label: string; color: string; bgClass: string; borderClass: string; textClass: string }> = {
+    80→  general: {
+    81→    label: 'عام',
+    82→    color: '#D4A574',
+    83→    bgClass: 'bg-amber-500/15',
+    84→    borderClass: 'border-amber-500/20',
+    85→    textClass: 'text-amber-400',
+    86→  },
+    87→  academic: {
+    88→    label: 'أكاديمي',
+    89→    color: '#10b981',
+    90→    bgClass: 'bg-emerald-500/15',
+    91→    borderClass: 'border-emerald-500/20',
+    92→    textClass: 'text-emerald-400',
+    93→  },
+    94→  event: {
+    95→    label: 'فعاليات',
+    96→    color: '#38bdf8',
+    97→    bgClass: 'bg-sky-500/15',
+    98→    borderClass: 'border-sky-500/20',
+    99→    textClass: 'text-sky-400',
+   100→  },
+   101→  urgent: {
+   102→    label: 'عاجل',
+   103→    color: '#f43f5e',
+   104→    bgClass: 'bg-rose-500/15',
+   105→    borderClass: 'border-rose-500/20',
+   106→    textClass: 'text-rose-400',
+   107→  },
+   108→  parent: {
+   109→    label: 'أولياء الأمور',
+   110→    color: '#8b5cf6',
+   111→    bgClass: 'bg-violet-500/15',
+   112→    borderClass: 'border-violet-500/20',
+   113→    textClass: 'text-violet-400',
+   114→  },
+   115→};
+   116→
+   117→const PRIORITY_CONFIG: Record<Announcement['priority'], { label: string; bgClass: string; textClass: string; dotClass: string; pulse?: boolean }> = {
+   118→  low: {
+   119→    label: 'منخفض',
+   120→    bgClass: 'bg-slate-500/15',
+   121→    textClass: 'text-slate-400',
+   122→    dotClass: 'bg-slate-400',
+   123→  },
+   124→  normal: {
+   125→    label: 'عادي',
+   126→    bgClass: 'bg-amber-500/15',
+   127→    textClass: 'text-amber-400',
+   128→    dotClass: 'bg-amber-400',
+   129→  },
+   130→  high: {
+   131→    label: 'مرتفع',
+   132→    bgClass: 'bg-orange-500/15',
+   133→    textClass: 'text-orange-400',
+   134→    dotClass: 'bg-orange-400',
+   135→  },
+   136→  urgent: {
+   137→    label: 'عاجل',
+   138→    bgClass: 'bg-rose-500/15',
+   139→    textClass: 'text-rose-400',
+   140→    dotClass: 'bg-rose-400',
+   141→    pulse: true,
+   142→  },
+   143→};
+   144→
+   145→const CATEGORY_TABS: { value: string; label: string }[] = [
+   146→  { value: 'all', label: 'الكل' },
+   147→  { value: 'general', label: 'عام' },
+   148→  { value: 'academic', label: 'أكاديمي' },
+   149→  { value: 'event', label: 'فعاليات' },
+   150→  { value: 'urgent', label: 'عاجل' },
+   151→  { value: 'parent', label: 'أولياء الأمور' },
+   152→];
+   153→
+   154→// ---------------------------------------------------------------------------
+   155→// Mock Data
+   156→// ---------------------------------------------------------------------------
+   157→
+   158→const INITIAL_ANNOUNCEMENTS: Announcement[] = [
+   159→  {
+   160→    id: 'ann-001',
+   161→    title: 'بداية الفصل الدراسي الثاني',
+   162→    content: 'نود إبلاغ أولياء الأمور والطلاب بأن الفصل الدراسي الثاني سيبدأ يوم الأحد ١٤ يناير ٢٠٢٥. يرجى التأكد من تجهيز الكتب والأدوات المدرسية. نتطلع لاستقبال أبنائنا الطلاب بكل حفاوة وترحيب.',
+   163→    category: 'general',
+   164→    priority: 'high',
+   165→    author: 'المدير العام',
+   166→    pinned: true,
+   167→    expiresAt: '2025-02-01T00:00:00.000Z',
+   168→    createdAt: '2025-01-05T08:00:00.000Z',
+   169→    updatedAt: '2025-01-05T08:00:00.000Z',
+   170→  },
+   171→  {
+   172→    id: 'ann-002',
+   173→    title: 'مواعيد الامتحانات النهائية',
+   174→    content: 'تم تحديد مواعيد الامتحانات النهائية للفصل الأول. تبدأ الامتحانات يوم الأحد ٢٠ ديسمبر وتستمر حتى الخميس ٣١ ديسمبر. يرجى الاطلاع على الجدول المفصل المنشور على لوحة الإعلانات.',
+   175→    category: 'academic',
+   176→    priority: 'urgent',
+   177→    author: 'قسم الشؤون الأكاديمية',
+   178→    pinned: true,
+   179→    expiresAt: '2025-01-15T00:00:00.000Z',
+   180→    createdAt: '2025-01-03T10:00:00.000Z',
+   181→    updatedAt: '2025-01-03T10:00:00.000Z',
+   182→  },
+   183→  {
+   184→    id: 'ann-003',
+   185→    title: 'أنشطة اليوم الوطني',
+   186→    content: 'تتشرف إدارة المدرسة بدعوتكم لحضور فعاليات اليوم الوطني التي ستقام يوم الخميس القادم. تتضمن الفعاليات عروضًا ثقافية ومعارض فنية ومسابقات للطلاب.',
+   187→    category: 'event',
+   188→    priority: 'normal',
+   189→    author: 'لجنة الأنشطة',
+   190→    pinned: false,
+   191→    expiresAt: null,
+   192→    createdAt: '2025-01-02T12:00:00.000Z',
+   193→    updatedAt: '2025-01-02T12:00:00.000Z',
+   194→  },
+   195→  {
+   196→    id: 'ann-004',
+   197→    title: 'تعليق الدراسة بسبب الأحوال الجوية',
+   198→    content: 'بناءً على توجيهات وزارة التعليم وتنسيقًا مع الأرصاد الجوية، يُعلن عن تعليق الدراسة غدًا الثلاثاء بسبب توقع هطول أمطار غزيرة. سيتم تعويض اليوم الدراسي لاحقًا.',
+   199→    category: 'urgent',
+   200→    priority: 'urgent',
+   201→    author: 'إدارة المدرسة',
+   202→    pinned: true,
+   203→    expiresAt: '2025-01-10T00:00:00.000Z',
+   204→    createdAt: '2025-01-06T18:00:00.000Z',
+   205→    updatedAt: '2025-01-06T18:00:00.000Z',
+   206→  },
+   207→  {
+   208→    id: 'ann-005',
+   209→    title: 'نتائج المسابقة العلمية',
+   210→    content: 'تهنئ إدارة المدرسة الطلاب الفائزين في المسابقة العلمية الإقليمية. حصلت مدرستنا على المركز الأول في فرق البحث العلمي والمركز الثاني في المسابقة الرياضية. شكرًا لجميع المشاركين والمشرفين على جهودهم المتميزة.',
+   211→    category: 'academic',
+   212→    priority: 'normal',
+   213→    author: 'المشرف الأكاديمي',
+   214→    pinned: false,
+   215→    expiresAt: null,
+   216→    createdAt: '2025-01-01T09:00:00.000Z',
+   217→    updatedAt: '2025-01-01T09:00:00.000Z',
+   218→  },
+   219→  {
+   220→    id: 'ann-006',
+   221→    title: 'اجتماع أولياء الأمور',
+   222→    content: 'يدعو مجلس المعلمين أولياء أمور الطلاب لحضور الاجتماع الدوري الذي سيُعقد يوم الأربعاء القادم في قاعة المحاضرات. سيتم مناقشة نتائج الفصل الدراسي الأول والخطط المستقبلية.',
+   223→    category: 'parent',
+   224→    priority: 'high',
+   225→    author: 'مجلس المعلمين',
+   226→    pinned: false,
+   227→    expiresAt: '2025-01-20T00:00:00.000Z',
+   228→    createdAt: '2025-01-04T14:00:00.000Z',
+   229→    updatedAt: '2025-01-04T14:00:00.000Z',
+   230→  },
+   231→  {
+   232→    id: 'ann-007',
+   233→    title: 'تحديثات النظام المدرسي',
+   234→    content: 'تم تحديث نظام الإدارة المدرسية بإضافة ميزات جديدة تشمل: متابعة الحضور الإلكتروني، التقارير الأكاديمية التفصيلية، ونظام الإشعارات الفوري. يرجى تسجيل الدخول وتجربة الميزات الجديدة.',
+   235→    category: 'general',
+   236→    priority: 'low',
+   237→    author: 'قسم التقنية',
+   238→    pinned: false,
+   239→    expiresAt: null,
+   240→    createdAt: '2024-12-28T11:00:00.000Z',
+   241→    updatedAt: '2024-12-28T11:00:00.000Z',
+   242→  },
+   243→  {
+   244→    id: 'ann-008',
+   245→    title: 'رحلة علمية لمتحف العلوم',
+   246→    content: 'تنظم إدارة المدرسة رحلة علمية لزيارة المتحف الوطني للعلوم والتكنولوجيا يوم الأحد القادم. الرحلة مخصصة لطلاب الصفوف العليا. يرجى التسجيل لدى مشرف النشاط قبل يوم الخميس.',
+   247→    category: 'event',
+   248→    priority: 'normal',
+   249→    author: 'قسم الأنشطة الطلابية',
+   250→    pinned: false,
+   251→    expiresAt: '2025-01-12T00:00:00.000Z',
+   252→    createdAt: '2024-12-30T08:30:00.000Z',
+   253→    updatedAt: '2024-12-30T08:30:00.000Z',
+   254→  },
+   255→  {
+   256→    id: 'ann-009',
+   257→    title: 'برنامج دعم الطلاب المتعثرين',
+   258→    content: 'تُعلن إدارة المدرسة عن إطلاق برنامج دعم أكاديمي خاص للطلاب المتعثرين في بعض المواد. سيبدأ البرنامج الأسبوع القادم ويشمل حصصًا تقوية يومية بعد الدوام.',
+   259→    category: 'parent',
+   260→    priority: 'normal',
+   261→    author: 'المرشد التربوي',
+   262→    pinned: false,
+   263→    expiresAt: null,
+   264→    createdAt: '2024-12-27T10:00:00.000Z',
+   265→    updatedAt: '2024-12-27T10:00:00.000Z',
+   266→  },
+   267→  {
+   268→    id: 'ann-010',
+   269→    title: 'ملاحظات بخصوص الزي المدرسي',
+   270→    content: 'نود تذكير أولياء الأمور بأهمية الالتزام بالزي المدرسي الرسمي. سيتم تطبيق لائحة الانضباط بدءًا من الأسبوع القادم على الطلاب غير الملتزمين بالزي المدرسي.',
+   271→    category: 'general',
+   272→    priority: 'normal',
+   273→    author: 'إدارة الشؤون الطلابية',
+   274→    pinned: false,
+   275→    expiresAt: '2025-02-01T00:00:00.000Z',
+   276→    createdAt: '2024-12-25T09:00:00.000Z',
+   277→    updatedAt: '2024-12-25T09:00:00.000Z',
+   278→  },
+   279→  {
+   280→    id: 'ann-011',
+   281→    title: 'نتائج مسابقة القرآن الكريم',
+   282→    content: 'تهنئة خاصة بالطلاب المشاركين في مسابقة حفظ القرآن الكريم التي أقيمت الأسبوع الماضي. تم تكريم الفائزين في حفل صباحي بحضور مدير التعليم. بارك الله في جهود الجميع.',
+   283→    category: 'academic',
+   284→    priority: 'normal',
+   285→    author: 'قسم التربية الإسلامية',
+   286→    pinned: false,
+   287→    expiresAt: null,
+   288→    createdAt: '2024-12-20T15:00:00.000Z',
+   289→    updatedAt: '2024-12-20T15:00:00.000Z',
+   290→  },
+   291→  {
+   292→    id: 'ann-012',
+   293→    title: 'صيانة المرافق المدرسية',
+   294→    content: 'سيتم إجراء أعمال صيانة في مبنى الصفوف الثانوية يوم الجمعة. يرجى عدم دخول المنطقة المخصصة للصيانة. سيتم الانتهاء من الأعمال بحلول مساء يوم السبت إن شاء الله.',
+   295→    category: 'general',
+   296→    priority: 'low',
+   297→    author: 'قسم الصيانة',
+   298→    pinned: false,
+   299→    expiresAt: '2025-01-10T00:00:00.000Z',
+   300→    createdAt: '2024-12-18T07:00:00.000Z',
+   301→    updatedAt: '2024-12-18T07:00:00.000Z',
+   302→  },
+   303→];
+   304→
+   305→// ---------------------------------------------------------------------------
+   306→// Helpers
+   307→// ---------------------------------------------------------------------------
+   308→
+   309→function getRelativeTime(dateString: string): string {
+   310→  const now = Date.now();
+   311→  const date = new Date(dateString).getTime();
+   312→  const diffMs = now - date;
+   313→  const diffSeconds = Math.floor(diffMs / 1000);
+   314→  const diffMinutes = Math.floor(diffSeconds / 60);
+   315→  const diffHours = Math.floor(diffMinutes / 60);
+   316→  const diffDays = Math.floor(diffHours / 24);
+   317→
+   318→  if (diffSeconds < 60) return 'منذ لحظات';
+   319→  if (diffMinutes < 60) return `منذ ${diffMinutes} دقيقة`;
+   320→  if (diffHours < 24) return `منذ ${diffHours} ساعة`;
+   321→  if (diffDays < 7) return `منذ ${diffDays} يوم`;
+   322→  return new Date(dateString).toLocaleDateString('ar-SA');
+   323→}
+   324→
+   325→function isExpired(expiresAt: string | null): boolean {
+   326→  if (!expiresAt) return false;
+   327→  return new Date(expiresAt) < new Date();
+   328→}
+   329→
+   330→// ---------------------------------------------------------------------------
+   331→// Sub-components
+   332→// ---------------------------------------------------------------------------
+   333→
+   334→/** Category badge */
+   335→function CategoryBadge({ category }: { category: Announcement['category'] }) {
+   336→  const config = CATEGORY_CONFIG[category];
+   337→  return (
+   338→    <Badge
+   339→      variant="outline"
+   340→      className={cn(
+   341→        'text-xs font-medium px-2.5 py-0.5 rounded-full',
+   342→        config.bgClass,
+   343→        config.textClass,
+   344→        config.borderClass,
+   345→      )}
+   346→    >
+   347→      {config.label}
+   348→    </Badge>
+   349→  );
+   350→}
+   351→
+   352→/** Priority indicator */
+   353→function PriorityIndicator({ priority }: { priority: Announcement['priority'] }) {
+   354→  const config = PRIORITY_CONFIG[priority];
+   355→  return (
+   356→    <Badge
+   357→      variant="outline"
+   358→      className={cn(
+   359→        'text-[10px] font-medium px-2 py-0.5 rounded-full gap-1.5',
+   360→        config.bgClass,
+   361→        config.textClass,
+   362→        'border-transparent',
+   363→      )}
+   364→    >
+   365→      <span
+   366→        className={cn('inline-block h-1.5 w-1.5 rounded-full', config.dotClass, {
+   367→          'animate-pulse': config.pulse,
+   368→        })}
+   369→      />
+   370→      {config.label}
+   371→    </Badge>
+   372→  );
+   373→}
+   374→
+   375→/** Empty state */
+   376→function EmptyState({ onAdd }: { onAdd: () => void }) {
+   377→  return (
+   378→    <div className="flex flex-col items-center justify-center py-16 px-4">
+   379→      <div className="flex items-center justify-center h-20 w-20 rounded-2xl bg-white/[0.03] border border-white/[0.06] mb-6">
+   380→        <Megaphone className="h-10 w-10 text-slate-500" />
+   381→      </div>
+   382→      <h3 className="text-lg font-semibold text-slate-300 mb-2">
+   383→        لا توجد إعلانات حالياً
+   384→      </h3>
+   385→      <p className="text-sm text-muted-foreground mb-6 text-center max-w-sm">
+   386→        ابدأ بإضافة إعلانات جديدة لإبقاء الجميع على اطلاع بأحدث الأخبار والفعاليات
+   387→      </p>
+   388→      <Button
+   389→        onClick={onAdd}
+   390→        className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold gap-2 rounded-lg px-6 btn-shine"
+   391→      >
+   392→        <Plus className="h-4 w-4" />
+   393→        إضافة إعلان
+   394→      </Button>
+   395→    </div>
+   396→  );
+   397→}
+   398→
+   399→/** Announcement detail view dialog */
+   400→function ViewAnnouncementDialog({
+   401→  announcement,
+   402→  open,
+   403→  onOpenChange,
+   404→}: {
+   405→  announcement: Announcement | null;
+   406→  open: boolean;
+   407→  onOpenChange: (open: boolean) => void;
+   408→}) {
+   409→  if (!announcement) return null;
+   410→
+   411→  const catConfig = CATEGORY_CONFIG[announcement.category];
+   412→  const priConfig = PRIORITY_CONFIG[announcement.priority];
+   413→  const expired = isExpired(announcement.expiresAt);
+   414→
+   415→  return (
+   416→    <Dialog open={open} onOpenChange={onOpenChange}>
+   417→      <DialogContent
+   418→        className="sm:max-w-lg max-h-[85vh] overflow-y-auto"
+   419→        dir="rtl"
+   420→        style={{
+   421→          backgroundColor: '#1A1A24',
+   422→          border: '1px solid rgba(255,255,255,0.06)',
+   423→        }}
+   424→      >
+   425→        <DialogHeader>
+   426→          <div className="flex items-center gap-3 flex-wrap">
+   427→            <DialogTitle className="text-white text-xl flex-1">
+   428→              {announcement.title}
+   429→            </DialogTitle>
+   430→            {announcement.pinned && (
+   431→              <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/20 text-xs px-2 py-0.5 rounded-full gap-1">
+   432→                <Pin className="h-3 w-3" />
+   433→                مثبت
+   434→              </Badge>
+   435→            )}
+   436→          </div>
+   437→          <div className="flex items-center gap-2 mt-2">
+   438→            <CategoryBadge category={announcement.category} />
+   439→            <PriorityIndicator priority={announcement.priority} />
+   440→            {expired && (
+   441→              <Badge className="bg-rose-500/15 text-rose-400 border-rose-500/20 text-xs px-2 py-0.5 rounded-full gap-1">
+   442→                <X className="h-3 w-3" />
+   443→                منتهي
+   444→              </Badge>
+   445→            )}
+   446→          </div>
+   447→        </DialogHeader>
+   448→
+   449→        <div className="flex flex-col gap-4 mt-2">
+   450→          {/* Content */}
+   451→          <div
+   452→            className="rounded-xl p-4"
+   453→            style={{
+   454→              backgroundColor: 'rgba(255,255,255,0.02)',
+   455→              border: `1px solid ${catConfig.color}15`,
+   456→            }}
+   457→          >
+   458→            <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">
+   459→              {announcement.content}
+   460→            </p>
+   461→          </div>
+   462→
+   463→          {/* Meta info */}
+   464→          <div
+   465→            className="rounded-xl p-4"
+   466→            style={{
+   467→              backgroundColor: 'rgba(255,255,255,0.02)',
+   468→              border: '1px solid rgba(255,255,255,0.04)',
+   469→            }}
+   470→          >
+   471→            <div className="grid grid-cols-1 gap-3">
+   472→              <div className="flex items-center justify-between gap-3 py-1.5 border-b border-white/[0.04]">
+   473→                <div className="flex items-center gap-3">
+   474→                  <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#D4A574]/10">
+   475→                    <User className="h-4 w-4 text-[#D4A574]" />
+   476→                  </div>
+   477→                  <span className="text-sm text-muted-foreground">الكاتب</span>
+   478→                </div>
+   479→                <span className="text-sm font-medium text-slate-200">{announcement.author}</span>
+   480→              </div>
+   481→              <div className="flex items-center justify-between gap-3 py-1.5 border-b border-white/[0.04]">
+   482→                <div className="flex items-center gap-3">
+   483→                  <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#D4A574]/10">
+   484→                    <Clock className="h-4 w-4 text-[#D4A574]" />
+   485→                  </div>
+   486→                  <span className="text-sm text-muted-foreground">تاريخ النشر</span>
+   487→                </div>
+   488→                <span className="text-sm text-slate-300">
+   489→                  {new Date(announcement.createdAt).toLocaleDateString('ar-SA', {
+   490→                    year: 'numeric',
+   491→                    month: 'long',
+   492→                    day: 'numeric',
+   493→                  })}
+   494→                </span>
+   495→              </div>
+   496→              {announcement.expiresAt && (
+   497→                <div className="flex items-center justify-between gap-3 py-1.5">
+   498→                  <div className="flex items-center gap-3">
+   499→                    <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-rose-500/10">
+   500→                      <CalendarDays className="h-4 w-4 text-rose-400" />
+   501→                    </div>
+   502→                    <span className="text-sm text-muted-foreground">تاريخ الانتهاء</span>
+   503→                  </div>
+   504→                  <span className={cn('text-sm', expired ? 'text-rose-400' : 'text-slate-300')}>
+   505→                    {new Date(announcement.expiresAt).toLocaleDateString('ar-SA', {
+   506→                      year: 'numeric',
+   507→                      month: 'long',
+   508→                      day: 'numeric',
+   509→                    })}
+   510→                  </span>
+   511→                </div>
+   512→              )}
+   513→            </div>
+   514→          </div>
+   515→
+   516→          {/* Last updated */}
+   517→          <div className="text-xs text-muted-foreground/60 text-center">
+   518→            آخر تحديث: {new Date(announcement.updatedAt).toLocaleDateString('ar-SA', {
+   519→              year: 'numeric',
+   520→              month: 'long',
+   521→              day: 'numeric',
+   522→              hour: '2-digit',
+   523→              minute: '2-digit',
+   524→            })}
+   525→          </div>
+   526→        </div>
+   527→      </DialogContent>
+   528→    </Dialog>
+   529→  );
+   530→}
+   531→
+   532→// ---------------------------------------------------------------------------
+   533→// Create / Edit form — inner content (mounts only when dialog is open)
+   534→// ---------------------------------------------------------------------------
+   535→
+   536→function AnnouncementFormContent({
+   537→  editingAnnouncement,
+   538→  onClose,
+   539→  onSubmit,
+   540→}: {
+   541→  editingAnnouncement: Announcement | null;
+   542→  onClose: () => void;
+   543→  onSubmit: (data: Omit<Announcement, 'id' | 'createdAt' | 'updatedAt'>) => void;
+   544→}) {
+   545→  const isEditing = !!editingAnnouncement;
+   546→
+   547→  const [title, setTitle] = useState(editingAnnouncement?.title ?? '');
+   548→  const [content, setContent] = useState(editingAnnouncement?.content ?? '');
+   549→  const [category, setCategory] = useState<string>(editingAnnouncement?.category ?? 'general');
+   550→  const [priority, setPriority] = useState<string>(editingAnnouncement?.priority ?? 'normal');
+   551→  const [author, setAuthor] = useState(editingAnnouncement?.author ?? 'المدير');
+   552→  const [expiresAt, setExpiresAt] = useState(
+   553→    editingAnnouncement?.expiresAt
+   554→      ? new Date(editingAnnouncement.expiresAt).toISOString().split('T')[0]
+   555→      : ''
+   556→  );
+   557→
+   558→  const handleSubmit = (e: React.FormEvent) => {
+   559→    e.preventDefault();
+   560→
+   561→    if (!title.trim() || !content.trim()) {
+   562→      toast.error('يرجى ملء العنوان والمحتوى');
+   563→      return;
+   564→    }
+   565→
+   566→    onSubmit({
+   567→      title: title.trim(),
+   568→      content: content.trim(),
+   569→      category: category as Announcement['category'],
+   570→      priority: priority as Announcement['priority'],
+   571→      author: author.trim() || 'المدير',
+   572→      pinned: editingAnnouncement?.pinned ?? false,
+   573→      expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
+   574→    });
+   575→
+   576→    onClose();
+   577→  };
+   578→
+   579→  return (
+   580→    <form onSubmit={handleSubmit} className="flex flex-col gap-5 mt-2">
+   581→      {/* Title */}
+   582→      <div className="flex flex-col gap-2">
+   583→        <Label className="text-slate-300 text-sm">عنوان الإعلان</Label>
+   584→        <Input
+   585→          value={title}
+   586→          onChange={(e) => setTitle(e.target.value)}
+   587→          placeholder="مثال: إعلان هام بخصوص الامتحانات"
+   588→          className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   589→          required
+   590→        />
+   591→      </div>
+   592→
+   593→      {/* Content */}
+   594→      <div className="flex flex-col gap-2">
+   595→        <Label className="text-slate-300 text-sm">محتوى الإعلان</Label>
+   596→        <Textarea
+   597→          value={content}
+   598→          onChange={(e) => setContent(e.target.value)}
+   599→          placeholder="اكتب محتوى الإعلان بالتفصيل..."
+   600→          className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 min-h-[120px] resize-y"
+   601→          required
+   602→        />
+   603→      </div>
+   604→
+   605→      {/* Category & Priority row */}
+   606→      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   607→        {/* Category */}
+   608→        <div className="flex flex-col gap-2">
+   609→          <Label className="text-slate-300 text-sm">التصنيف</Label>
+   610→          <Select value={category} onValueChange={setCategory}>
+   611→            <SelectTrigger className="w-full bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20">
+   612→              <SelectValue placeholder="اختر التصنيف" />
+   613→            </SelectTrigger>
+   614→            <SelectContent className="bg-[#1A1A24] border-white/[0.08]">
+   615→              {CATEGORY_TABS.filter((t) => t.value !== 'all').map((tab) => (
+   616→                <SelectItem
+   617→                  key={tab.value}
+   618→                  value={tab.value}
+   619→                  className="text-slate-200 focus:bg-white/[0.05] focus:text-white"
+   620→                >
+   621→                  {tab.label}
+   622→                </SelectItem>
+   623→              ))}
+   624→            </SelectContent>
+   625→          </Select>
+   626→        </div>
+   627→
+   628→        {/* Priority */}
+   629→        <div className="flex flex-col gap-2">
+   630→          <Label className="text-slate-300 text-sm">الأولوية</Label>
+   631→          <Select value={priority} onValueChange={setPriority}>
+   632→            <SelectTrigger className="w-full bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20">
+   633→              <SelectValue placeholder="اختر الأولوية" />
+   634→            </SelectTrigger>
+   635→            <SelectContent className="bg-[#1A1A24] border-white/[0.08]">
+   636→              <SelectItem value="low" className="text-slate-200 focus:bg-white/[0.05] focus:text-white">منخفض</SelectItem>
+   637→              <SelectItem value="normal" className="text-slate-200 focus:bg-white/[0.05] focus:text-white">عادي</SelectItem>
+   638→              <SelectItem value="high" className="text-slate-200 focus:bg-white/[0.05] focus:text-white">مرتفع</SelectItem>
+   639→              <SelectItem value="urgent" className="text-rose-400 focus:bg-white/[0.05] focus:text-white">عاجل</SelectItem>
+   640→            </SelectContent>
+   641→          </Select>
+   642→        </div>
+   643→      </div>
+   644→
+   645→      {/* Author & Expiry row */}
+   646→      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   647→        {/* Author */}
+   648→        <div className="flex flex-col gap-2">
+   649→          <Label className="text-slate-300 text-sm">اسم الكاتب</Label>
+   650→          <Input
+   651→            value={author}
+   652→            onChange={(e) => setAuthor(e.target.value)}
+   653→            placeholder="اسم الكاتب"
+   654→            className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   655→          />
+   656→        </div>
+   657→
+   658→        {/* Expiry date */}
+   659→        <div className="flex flex-col gap-2">
+   660→          <Label className="text-slate-300 text-sm">تاريخ الانتهاء (اختياري)</Label>
+   661→          <Input
+   662→            type="date"
+   663→            value={expiresAt}
+   664→            onChange={(e) => setExpiresAt(e.target.value)}
+   665→            className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 [color-scheme:dark]"
+   666→            dir="ltr"
+   667→          />
+   668→        </div>
+   669→      </div>
+   670→
+   671→      {/* Actions */}
+   672→      <DialogFooter className="flex-row gap-3 sm:justify-start pt-2">
+   673→        <Button
+   674→          type="submit"
+   675→          className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold rounded-lg px-6 gap-2"
+   676→        >
+   677→          {isEditing ? (
+   678→            <>
+   679→              <Pencil className="h-4 w-4" />
+   680→              حفظ التغييرات
+   681→            </>
+   682→          ) : (
+   683→            <>
+   684→              <Plus className="h-4 w-4" />
+   685→              نشر الإعلان
+   686→            </>
+   687→          )}
+   688→        </Button>
+   689→        <Button
+   690→          type="button"
+   691→          variant="outline"
+   692→          onClick={onClose}
+   693→          className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-6"
+   694→        >
+   695→          إلغاء
+   696→        </Button>
+   697→      </DialogFooter>
+   698→    </form>
+   699→  );
+   700→}
+   701→
+   702→/** Create / Edit dialog */
+   703→function AnnouncementFormDialog({
+   704→  open,
+   705→  onOpenChange,
+   706→  editingAnnouncement,
+   707→  onSubmit,
+   708→}: {
+   709→  open: boolean;
+   710→  onOpenChange: (open: boolean) => void;
+   711→  editingAnnouncement: Announcement | null;
+   712→  onSubmit: (data: Omit<Announcement, 'id' | 'createdAt' | 'updatedAt'>) => void;
+   713→}) {
+   714→  return (
+   715→    <Dialog open={open} onOpenChange={onOpenChange}>
+   716→      <DialogContent
+   717→        className="sm:max-w-lg max-h-[90vh] overflow-y-auto"
+   718→        dir="rtl"
+   719→        style={{
+   720→          backgroundColor: '#1A1A24',
+   721→          border: '1px solid rgba(255,255,255,0.06)',
+   722→        }}
+   723→      >
+   724→        <DialogHeader>
+   725→          <DialogTitle className="text-white text-xl">
+   726→            {editingAnnouncement ? 'تعديل الإعلان' : 'إضافة إعلان جديد'}
+   727→          </DialogTitle>
+   728→          <DialogDescription className="text-muted-foreground">
+   729→            {editingAnnouncement
+   730→              ? 'قم بتعديل بيانات الإعلان ثم اضغط حفظ التغييرات'
+   731→              : 'أدخل بيانات الإعلان الجديد لإضافته إلى لوحة الإعلانات'}
+   732→          </DialogDescription>
+   733→        </DialogHeader>
+   734→        {open && (
+   735→          <AnnouncementFormContent
+   736→            editingAnnouncement={editingAnnouncement}
+   737→            onClose={() => onOpenChange(false)}
+   738→            onSubmit={onSubmit}
+   739→          />
+   740→        )}
+   741→      </DialogContent>
+   742→    </Dialog>
+   743→  );
+   744→}
+   745→
+   746→/** Delete confirmation dialog */
+   747→function DeleteAnnouncementDialog({
+   748→  announcement,
+   749→  open,
+   750→  onOpenChange,
+   751→  onConfirm,
+   752→}: {
+   753→  announcement: Announcement | null;
+   754→  open: boolean;
+   755→  onOpenChange: (open: boolean) => void;
+   756→  onConfirm: () => void;
+   757→}) {
+   758→  return (
+   759→    <AlertDialog open={open} onOpenChange={onOpenChange}>
+   760→      <AlertDialogContent
+   761→        dir="rtl"
+   762→        style={{
+   763→          backgroundColor: '#1A1A24',
+   764→          border: '1px solid rgba(255,255,255,0.06)',
+   765→        }}
+   766→      >
+   767→        <AlertDialogHeader>
+   768→          <AlertDialogTitle className="text-white text-lg">
+   769→            تأكيد حذف الإعلان
+   770→          </AlertDialogTitle>
+   771→          <AlertDialogDescription className="text-muted-foreground leading-relaxed">
+   772→            هل أنت متأكد من حذف الإعلان{' '}
+   773→            <span className="font-semibold text-slate-200">{announcement?.title}</span>؟
+   774→            <br />
+   775→            لا يمكن التراجع عن هذا الإجراء.
+   776→          </AlertDialogDescription>
+   777→        </AlertDialogHeader>
+   778→        <AlertDialogFooter className="flex-row gap-3 sm:justify-start mt-2">
+   779→          <AlertDialogCancel
+   780→            className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-6 mt-0"
+   781→          >
+   782→            إلغاء
+   783→          </AlertDialogCancel>
+   784→          <AlertDialogAction
+   785→            onClick={onConfirm}
+   786→            className="bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-lg px-6 gap-2"
+   787→          >
+   788→            <Trash2 className="h-4 w-4" />
+   789→            نعم، احذف
+   790→          </AlertDialogAction>
+   791→        </AlertDialogFooter>
+   792→      </AlertDialogContent>
+   793→    </AlertDialog>
+   794→  );
+   795→}
+   796→
+   797→// ---------------------------------------------------------------------------
+   798→// Announcement Card
+   799→// ---------------------------------------------------------------------------
+   800→
+   801→function AnnouncementCard({
+   802→  announcement,
+   803→  onPin,
+   804→  onEdit,
+   805→  onDelete,
+   806→  onView,
+   807→}: {
+   808→  announcement: Announcement;
+   809→  onPin: (id: string) => void;
+   810→  onEdit: (ann: Announcement) => void;
+   811→  onDelete: (ann: Announcement) => void;
+   812→  onView: (ann: Announcement) => void;
+   813→}) {
+   814→  const catConfig = CATEGORY_CONFIG[announcement.category];
+   815→  const expired = isExpired(announcement.expiresAt);
+   816→
+   817→  return (
+   818→    <div
+   819→      className={cn(
+   820→        'group rounded-xl p-5 transition-all duration-300 cursor-pointer',
+   821→        announcement.pinned
+   822→          ? 'glass-card-elevated'
+   823→          : 'hover:bg-white/[0.02]',
+   824→      )}
+   825→      style={{
+   826→        backgroundColor: announcement.pinned ? 'rgba(212, 165, 116, 0.04)' : 'rgba(255,255,255,0.015)',
+   827→        border: announcement.pinned
+   828→          ? `1px solid ${catConfig.color}25`
+   829→          : '1px solid rgba(255,255,255,0.06)',
+   830→        boxShadow: announcement.pinned
+   831→          ? `0 0 20px ${catConfig.color}08`
+   832→          : 'none',
+   833→      }}
+   834→      onClick={() => onView(announcement)}
+   835→    >
+   836→      {/* Top row: badges + actions */}
+   837→      <div className="flex items-center justify-between gap-3 mb-3">
+   838→        <div className="flex items-center gap-2 flex-wrap">
+   839→          {announcement.pinned && (
+   840→            <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/20 text-xs px-2 py-0.5 rounded-full gap-1 shrink-0">
+   841→              <Pin className="h-3 w-3" />
+   842→              مثبت 📌
+   843→            </Badge>
+   844→          )}
+   845→          <CategoryBadge category={announcement.category} />
+   846→          <PriorityIndicator priority={announcement.priority} />
+   847→          {expired && (
+   848→            <Badge className="bg-rose-500/10 text-rose-400/70 border-rose-500/15 text-[10px] px-2 py-0.5 rounded-full gap-1">
+   849→              <X className="h-3 w-3" />
+   850→              منتهي
+   851→            </Badge>
+   852→          )}
+   853→        </div>
+   854→
+   855→        {/* Action buttons */}
+   856→        <div
+   857→          className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+   858→          onClick={(e) => e.stopPropagation()}
+   859→        >
+   860→          {/* Pin toggle */}
+   861→          <Button
+   862→            variant="ghost"
+   863→            size="icon"
+   864→            onClick={() => onPin(announcement.id)}
+   865→            className={cn(
+   866→              'h-8 w-8 rounded-lg transition-all duration-200',
+   867→              announcement.pinned
+   868→                ? 'text-amber-400 hover:bg-amber-400/10'
+   869→                : 'text-slate-500 hover:text-amber-400 hover:bg-amber-400/10',
+   870→            )}
+   871→            title={announcement.pinned ? 'إلغاء التثبيت' : 'تثبيت'}
+   872→          >
+   873→            {announcement.pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+   874→          </Button>
+   875→
+   876→          {/* Edit */}
+   877→          <Button
+   878→            variant="ghost"
+   879→            size="icon"
+   880→            onClick={() => onEdit(announcement)}
+   881→            className="h-8 w-8 text-slate-500 hover:text-amber-400 hover:bg-amber-400/10 rounded-lg"
+   882→            title="تعديل"
+   883→          >
+   884→            <Pencil className="h-4 w-4" />
+   885→          </Button>
+   886→
+   887→          {/* Delete */}
+   888→          <Button
+   889→            variant="ghost"
+   890→            size="icon"
+   891→            onClick={() => onDelete(announcement)}
+   892→            className="h-8 w-8 text-slate-500 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg"
+   893→            title="حذف"
+   894→          >
+   895→            <Trash2 className="h-4 w-4" />
+   896→          </Button>
+   897→        </div>
+   898→      </div>
+   899→
+   900→      {/* Title */}
+   901→      <h3
+   902→        className="text-base font-semibold text-white mb-2 line-clamp-1 group-hover:text-[#D4A574] transition-colors duration-200"
+   903→        style={{
+   904→          borderRight: `3px solid ${catConfig.color}`,
+   905→          paddingRight: '12px',
+   906→        }}
+   907→      >
+   908→        {announcement.title}
+   909→      </h3>
+   910→
+   911→      {/* Content preview */}
+   912→      <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3 mb-4">
+   913→        {announcement.content}
+   914→      </p>
+   915→
+   916→      {/* Footer: author + time */}
+   917→      <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground/60">
+   918→        <div className="flex items-center gap-1.5">
+   919→          <User className="h-3.5 w-3.5" />
+   920→          <span>{announcement.author}</span>
+   921→        </div>
+   922→        <div className="flex items-center gap-1.5">
+   923→          <Clock className="h-3.5 w-3.5" />
+   924→          <span>{getRelativeTime(announcement.createdAt)}</span>
+   925→        </div>
+   926→      </div>
+   927→    </div>
+   928→  );
+   929→}
+   930→
+   931→// ---------------------------------------------------------------------------
+   932→// Main Component
+   933→// ---------------------------------------------------------------------------
+   934→
+   935→export default function AnnouncementsSection() {
+   936→  // Local state for announcements (managed in-memory like other sections)
+   937→  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+   938→
+   939→  // UI state
+   940→  const [localSearch, setLocalSearch] = useState('');
+   941→  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+   942→  const [currentPage, setCurrentPage] = useState(1);
+   943→  const [formOpen, setFormOpen] = useState(false);
+   944→  const [viewOpen, setViewOpen] = useState(false);
+   945→  const [deleteOpen, setDeleteOpen] = useState(false);
+   946→  const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
+   947→
+   948→  // Initialize mock data once (useRef guard pattern)
+   949→  const initialized = useRef(false);
+   950→  useEffect(() => {
+   951→    if (!initialized.current && announcements.length === 0) {
+   952→      initialized.current = true;
+   953→      requestAnimationFrame(() => setAnnouncements(INITIAL_ANNOUNCEMENTS));
+   954→    }
+   955→  }, []);
+   956→
+   957→  // Split into pinned and unpinned
+   958→  const { pinned, unpinned } = useMemo(() => {
+   959→    const allFiltered = announcements.filter((a) => {
+   960→      // Category filter
+   961→      if (categoryFilter !== 'all' && a.category !== categoryFilter) return false;
+   962→      // Search filter
+   963→      if (localSearch.trim()) {
+   964→        const query = localSearch.trim().toLowerCase();
+   965→        if (
+   966→          !a.title.toLowerCase().includes(query) &&
+   967→          !a.content.toLowerCase().includes(query)
+   968→        ) {
+   969→          return false;
+   970→        }
+   971→      }
+   972→      return true;
+   973→    });
+   974→
+   975→    return {
+   976→      pinned: allFiltered.filter((a) => a.pinned),
+   977→      unpinned: allFiltered.filter((a) => !a.pinned),
+   978→    };
+   979→  }, [announcements, categoryFilter, localSearch]);
+   980→
+   981→  // Pagination — only for unpinned (pinned always shown)
+   982→  const totalUnpinned = unpinned.length;
+   983→  const totalPages = Math.max(1, Math.ceil(totalUnpinned / ITEMS_PER_PAGE));
+   984→  const paginatedUnpinned = unpinned.slice(
+   985→    (currentPage - 1) * ITEMS_PER_PAGE,
+   986→    currentPage * ITEMS_PER_PAGE,
+   987→  );
+   988→
+   989→  // Reset to page 1 when filters change
+   990→  const prevFiltersRef = useRef({ categoryFilter, localSearch });
+   991→  useEffect(() => {
+   992→    const prev = prevFiltersRef.current;
+   993→    if (prev.categoryFilter !== categoryFilter || prev.localSearch !== localSearch) {
+   994→      prevFiltersRef.current = { categoryFilter, localSearch };
+   995→      requestAnimationFrame(() => setCurrentPage(1));
+   996→    }
+   997→  }, [categoryFilter, localSearch]);
+   998→
+   999→  // Handlers
+  1000→  const handleAdd = useCallback(() => {
+  1001→    setSelectedAnnouncement(null);
+  1002→    setFormOpen(true);
+  1003→  }, []);
+  1004→
+  1005→  const handleEdit = useCallback((ann: Announcement) => {
+  1006→    setSelectedAnnouncement(ann);
+  1007→    setFormOpen(true);
+  1008→  }, []);
+  1009→
+  1010→  const handleView = useCallback((ann: Announcement) => {
+  1011→    setSelectedAnnouncement(ann);
+  1012→    setViewOpen(true);
+  1013→  }, []);
+  1014→
+  1015→  const handleDelete = useCallback((ann: Announcement) => {
+  1016→    setSelectedAnnouncement(ann);
+  1017→    setDeleteOpen(true);
+  1018→  }, []);
+  1019→
+  1020→  const handlePin = useCallback((id: string) => {
+  1021→    setAnnouncements((prev) =>
+  1022→      prev.map((a) => (a.id === id ? { ...a, pinned: !a.pinned } : a)),
+  1023→    );
+  1024→    const target = announcements.find((a) => a.id === id);
+  1025→    toast.success(target?.pinned ? 'تم إلغاء تثبيت الإعلان' : 'تم تثبيت الإعلان');
+  1026→  }, [announcements]);
+  1027→
+  1028→  const handleSubmit = useCallback(
+  1029→    (data: Omit<Announcement, 'id' | 'createdAt' | 'updatedAt'>) => {
+  1030→      const now = new Date().toISOString();
+  1031→
+  1032→      if (selectedAnnouncement) {
+  1033→        // Update existing
+  1034→        setAnnouncements((prev) =>
+  1035→          prev.map((a) =>
+  1036→            a.id === selectedAnnouncement.id
+  1037→              ? { ...a, ...data, updatedAt: now }
+  1038→              : a,
+  1039→          ),
+  1040→        );
+  1041→        toast.success('تم تحديث الإعلان بنجاح');
+  1042→      } else {
+  1043→        // Create new
+  1044→        const newAnn: Announcement = {
+  1045→          ...data,
+  1046→          id: `ann-${Date.now()}`,
+  1047→          createdAt: now,
+  1048→          updatedAt: now,
+  1049→        };
+  1050→        setAnnouncements((prev) => [newAnn, ...prev]);
+  1051→        toast.success('تم نشر الإعلان بنجاح');
+  1052→      }
+  1053→    },
+  1054→    [selectedAnnouncement],
+  1055→  );
+  1056→
+  1057→  const handleConfirmDelete = useCallback(() => {
+  1058→    if (selectedAnnouncement) {
+  1059→      setAnnouncements((prev) => prev.filter((a) => a.id !== selectedAnnouncement.id));
+  1060→      toast.success('تم حذف الإعلان');
+  1061→      setDeleteOpen(false);
+  1062→    }
+  1063→  }, [selectedAnnouncement]);
+  1064→
+  1065→  const handlePrevPage = useCallback(() => {
+  1066→    setCurrentPage((p) => Math.max(1, p - 1));
+  1067→  }, []);
+  1068→
+  1069→  const handleNextPage = useCallback(() => {
+  1070→    setCurrentPage((p) => Math.min(totalPages, p + 1));
+  1071→  }, [totalPages]);
+  1072→
+  1073→  // Count of all items after filter
+  1074→  const totalFiltered = pinned.length + totalUnpinned;
+  1075→  const totalPinnedCount = announcements.filter((a) => a.pinned).length;
+  1076→
+  1077→  return (
+  1078→    <div className="flex flex-col gap-6 theme-transition" dir="rtl">
+  1079→      {/* ── Page Title ── */}
+  1080→      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+  1081→        <div className="flex items-center gap-3">
+  1082→          <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-[#D4A574]/10">
+  1083→            <Megaphone className="h-5 w-5 text-[#D4A574]" />
+  1084→          </div>
+  1085→          <div>
+  1086→            <h1 className="text-2xl font-bold text-white tracking-tight sm:text-3xl flex items-center gap-3">
+  1087→              لوحة الإعلانات
+  1088→              <Badge className="bg-[#D4A574]/15 text-[#D4A574] border-[#D4A574]/20 hover:bg-[#D4A574]/20 text-sm px-2.5 py-0.5 rounded-full font-semibold tabular-nums">
+  1089→                {announcements.length}
+  1090→              </Badge>
+  1091→            </h1>
+  1092→            <p className="mt-0.5 text-sm text-muted-foreground">
+  1093→              إدارة الإعلانات والملاحظات الموجهة للطلاب والمعلمين وأولياء الأمور
+  1094→            </p>
+  1095→          </div>
+  1096→        </div>
+  1097→      </div>
+  1098→
+  1099→      {/* ── Action Bar ── */}
+  1100→      <div
+  1101→        className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl p-4"
+  1102→        style={{
+  1103→          backgroundColor: '#1A1A24',
+  1104→          border: '1px solid rgba(255,255,255,0.06)',
+  1105→        }}
+  1106→      >
+  1107→        {/* Add button */}
+  1108→        <div className="flex items-center gap-2">
+  1109→          <Button
+  1110→            onClick={handleAdd}
+  1111→            className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold gap-2 rounded-lg px-5 h-10"
+  1112→          >
+  1113→            <Plus className="h-4 w-4" />
+  1114→            إضافة إعلان
+  1115→          </Button>
+  1116→        </div>
+  1117→
+  1118→        {/* Search */}
+  1119→        <div className="relative">
+  1120→          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+  1121→          <Input
+  1122→            value={localSearch}
+  1123→            onChange={(e) => setLocalSearch(e.target.value)}
+  1124→            placeholder="بحث في العناوين والمحتوى..."
+  1125→            className="pr-10 w-full sm:w-72 bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 h-10"
+  1126→          />
+  1127→        </div>
+  1128→      </div>
+  1129→
+  1130→      {/* ── Category Tabs ── */}
+  1131→      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+  1132→        <Filter className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+  1133→        {CATEGORY_TABS.map((tab) => {
+  1134→          const isActive = categoryFilter === tab.value;
+  1135→          const tabCategory = tab.value !== 'all' ? CATEGORY_CONFIG[tab.value as Announcement['category']] : null;
+  1136→          return (
+  1137→            <button
+  1138→              key={tab.value}
+  1139→              onClick={() => setCategoryFilter(tab.value)}
+  1140→              className={cn(
+  1141→                'px-4 py-2 text-sm font-medium rounded-full whitespace-nowrap transition-all duration-200 border',
+  1142→                isActive
+  1143→                  ? tabCategory
+  1144→                    ? `${tabCategory.bgClass} ${tabCategory.textClass} ${tabCategory.borderClass}`
+  1145→                    : 'bg-[#D4A574]/15 text-[#D4A574] border-[#D4A574]/30'
+  1146→                  : 'bg-white/[0.02] text-muted-foreground border-white/[0.06] hover:bg-white/[0.05] hover:text-slate-300',
+  1147→              )}
+  1148→            >
+  1149→              {tab.label}
+  1150→            </button>
+  1151→          );
+  1152→        })}
+  1153→      </div>
+  1154→
+  1155→      {/* ── Content Area ── */}
+  1156→      {totalFiltered === 0 ? (
+  1157→        <div
+  1158→          className="rounded-xl"
+  1159→          style={{
+  1160→            backgroundColor: '#1A1A24',
+  1161→            border: '1px solid rgba(255,255,255,0.06)',
+  1162→          }}
+  1163→        >
+  1164→          <EmptyState onAdd={handleAdd} />
+  1165→        </div>
+  1166→      ) : (
+  1167→        <div className="flex flex-col gap-6">
+  1168→          {/* ── Pinned Section ── */}
+  1169→          {pinned.length > 0 && (
+  1170→            <div>
+  1171→              <div className="flex items-center gap-2 mb-4">
+  1172→                <Pin className="h-4 w-4 text-amber-400" />
+  1173→                <h2 className="text-sm font-semibold text-amber-400">
+  1174→                  الإعلانات المثبتة
+  1175→                </h2>
+  1176→                <span className="text-xs text-muted-foreground/50">
+  1177→                  ({totalPinnedCount})
+  1178→                </span>
+  1179→              </div>
+  1180→              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  1181→                {pinned.map((ann) => (
+  1182→                  <AnnouncementCard
+  1183→                    key={ann.id}
+  1184→                    announcement={ann}
+  1185→                    onPin={handlePin}
+  1186→                    onEdit={handleEdit}
+  1187→                    onDelete={handleDelete}
+  1188→                    onView={handleView}
+  1189→                  />
+  1190→                ))}
+  1191→              </div>
+  1192→            </div>
+  1193→          )}
+  1194→
+  1195→          {/* ── Separator ── */}
+  1196→          {pinned.length > 0 && paginatedUnpinned.length > 0 && (
+  1197→            <div
+  1198→              className="h-px"
+  1199→              style={{
+  1200→                background: 'linear-gradient(90deg, transparent 0%, rgba(212,165,116,0.15) 30%, rgba(212,165,116,0.15) 70%, transparent 100%)',
+  1201→              }}
+  1202→            />
+  1203→          )}
+  1204→
+  1205→          {/* ── All Announcements Grid ── */}
+  1206→          {paginatedUnpinned.length > 0 && (
+  1207→            <div>
+  1208→              {pinned.length > 0 && (
+  1209→                <h2 className="text-sm font-semibold text-slate-400 mb-4">
+  1210→                  جميع الإعلانات
+  1211→                </h2>
+  1212→              )}
+  1213→              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  1214→                {paginatedUnpinned.map((ann) => (
+  1215→                  <AnnouncementCard
+  1216→                    key={ann.id}
+  1217→                    announcement={ann}
+  1218→                    onPin={handlePin}
+  1219→                    onEdit={handleEdit}
+  1220→                    onDelete={handleDelete}
+  1221→                    onView={handleView}
+  1222→                  />
+  1223→                ))}
+  1224→              </div>
+  1225→            </div>
+  1226→          )}
+  1227→
+  1228→          {/* ── Pagination ── */}
+  1229→          {totalPages > 1 && (
+  1230→            <div
+  1231→              className="flex items-center justify-between px-4 py-3 rounded-xl"
+  1232→              style={{
+  1233→                backgroundColor: '#1A1A24',
+  1234→                border: '1px solid rgba(255,255,255,0.06)',
+  1235→              }}
+  1236→            >
+  1237→              {/* Info */}
+  1238→              <div className="text-xs text-muted-foreground/60">
+  1239→                عرض{' '}
+  1240→                <span className="font-semibold text-slate-300 tabular-nums">
+  1241→                  {(currentPage - 1) * ITEMS_PER_PAGE + 1}
+  1242→                </span>
+  1243→                {' '}-{' '}
+  1244→                <span className="font-semibold text-slate-300 tabular-nums">
+  1245→                  {Math.min(currentPage * ITEMS_PER_PAGE, totalUnpinned)}
+  1246→                </span>
+  1247→                {' '}من{' '}
+  1248→                <span className="font-semibold text-slate-300 tabular-nums">
+  1249→                  {totalUnpinned}
+  1250→                </span>
+  1251→                {' '}إعلان
+  1252→              </div>
+  1253→
+  1254→              {/* Page controls */}
+  1255→              <div className="flex items-center gap-1.5">
+  1256→                <Button
+  1257→                  variant="ghost"
+  1258→                  size="icon"
+  1259→                  onClick={handlePrevPage}
+  1260→                  disabled={currentPage === 1}
+  1261→                  className="h-8 w-8 text-slate-400 hover:text-white hover:bg-white/[0.05] disabled:opacity-30 disabled:cursor-not-allowed rounded-lg"
+  1262→                >
+  1263→                  <ChevronRight className="h-4 w-4" />
+  1264→                </Button>
+  1265→
+  1266→                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+  1267→                  <Button
+  1268→                    key={page}
+  1269→                    variant={currentPage === page ? 'outline' : 'ghost'}
+  1270→                    size="icon"
+  1271→                    onClick={() => setCurrentPage(page)}
+  1272→                    className={cn(
+  1273→                      'h-8 w-8 text-sm font-medium tabular-nums rounded-lg transition-all',
+  1274→                      currentPage === page
+  1275→                        ? 'bg-[#D4A574]/15 text-[#D4A574] border-[#D4A574]/30 hover:bg-[#D4A574]/20'
+  1276→                        : 'text-slate-400 hover:text-white hover:bg-white/[0.05]',
+  1277→                    )}
+  1278→                  >
+  1279→                    {page}
+  1280→                  </Button>
+  1281→                ))}
+  1282→
+  1283→                <Button
+  1284→                  variant="ghost"
+  1285→                  size="icon"
+  1286→                  onClick={handleNextPage}
+  1287→                  disabled={currentPage === totalPages}
+  1288→                  className="h-8 w-8 text-slate-400 hover:text-white hover:bg-white/[0.05] disabled:opacity-30 disabled:cursor-not-allowed rounded-lg"
+  1289→                >
+  1290→                  <ChevronLeft className="h-4 w-4" />
+  1291→                </Button>
+  1292→              </div>
+  1293→            </div>
+  1294→          )}
+  1295→        </div>
+  1296→      )}
+  1297→
+  1298→      {/* ── Dialogs ── */}
+  1299→      <AnnouncementFormDialog
+  1300→        open={formOpen}
+  1301→        onOpenChange={setFormOpen}
+  1302→        editingAnnouncement={selectedAnnouncement}
+  1303→        onSubmit={handleSubmit}
+  1304→      />
+  1305→
+  1306→      <ViewAnnouncementDialog
+  1307→        announcement={selectedAnnouncement}
+  1308→        open={viewOpen}
+  1309→        onOpenChange={setViewOpen}
+  1310→      />
+  1311→
+  1312→      <DeleteAnnouncementDialog
+  1313→        announcement={selectedAnnouncement}
+  1314→        open={deleteOpen}
+  1315→        onOpenChange={setDeleteOpen}
+  1316→        onConfirm={handleConfirmDelete}
+  1317→      />
+  1318→    </div>
+  1319→  );
+  1320→}
+  1321→

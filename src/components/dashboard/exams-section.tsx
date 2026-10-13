@@ -1049,10 +1049,20 @@ function DeleteExamDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { deleteExam } = useAppStore();
+  const { deleteExam, addToTrash } = useAppStore();
 
   const handleDelete = () => {
     if (exam) {
+      addToTrash({
+        id: `trash-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        itemType: 'exam',
+        itemId: exam.id,
+        itemName: exam.title,
+        deletedBy: 'المدير',
+        dataJson: JSON.stringify(exam),
+        restoredAt: null,
+        createdAt: new Date().toISOString(),
+      });
       deleteExam(exam.id);
       toast.success('تم حذف الامتحان');
       onOpenChange(false);

@@ -214,7 +214,7 @@ function formatDate(dateStr: string): string {
 // ---------------------------------------------------------------------------
 
 export default function FeesSection() {
-  const { fees, setFees, addFee, updateFee, deleteFee, students, classes } = useAppStore();
+  const { fees, setFees, addFee, updateFee, deleteFee, addToTrash, students, classes } = useAppStore();
 
   // Mock data seeding with useRef guard
   const seededRef = useRef(false);
@@ -535,11 +535,21 @@ export default function FeesSection() {
 
   const handleDelete = useCallback(() => {
     if (!selectedFee) return;
+    addToTrash({
+      id: `trash-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      itemType: 'library-book',
+      itemId: selectedFee.id,
+      itemName: selectedFee.studentName ?? 'رسوم',
+      deletedBy: 'المدير',
+      dataJson: JSON.stringify(selectedFee),
+      restoredAt: null,
+      createdAt: new Date().toISOString(),
+    });
     deleteFee(selectedFee.id);
     setShowDeleteDialog(false);
     setSelectedFee(null);
     toast.success('تم حذف الرسوم بنجاح');
-  }, [selectedFee, deleteFee]);
+  }, [selectedFee, deleteFee, addToTrash]);
 
   const handleExportCSV = useCallback(() => {
     exportToCSV(

@@ -620,10 +620,20 @@ function DeleteTeacherDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { deleteTeacher } = useAppStore();
+  const { deleteTeacher, addToTrash } = useAppStore();
 
   const handleDelete = () => {
     if (teacher) {
+      addToTrash({
+        id: `trash-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        itemType: 'teacher',
+        itemId: teacher.id,
+        itemName: teacher.name,
+        deletedBy: 'المدير',
+        dataJson: JSON.stringify(teacher),
+        restoredAt: null,
+        createdAt: new Date().toISOString(),
+      });
       deleteTeacher(teacher.id);
       toast.success('تم حذف المعلم');
       onOpenChange(false);

@@ -701,15 +701,25 @@ function DeleteBlockDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { deleteScheduleBlock } = useAppStore();
+  const { deleteScheduleBlock, addToTrash } = useAppStore();
 
   const handleDelete = useCallback(() => {
     if (block) {
+      addToTrash({
+        id: `trash-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        itemType: 'schedule',
+        itemId: block.id,
+        itemName: block.subject,
+        deletedBy: 'المدير',
+        dataJson: JSON.stringify(block),
+        restoredAt: null,
+        createdAt: new Date().toISOString(),
+      });
       deleteScheduleBlock(block.id);
       toast.success('تم حذف الحصة بنجاح');
       onOpenChange(false);
     }
-  }, [block, deleteScheduleBlock, onOpenChange]);
+  }, [block, deleteScheduleBlock, addToTrash, onOpenChange]);
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>

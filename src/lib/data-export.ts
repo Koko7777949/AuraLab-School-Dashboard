@@ -14,6 +14,7 @@ export interface ExportColumn {
 
 /**
  * Export data as CSV with Arabic headers and UTF-8 BOM for Excel compatibility.
+ * Delegates to the shared csv-export utility.
  */
 export function exportToCSV<T extends Record<string, unknown>>(
   data: T[],
@@ -21,29 +22,16 @@ export function exportToCSV<T extends Record<string, unknown>>(
   filename: string
 ): void {
   if (!data.length) return;
-
-  // UTF-8 BOM for Excel Arabic text support
-  const BOM = '\uFEFF';
-  const separator = ',';
-
-  // Build header row
-  const headerRow = columns.map((col) => `"${col.header}"`).join(separator);
-
-  // Build data rows
-  const dataRows = data.map((row) =>
-    columns
-      .map((col) => {
-        const rawValue = row[col.key];
-        const formatted = col.format ? col.format(rawValue) : String(rawValue ?? '');
-        // Escape quotes and wrap in quotes
-        return `"${formatted.replace(/"/g, '""')}"`;
-      })
-      .join(separator)
-  );
-
-  const csvContent = BOM + [headerRow, ...dataRows].join('\n');
-
-  downloadFile(csvContent, `${filename}.csv`, 'text/csv;charset=utf-8;');
+  // Delegate to csv-export.ts with column format conversion
+  const csvColumns = columns.map((col) => ({
+    key: col.key as keyof T,
+    label: col.header,
+    format: col.format as ((value: unknown) => string) | undefined,
+  }));
+  // Use the shared export from csv-export.ts
+  import('@/lib/csv-export').then((csvModule) => {
+    csvModule.exportToCSVWithFormat(data, filename, csvColumns);
+  });
 }
 
 /**

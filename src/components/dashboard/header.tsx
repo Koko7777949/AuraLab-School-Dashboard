@@ -15,6 +15,7 @@ import {
   LogOut,
   Clock,
   Keyboard,
+  GraduationCap,
 } from 'lucide-react';
 import {
   Tooltip,
@@ -82,7 +83,7 @@ const SEARCH_SUGGESTIONS = [
 // Header Component
 // ---------------------------------------------------------------------------
 export default function Header() {
-  const { searchQuery, setSearchQuery, setActiveSection, sidebarOpen, notifications } = useAppStore();
+  const { searchQuery, setSearchQuery, setActiveSection, sidebarOpen, notifications, students, teachers } = useAppStore();
   const [lang, setLang] = useState<'AR' | 'EN'>('AR');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [filteredSuggestions, setFilteredSuggestions] = useState<typeof SEARCH_SUGGESTIONS>([]);
@@ -94,12 +95,33 @@ export default function Header() {
   // Live clock
   const [currentTime, setCurrentTime] = useState('');
   const [currentDate, setCurrentDate] = useState('');
+  const [hijriDate, setHijriDate] = useState('');
+  const [greeting, setGreeting] = useState('');
 
   useEffect(() => {
     const updateClock = () => {
       const now = new Date();
       setCurrentTime(now.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
       setCurrentDate(now.toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }));
+
+      // Hijri date approximation
+      try {
+        setHijriDate(now.toLocaleDateString('ar-SA-u-ca-islamic', { year: 'numeric', month: 'long', day: 'numeric' }));
+      } catch {
+        setHijriDate('');
+      }
+
+      // Time-based greeting
+      const hour = now.getHours();
+      if (hour >= 5 && hour < 12) {
+        setGreeting('صباح الخير');
+      } else if (hour >= 12 && hour < 17) {
+        setGreeting('مساء الخير');
+      } else if (hour >= 17 && hour < 21) {
+        setGreeting('مساء الخير');
+      } else {
+        setGreeting('طاب مساؤك');
+      }
     };
     updateClock();
     const interval = setInterval(updateClock, 1000);
@@ -119,12 +141,22 @@ export default function Header() {
   const handleSearchKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'Enter' && searchQuery.trim()) {
-        setActiveSection('students');
+        const q = searchQuery.trim().toLowerCase();
+        // Search across students and teachers
+        const matchedStudent = students.find((s) => s.name.toLowerCase().includes(q));
+        const matchedTeacher = teachers.find((t) => t.name.toLowerCase().includes(q));
+        if (matchedStudent) {
+          setActiveSection('students');
+        } else if (matchedTeacher) {
+          setActiveSection('teachers');
+        } else {
+          setActiveSection('students');
+        }
         setShowSuggestions(false);
         (e.target as HTMLInputElement).blur();
       }
     },
-    [searchQuery, setActiveSection],
+    [searchQuery, students, teachers, setActiveSection],
   );
 
   const handleSearchChange = useCallback(
@@ -132,17 +164,29 @@ export default function Header() {
       const value = e.target.value;
       setSearchQuery(value);
       if (value.trim()) {
+        const q = value.trim().toLowerCase();
+        // Build dynamic suggestions from store data
+        const dynamicSuggestions: typeof SEARCH_SUGGESTIONS = [];
+        const matchedStudents = students.filter((s) => s.name.toLowerCase().includes(q)).slice(0, 3);
+        const matchedTeachers = teachers.filter((t) => t.name.toLowerCase().includes(q)).slice(0, 3);
+        for (const s of matchedStudents) {
+          dynamicSuggestions.push({ text: s.name, section: 'students' as const, icon: GraduationCap });
+        }
+        for (const t of matchedTeachers) {
+          dynamicSuggestions.push({ text: t.name, section: 'teachers' as const, icon: Users });
+        }
+        // Fallback to static suggestions if no matches
         setFilteredSuggestions(
-          SEARCH_SUGGESTIONS.filter((s) =>
-            s.text.includes(value.trim()),
-          ),
+          dynamicSuggestions.length > 0
+            ? dynamicSuggestions
+            : SEARCH_SUGGESTIONS.filter((s) => s.text.includes(value.trim()))
         );
         setShowSuggestions(true);
       } else {
         setShowSuggestions(false);
       }
     },
-    [setSearchQuery],
+    [setSearchQuery, students, teachers],
   );
 
   const handleSuggestionClick = useCallback(
@@ -250,13 +294,17 @@ export default function Header() {
         {/* Center — Live Clock + App name */}
         {/* ----------------------------------------------------------------- */}
         <div className="hidden sm:flex flex-col items-center justify-center gap-0.5 min-w-0">
+          {/* Greeting */}
+          {greeting && (
+            <span className="text-[10px] font-medium text-[#D4A574]/70">{greeting}</span>
+          )}
           {/* Live clock */}
           <div className="flex items-center gap-2 select-none">
             <Clock size={13} strokeWidth={1.8} className="text-[#D4A574]/60" />
             <span className="text-sm font-semibold tabular-nums tracking-wider text-[#C4C4D4]" dir="ltr">
               {timeParts.time}
             </span>
-            <span className="text-xs font-medium tabular-nums text-[#8B8B9E] min-w-[18px] text-center" dir="ltr">
+            <span className="text-xs font-medium tabular-nums text-[#8B8B9E] min-w-[18px] text-center animate-pulse" dir="ltr">
               {timeParts.seconds}
             </span>
           </div>
@@ -272,10 +320,16 @@ export default function Header() {
               AuraLab
             </span>
           </h1>
-          {/* Date */}
+          {/* Gregorian date */}
           <span className="text-[10px] text-[#5A5A6E] truncate max-w-[180px]">
             {currentDate}
           </span>
+          {/* Hijri date */}
+          {hijriDate && (
+            <span className="text-[9px] text-[#5A5A6E]/60 truncate max-w-[180px]">
+              {hijriDate}
+            </span>
+          )}
         </div>
 
         {/* ----------------------------------------------------------------- */}
@@ -365,13 +419,6 @@ export default function Header() {
                   <span className="absolute -top-1 -left-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white px-1 tabular-nums shadow-lg">
                     {unreadCount > 99 ? '99+' : unreadCount}
                   </span>
-                )}
-                {/* Fallback red dot when count is 0 */}
-                {unreadCount === 0 && (
-                  <span
-                    className="absolute top-1.5 left-1.5 h-2 w-2 rounded-full border border-[#121218]"
-                    style={{ background: '#EF4444' }}
-                  />
                 )}
               </button>
             </TooltipTrigger>

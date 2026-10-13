@@ -695,10 +695,20 @@ function DeleteGradeDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { deleteGrade } = useAppStore();
+  const { deleteGrade, addToTrash } = useAppStore();
 
   const handleDelete = () => {
     if (grade) {
+      addToTrash({
+        id: `trash-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        itemType: 'grade',
+        itemId: grade.id,
+        itemName: grade.studentName ?? 'درجة',
+        deletedBy: 'المدير',
+        dataJson: JSON.stringify(grade),
+        restoredAt: null,
+        createdAt: new Date().toISOString(),
+      });
       deleteGrade(grade.id);
       toast.success('تم حذف الدرجة');
       onOpenChange(false);

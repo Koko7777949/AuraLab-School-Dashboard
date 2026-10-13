@@ -1,6 +1,14 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { ActiveSection, Student, Teacher, ClassRoom, Exam, TrashItem, AppNotification, ChatMessage, GradeRecord, Message, BehaviorRecord, ScheduleBlock, LibraryBook, FeeRecord } from './types';
+import type { ActiveSection, Student, Teacher, ClassRoom, Exam, TrashItem, AppNotification, ChatMessage, GradeRecord, Message, BehaviorRecord, ScheduleBlock, LibraryBook, FeeRecord, Announcement } from './types';
+
+interface CalendarEventItem {
+  id: string;
+  date: string; // ISO date string YYYY-MM-DD
+  title: string;
+  color: string;
+  category: string;
+}
 
 interface AppState {
   // Navigation
@@ -9,6 +17,12 @@ interface AppState {
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
   toggleSidebar: () => void;
+
+  // Calendar Events
+  calendarEvents: CalendarEventItem[];
+  setCalendarEvents: (events: CalendarEventItem[]) => void;
+  addCalendarEvent: (event: CalendarEventItem) => void;
+  deleteCalendarEvent: (id: string) => void;
 
   // Students
   students: Student[];
@@ -115,6 +129,14 @@ interface AppState {
   updateFee: (id: string, data: Partial<FeeRecord>) => void;
   deleteFee: (id: string) => void;
 
+  // Announcements
+  announcements: Announcement[];
+  setAnnouncements: (announcements: Announcement[]) => void;
+  addAnnouncement: (announcement: Announcement) => void;
+  updateAnnouncement: (id: string, data: Partial<Announcement>) => void;
+  deleteAnnouncement: (id: string) => void;
+  toggleAnnouncementPin: (id: string) => void;
+
   // Theme Customizer
   accentColor: string;
   setAccentColor: (color: string) => void;
@@ -135,6 +157,12 @@ export const useAppStore = create<AppState>()(
       sidebarOpen: true,
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
       toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
+
+      // Calendar Events
+      calendarEvents: [],
+      setCalendarEvents: (events) => set({ calendarEvents: events }),
+      addCalendarEvent: (event) => set((state) => ({ calendarEvents: [...state.calendarEvents, event] })),
+      deleteCalendarEvent: (id) => set((state) => ({ calendarEvents: state.calendarEvents.filter((e) => e.id !== id) })),
 
       // Students
       students: [],
@@ -367,6 +395,20 @@ export const useAppStore = create<AppState>()(
         fees: state.fees.filter((f) => f.id !== id),
       })),
 
+      // Announcements
+      announcements: [],
+      setAnnouncements: (announcements) => set({ announcements }),
+      addAnnouncement: (announcement) => set((state) => ({ announcements: [...state.announcements, announcement] })),
+      updateAnnouncement: (id, data) => set((state) => ({
+        announcements: state.announcements.map((a) => (a.id === id ? { ...a, ...data } : a)),
+      })),
+      deleteAnnouncement: (id) => set((state) => ({
+        announcements: state.announcements.filter((a) => a.id !== id),
+      })),
+      toggleAnnouncementPin: (id) => set((state) => ({
+        announcements: state.announcements.map((a) => (a.id === id ? { ...a, pinned: !a.pinned } : a)),
+      })),
+
       // Theme Customizer
       accentColor: '#D4A574',
       setAccentColor: (color) => set({ accentColor: color }),
@@ -390,6 +432,7 @@ export const useAppStore = create<AppState>()(
         scheduleBlocks: state.scheduleBlocks,
         libraryBooks: state.libraryBooks,
         fees: state.fees,
+        announcements: state.announcements,
         trashItems: state.trashItems,
         notifications: state.notifications,
         chatMessages: state.chatMessages,
@@ -398,6 +441,7 @@ export const useAppStore = create<AppState>()(
         borderRadius: state.borderRadius,
         backgroundStyle: state.backgroundStyle,
         activeSection: state.activeSection,
+        calendarEvents: state.calendarEvents,
       }),
     }
   )

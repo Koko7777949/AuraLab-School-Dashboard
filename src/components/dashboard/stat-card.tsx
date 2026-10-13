@@ -15,6 +15,7 @@ interface StatCardProps {
   color: string
   trend?: Trend
   subtext?: string
+  sparklineData?: number[]
 }
 
 const statusConfig: Record<Status, { text: string; colorClass: string; bgClass: string; dotColor: string }> = {
@@ -58,7 +59,7 @@ const statusConfig: Record<Status, { text: string; colorClass: string; bgClass: 
 
 /** Animated number counter — counts from 0 to target */
 function AnimatedValue({ value }: { value: string | number }) {
-  const numericValue = typeof value === 'number' ? value : parseInt(value, 10)
+  const numericValue = typeof value === 'number' ? value : parseFloat(value)
   const isNumeric = typeof value === 'number' || (!isNaN(numericValue) && String(value) === String(numericValue))
   const [displayed, setDisplayed] = useState(0)
   const hasAnimated = useRef(false)
@@ -204,6 +205,88 @@ function TrendIcon({ trend }: { trend: Trend }) {
   }
 }
 
+/** SVG Sparkline component - draws a mini line chart from number array */
+function Sparkline({ data, color }: { data: number[]; color: string }) {
+  const [animateProgress, setAnimateProgress] = useState(0)
+  const idRef = useRef(`sparkline-${Math.random().toString(36).slice(2, 8)}`)
+
+  useEffect(() => {
+    const duration = 600
+    const startTime = performance.now()
+    function step(now: number) {
+      const elapsed = now - startTime
+      const progress = Math.min(elapsed / duration, 1)
+      const eased = 1 - Math.pow(1 - progress, 3)
+      setAnimateProgress(eased)
+      if (progress < 1) requestAnimationFrame(step)
+    }
+    requestAnimationFrame(step)
+  }, [])
+
+  if (data.length < 2) return null
+
+  const min = Math.min(...data)
+  const max = Math.max(...data)
+  const range = max - min || 1
+  const width = 80
+  const height = 24
+  const padding = 2
+
+  // Generate SVG points
+  const points = data.map((val, i) => {
+    const x = padding + (i / (data.length - 1)) * (width - padding * 2)
+    const y = height - padding - ((val - min) / range) * (height - padding * 2)
+    return `${x},${y}`
+  })
+
+  // How many points to show based on animation progress
+  const visibleCount = Math.max(2, Math.ceil(points.length * animateProgress))
+  const visiblePoints = points.slice(0, visibleCount)
+
+  // Area fill path
+  const firstX = padding
+  const lastX = padding + ((visibleCount - 1) / (data.length - 1)) * (width - padding * 2)
+  const areaPath = `M${firstX},${height} L${visiblePoints.join(' L')} L${lastX},${height} Z`
+
+  const gradientId = idRef.current
+
+  return (
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      className="w-full h-6 mt-1"
+      style={{ direction: 'ltr' }}
+      preserveAspectRatio="none"
+    >
+      <defs>
+        <linearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+        </linearGradient>
+      </defs>
+      {/* Area fill */}
+      <path d={areaPath} fill={`url(#${gradientId})`} />
+      {/* Line */}
+      <polyline
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        points={visiblePoints.join(' ')}
+      />
+      {/* Last point dot */}
+      {visibleCount >= data.length && (
+        <circle
+          cx={lastX}
+          cy={parseFloat(points[points.length - 1].split(',')[1])}
+          r="2"
+          fill={color}
+        />
+      )}
+    </svg>
+  )
+}
+
 export default function StatCard({
   label,
   value,
@@ -213,6 +296,7 @@ export default function StatCard({
   color,
   trend,
   subtext,
+  sparklineData,
 }: StatCardProps) {
   const statusInfo = statusConfig[status]
 
@@ -278,6 +362,11 @@ export default function StatCard({
         </span>
         {trend && <TrendIcon trend={trend} />}
       </div>
+
+      {/* ── Sparkline ── */}
+      {sparklineData && sparklineData.length >= 2 && (
+        <Sparkline data={sparklineData} color={color} />
+      )}
 
       {/* ── Bottom: label + subtext + enhanced progress ring ── */}
       <div className="relative flex items-center justify-between">

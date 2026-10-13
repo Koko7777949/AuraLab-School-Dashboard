@@ -1,0 +1,1446 @@
+     1→'use client';
+     2→
+     3→import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+     4→import {
+     5→  CalendarRange,
+     6→  Plus,
+     7→  Pencil,
+     8→  Trash2,
+     9→  Eye,
+    10→  Printer,
+    11→  LayoutGrid,
+    12→  List,
+    13→  BookOpen,
+    14→  User,
+    15→  DoorOpen,
+    16→  Clock,
+    17→  FileText,
+    18→  Info,
+    19→} from 'lucide-react';
+    20→import { useAppStore } from '@/lib/store';
+    21→import { cn } from '@/lib/utils';
+    22→import { toast } from 'sonner';
+    23→import type { ScheduleBlock } from '@/lib/types';
+    24→
+    25→// shadcn/ui
+    26→import { Button } from '@/components/ui/button';
+    27→import { Input } from '@/components/ui/input';
+    28→import { Label } from '@/components/ui/label';
+    29→import { Badge } from '@/components/ui/badge';
+    30→import { Textarea } from '@/components/ui/textarea';
+    31→import {
+    32→  Dialog,
+    33→  DialogContent,
+    34→  DialogDescription,
+    35→  DialogFooter,
+    36→  DialogHeader,
+    37→  DialogTitle,
+    38→} from '@/components/ui/dialog';
+    39→import {
+    40→  AlertDialog,
+    41→  AlertDialogAction,
+    42→  AlertDialogCancel,
+    43→  AlertDialogContent,
+    44→  AlertDialogDescription,
+    45→  AlertDialogFooter,
+    46→  AlertDialogHeader,
+    47→  AlertDialogTitle,
+    48→} from '@/components/ui/alert-dialog';
+    49→import {
+    50→  Select,
+    51→  SelectContent,
+    52→  SelectItem,
+    53→  SelectTrigger,
+    54→  SelectValue,
+    55→} from '@/components/ui/select';
+    56→
+    57→// ---------------------------------------------------------------------------
+    58→// Constants
+    59→// ---------------------------------------------------------------------------
+    60→
+    61→type DayOfWeek = 'sat' | 'sun' | 'mon' | 'tue' | 'wed' | 'thu';
+    62→
+    63→const DAYS: { value: DayOfWeek; label: string }[] = [
+    64→  { value: 'sat', label: 'السبت' },
+    65→  { value: 'sun', label: 'الأحد' },
+    66→  { value: 'mon', label: 'الإثنين' },
+    67→  { value: 'tue', label: 'الثلاثاء' },
+    68→  { value: 'wed', label: 'الأربعاء' },
+    69→  { value: 'thu', label: 'الخميس' },
+    70→];
+    71→
+    72→const PERIODS: { value: number; label: string; time: string }[] = [
+    73→  { value: 1, label: 'الحصة 1', time: '7:30 - 8:15' },
+    74→  { value: 2, label: 'الحصة 2', time: '8:20 - 9:05' },
+    75→  { value: 3, label: 'الحصة 3', time: '9:10 - 9:55' },
+    76→  { value: 4, label: 'الحصة 4', time: '10:10 - 10:55' },
+    77→  { value: 5, label: 'الحصة 5', time: '11:00 - 11:45' },
+    78→  { value: 6, label: 'الحصة 6', time: '11:50 - 12:35' },
+    79→  { value: 7, label: 'الحصة 7', time: '12:40 - 1:25' },
+    80→];
+    81→
+    82→const COLOR_PALETTE = [
+    83→  { value: '#D4A574', label: 'عنبري' },
+    84→  { value: '#60A5FA', label: 'أزرق' },
+    85→  { value: '#34D399', label: 'أخضر' },
+    86→  { value: '#F87171', label: 'أحمر' },
+    87→  { value: '#A78BFA', label: 'بنفسجي' },
+    88→  { value: '#FBBF24', label: 'أصفر' },
+    89→  { value: '#F472B6', label: 'وردي' },
+    90→  { value: '#2DD4BF', label: 'تركوازي' },
+    91→];
+    92→
+    93→const SUBJECTS = [
+    94→  'الرياضيات',
+    95→  'اللغة العربية',
+    96→  'اللغة الإنجليزية',
+    97→  'العلوم',
+    98→  'الفيزياء',
+    99→  'الكيمياء',
+   100→  'الأحياء',
+   101→  'التاريخ',
+   102→  'الجغرافيا',
+   103→  'التربية الإسلامية',
+   104→  'الحاسب الآلي',
+   105→  'التربية الفنية',
+   106→  'التربية البدنية',
+   107→  'الإملاء',
+   108→  'الخط العربي',
+   109→];
+   110→
+   111→// ---------------------------------------------------------------------------
+   112→// Mock Data Generator
+   113→// ---------------------------------------------------------------------------
+   114→
+   115→function generateMockSchedule(): ScheduleBlock[] {
+   116→  const blocks: ScheduleBlock[] = [];
+   117→  let idCounter = 1;
+   118→
+   119→  const teacherPool = [
+   120→    { id: 'tch-1', name: 'أحمد الغامدي' },
+   121→    { id: 'tch-2', name: 'فاطمة الزهراني' },
+   122→    { id: 'tch-3', name: 'محمد القحطاني' },
+   123→    { id: 'tch-4', name: 'نورة العتيبي' },
+   124→    { id: 'tch-5', name: 'خالد الشمري' },
+   125→    { id: 'tch-6', name: 'سارة المطيري' },
+   126→    { id: 'tch-7', name: 'عبدالله الدوسري' },
+   127→    { id: 'tch-8', name: 'هند الحربي' },
+   128→  ];
+   129→
+   130→  const classPool = [
+   131→    { id: 'cls-1', name: 'الصف الأول - أ' },
+   132→    { id: 'cls-2', name: 'الصف الأول - ب' },
+   133→    { id: 'cls-3', name: 'الصف الثاني - أ' },
+   134→    { id: 'cls-4', name: 'الصف الثالث - أ' },
+   135→  ];
+   136→
+   137→  const roomPool = ['101', '102', '103', '201', '202', '203', '301', 'مختبر العلوم', 'مختبر الحاسب'];
+   138→
+   139→  const scheduleTemplate: { day: DayOfWeek; period: number; subject: string; teacherIdx: number; classIdx: number; roomIdx: number; colorIdx: number }[] = [
+   140→    // Saturday
+   141→    { day: 'sat', period: 1, subject: 'الرياضيات', teacherIdx: 0, classIdx: 0, roomIdx: 0, colorIdx: 0 },
+   142→    { day: 'sat', period: 2, subject: 'اللغة العربية', teacherIdx: 1, classIdx: 1, roomIdx: 1, colorIdx: 1 },
+   143→    { day: 'sat', period: 3, subject: 'العلوم', teacherIdx: 2, classIdx: 2, roomIdx: 7, colorIdx: 2 },
+   144→    { day: 'sat', period: 4, subject: 'اللغة الإنجليزية', teacherIdx: 3, classIdx: 0, roomIdx: 2, colorIdx: 3 },
+   145→    { day: 'sat', period: 5, subject: 'التربية الإسلامية', teacherIdx: 4, classIdx: 3, roomIdx: 3, colorIdx: 4 },
+   146→    // Sunday
+   147→    { day: 'sun', period: 1, subject: 'الفيزياء', teacherIdx: 5, classIdx: 2, roomIdx: 7, colorIdx: 5 },
+   148→    { day: 'sun', period: 2, subject: 'الرياضيات', teacherIdx: 0, classIdx: 1, roomIdx: 0, colorIdx: 0 },
+   149→    { day: 'sun', period: 3, subject: 'التاريخ', teacherIdx: 6, classIdx: 3, roomIdx: 4, colorIdx: 6 },
+   150→    { day: 'sun', period: 4, subject: 'الكيمياء', teacherIdx: 7, classIdx: 0, roomIdx: 7, colorIdx: 7 },
+   151→    { day: 'sun', period: 5, subject: 'اللغة العربية', teacherIdx: 1, classIdx: 2, roomIdx: 1, colorIdx: 1 },
+   152→    // Monday
+   153→    { day: 'mon', period: 1, subject: 'الأحياء', teacherIdx: 2, classIdx: 3, roomIdx: 7, colorIdx: 2 },
+   154→    { day: 'mon', period: 2, subject: 'الحاسب الآلي', teacherIdx: 5, classIdx: 0, roomIdx: 8, colorIdx: 3 },
+   155→    { day: 'mon', period: 3, subject: 'الرياضيات', teacherIdx: 0, classIdx: 2, roomIdx: 0, colorIdx: 0 },
+   156→    { day: 'mon', period: 4, subject: 'اللغة الإنجليزية', teacherIdx: 3, classIdx: 1, roomIdx: 2, colorIdx: 4 },
+   157→    { day: 'mon', period: 5, subject: 'الجغرافيا', teacherIdx: 6, classIdx: 0, roomIdx: 3, colorIdx: 5 },
+   158→    // Tuesday
+   159→    { day: 'tue', period: 1, subject: 'التربية الفنية', teacherIdx: 7, classIdx: 1, roomIdx: 5, colorIdx: 6 },
+   160→    { day: 'tue', period: 2, subject: 'العلوم', teacherIdx: 2, classIdx: 0, roomIdx: 7, colorIdx: 2 },
+   161→    { day: 'tue', period: 3, subject: 'اللغة العربية', teacherIdx: 1, classIdx: 3, roomIdx: 1, colorIdx: 1 },
+   162→    { day: 'tue', period: 4, subject: 'التربية البدنية', teacherIdx: 4, classIdx: 2, roomIdx: 6, colorIdx: 7 },
+   163→    { day: 'tue', period: 5, subject: 'الفيزياء', teacherIdx: 5, classIdx: 1, roomIdx: 7, colorIdx: 5 },
+   164→    // Wednesday
+   165→    { day: 'wed', period: 1, subject: 'الرياضيات', teacherIdx: 0, classIdx: 3, roomIdx: 0, colorIdx: 0 },
+   166→    { day: 'wed', period: 2, subject: 'الكيمياء', teacherIdx: 7, classIdx: 2, roomIdx: 7, colorIdx: 7 },
+   167→    { day: 'wed', period: 3, subject: 'الإملاء', teacherIdx: 1, classIdx: 0, roomIdx: 1, colorIdx: 3 },
+   168→    { day: 'wed', period: 4, subject: 'الأحياء', teacherIdx: 2, classIdx: 1, roomIdx: 7, colorIdx: 2 },
+   169→    { day: 'wed', period: 5, subject: 'التاريخ', teacherIdx: 6, classIdx: 2, roomIdx: 4, colorIdx: 6 },
+   170→    // Thursday
+   171→    { day: 'thu', period: 1, subject: 'اللغة الإنجليزية', teacherIdx: 3, classIdx: 3, roomIdx: 2, colorIdx: 4 },
+   172→    { day: 'thu', period: 2, subject: 'التربية الإسلامية', teacherIdx: 4, classIdx: 0, roomIdx: 3, colorIdx: 5 },
+   173→    { day: 'thu', period: 3, subject: 'الجغرافيا', teacherIdx: 6, classIdx: 1, roomIdx: 0, colorIdx: 6 },
+   174→    { day: 'thu', period: 4, subject: 'الحاسب الآلي', teacherIdx: 5, classIdx: 3, roomIdx: 8, colorIdx: 7 },
+   175→    { day: 'thu', period: 5, subject: 'الخط العربي', teacherIdx: 1, classIdx: 2, roomIdx: 1, colorIdx: 0 },
+   176→  ];
+   177→
+   178→  for (const tpl of scheduleTemplate) {
+   179→    const periodDef = PERIODS.find((p) => p.value === tpl.period);
+   180→    const [start, end] = periodDef ? periodDef.time.split(' - ') : ['7:30', '8:15'];
+   181→
+   182→    blocks.push({
+   183→      id: `sch-${idCounter++}`,
+   184→      dayOfWeek: tpl.day,
+   185→      period: tpl.period,
+   186→      subject: tpl.subject,
+   187→      teacherId: teacherPool[tpl.teacherIdx].id,
+   188→      teacherName: teacherPool[tpl.teacherIdx].name,
+   189→      classId: classPool[tpl.classIdx].id,
+   190→      className: classPool[tpl.classIdx].name,
+   191→      room: roomPool[tpl.roomIdx],
+   192→      startTime: start,
+   193→      endTime: end,
+   194→      color: COLOR_PALETTE[tpl.colorIdx].value,
+   195→      notes: '',
+   196→    });
+   197→  }
+   198→
+   199→  return blocks;
+   200→}
+   201→
+   202→// ---------------------------------------------------------------------------
+   203→// Helpers
+   204→// ---------------------------------------------------------------------------
+   205→
+   206→function getDayLabel(day: DayOfWeek): string {
+   207→  return DAYS.find((d) => d.value === day)?.label ?? day;
+   208→}
+   209→
+   210→function getPeriodLabel(period: number): string {
+   211→  const p = PERIODS.find((pr) => pr.value === period);
+   212→  return p ? `${p.label} (${p.time})` : `الحصة ${period}`;
+   213→}
+   214→
+   215→function getPeriodTime(period: number): string {
+   216→  const p = PERIODS.find((pr) => pr.value === period);
+   217→  return p ? p.time : '';
+   218→}
+   219→
+   220→// ---------------------------------------------------------------------------
+   221→// View Dialog (read-only)
+   222→// ---------------------------------------------------------------------------
+   223→
+   224→function ViewBlockDialog({
+   225→  block,
+   226→  open,
+   227→  onOpenChange,
+   228→}: {
+   229→  block: ScheduleBlock | null;
+   230→  open: boolean;
+   231→  onOpenChange: (open: boolean) => void;
+   232→}) {
+   233→  if (!block) return null;
+   234→
+   235→  const fields: { label: string; icon: React.ElementType; value: string; color: string }[] = [
+   236→    { label: 'المادة', icon: BookOpen, value: block.subject, color: 'text-[#D4A574]' },
+   237→    { label: 'اليوم', icon: CalendarRange, value: getDayLabel(block.dayOfWeek), color: 'text-[#60A5FA]' },
+   238→    { label: 'الحصة', icon: Clock, value: getPeriodLabel(block.period), color: 'text-[#34D399]' },
+   239→    { label: 'المعلم', icon: User, value: block.teacherName ?? '—', color: 'text-[#A78BFA]' },
+   240→    { label: 'الفصل', icon: DoorOpen, value: block.className ?? '—', color: 'text-[#FBBF24]' },
+   241→    { label: 'القاعة', icon: DoorOpen, value: block.room, color: 'text-[#F472B6]' },
+   242→    { label: 'من', icon: Clock, value: block.startTime, color: 'text-[#2DD4BF]' },
+   243→    { label: 'إلى', icon: Clock, value: block.endTime, color: 'text-[#2DD4BF]' },
+   244→  ];
+   245→
+   246→  return (
+   247→    <Dialog open={open} onOpenChange={onOpenChange}>
+   248→      <DialogContent
+   249→        className="sm:max-w-lg"
+   250→        dir="rtl"
+   251→        style={{
+   252→          backgroundColor: '#1A1A24',
+   253→          border: '1px solid rgba(255,255,255,0.06)',
+   254→        }}
+   255→      >
+   256→        <DialogHeader>
+   257→          <DialogTitle className="text-white text-xl flex items-center gap-2">
+   258→            <div
+   259→              className="h-8 w-8 rounded-lg flex items-center justify-center"
+   260→              style={{ backgroundColor: `${block.color}20` }}
+   261→            >
+   262→              <BookOpen className="h-4 w-4" style={{ color: block.color }} />
+   263→            </div>
+   264→            تفاصيل الحصة
+   265→          </DialogTitle>
+   266→          <DialogDescription className="text-muted-foreground">
+   267→            عرض تفاصيل حصة {block.subject}
+   268→          </DialogDescription>
+   269→        </DialogHeader>
+   270→
+   271→        <div className="flex flex-col gap-4 mt-2">
+   272→          <div
+   273→            className="rounded-xl p-4"
+   274→            style={{
+   275→              backgroundColor: 'rgba(255,255,255,0.02)',
+   276→              border: '1px solid rgba(255,255,255,0.04)',
+   277→            }}
+   278→          >
+   279→            <div className="grid grid-cols-1 gap-3">
+   280→              {fields.map((field) => {
+   281→                const Icon = field.icon;
+   282→                return (
+   283→                  <div
+   284→                    key={field.label}
+   285→                    className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04] last:border-b-0"
+   286→                  >
+   287→                    <div className="flex items-center gap-3">
+   288→                      <div
+   289→                        className="flex items-center justify-center h-8 w-8 rounded-lg"
+   290→                        style={{ backgroundColor: `${field.color}15` }}
+   291→                      >
+   292→                        <Icon className={cn('h-4 w-4', field.color)} />
+   293→                      </div>
+   294→                      <span className="text-sm text-muted-foreground">{field.label}</span>
+   295→                    </div>
+   296→                    <span className="text-sm font-medium text-slate-200">{field.value}</span>
+   297→                  </div>
+   298→                );
+   299→              })}
+   300→            </div>
+   301→          </div>
+   302→
+   303→          {/* Notes */}
+   304→          {block.notes && (
+   305→            <div
+   306→              className="rounded-xl p-4"
+   307→              style={{
+   308→                backgroundColor: 'rgba(255,255,255,0.02)',
+   309→                border: '1px solid rgba(255,255,255,0.04)',
+   310→              }}
+   311→            >
+   312→              <h4 className="text-sm font-semibold text-slate-300 mb-2 flex items-center gap-2">
+   313→                <FileText className="h-4 w-4 text-[#D4A574]" />
+   314→                ملاحظات
+   315→              </h4>
+   316→              <p className="text-sm text-muted-foreground leading-relaxed">{block.notes}</p>
+   317→            </div>
+   318→          )}
+   319→
+   320→          {/* Color indicator */}
+   321→          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+   322→            <div
+   323→              className="h-4 w-4 rounded-full border border-white/10"
+   324→              style={{ backgroundColor: block.color }}
+   325→            />
+   326→            <span>لون التصنيف</span>
+   327→          </div>
+   328→        </div>
+   329→      </DialogContent>
+   330→    </Dialog>
+   331→  );
+   332→}
+   333→
+   334→// ---------------------------------------------------------------------------
+   335→// Add / Edit Dialog
+   336→// ---------------------------------------------------------------------------
+   337→
+   338→function AddEditBlockDialog({
+   339→  block,
+   340→  open,
+   341→  onOpenChange,
+   342→  defaultDay,
+   343→  defaultPeriod,
+   344→}: {
+   345→  block: ScheduleBlock | null;
+   346→  open: boolean;
+   347→  onOpenChange: (open: boolean) => void;
+   348→  defaultDay?: DayOfWeek;
+   349→  defaultPeriod?: number;
+   350→}) {
+   351→  const { addScheduleBlock, updateScheduleBlock, teachers, classes } = useAppStore();
+   352→  const isEdit = !!block;
+   353→
+   354→  const [day, setDay] = useState<DayOfWeek>(defaultDay ?? 'sat');
+   355→  const [period, setPeriod] = useState<number>(defaultPeriod ?? 1);
+   356→  const [subject, setSubject] = useState('');
+   357→  const [teacherId, setTeacherId] = useState<string>('');
+   358→  const [classId, setClassId] = useState<string>('');
+   359→  const [room, setRoom] = useState('');
+   360→  const [startTime, setStartTime] = useState('');
+   361→  const [endTime, setEndTime] = useState('');
+   362→  const [color, setColor] = useState<string>(COLOR_PALETTE[0].value);
+   363→  const [notes, setNotes] = useState('');
+   364→  const [subjectSuggestionsOpen, setSubjectSuggestionsOpen] = useState(false);
+   365→
+   366→  // Populate fields when editing or when dialog opens for adding
+   367→  const prevOpenRef = useRef(false);
+   368→  useEffect(() => {
+   369→    if (open && !prevOpenRef.current) {
+   370→      if (block) {
+   371→        requestAnimationFrame(() => {
+   372→          setDay(block.dayOfWeek);
+   373→          setPeriod(block.period);
+   374→          setSubject(block.subject);
+   375→          setTeacherId(block.teacherId ?? '');
+   376→          setClassId(block.classId ?? '');
+   377→          setRoom(block.room);
+   378→          setStartTime(block.startTime);
+   379→          setEndTime(block.endTime);
+   380→          setColor(block.color);
+   381→          setNotes(block.notes);
+   382→        });
+   383→      } else {
+   384→        const defDay = defaultDay ?? 'sat';
+   385→        const defPeriod = defaultPeriod ?? 1;
+   386→        const pDef = PERIODS.find((p) => p.value === defPeriod);
+   387→        const [s, e] = pDef ? pDef.time.split(' - ') : ['7:30', '8:15'];
+   388→        requestAnimationFrame(() => {
+   389→          setDay(defDay);
+   390→          setPeriod(defPeriod);
+   391→          setSubject('');
+   392→          setTeacherId('');
+   393→          setClassId('');
+   394→          setRoom('');
+   395→          setStartTime(s);
+   396→          setEndTime(e);
+   397→          setColor(COLOR_PALETTE[0].value);
+   398→          setNotes('');
+   399→        });
+   400→      }
+   401→      requestAnimationFrame(() => setSubjectSuggestionsOpen(false));
+   402→    }
+   403→    prevOpenRef.current = open;
+   404→  }, [open, block, defaultDay, defaultPeriod]);
+   405→
+   406→  // Update times when period changes
+   407→  const handlePeriodChange = useCallback((val: string) => {
+   408→    const num = parseInt(val, 10);
+   409→    setPeriod(num);
+   410→    const pDef = PERIODS.find((p) => p.value === num);
+   411→    if (pDef) {
+   412→      const [s, e] = pDef.time.split(' - ');
+   413→      setStartTime(s);
+   414→      setEndTime(e);
+   415→    }
+   416→  }, []);
+   417→
+   418→  // Filter subject suggestions
+   419→  const subjectSuggestions = useMemo(() => {
+   420→    if (!subject.trim() || subjectSuggestionsOpen === false) return [];
+   421→    return SUBJECTS.filter((s) => s.includes(subject.trim())).slice(0, 6);
+   422→  }, [subject, subjectSuggestionsOpen]);
+   423→
+   424→  const handleSubmit = useCallback(() => {
+   425→    if (!subject.trim()) {
+   426→      toast.error('يرجى إدخال اسم المادة');
+   427→      return;
+   428→    }
+   429→
+   430→    const teacher = teachers.find((t) => t.id === teacherId);
+   431→    const cls = classes.find((c) => c.id === classId);
+   432→
+   433→    if (isEdit && block) {
+   434→      updateScheduleBlock(block.id, {
+   435→        dayOfWeek: day,
+   436→        period,
+   437→        subject: subject.trim(),
+   438→        teacherId: teacherId || null,
+   439→        teacherName: teacher?.name,
+   440→        classId: classId || null,
+   441→        className: cls?.name,
+   442→        room: room.trim() || '—',
+   443→        startTime,
+   444→        endTime,
+   445→        color,
+   446→        notes: notes.trim(),
+   447→      });
+   448→      toast.success('تم تحديث الحصة بنجاح');
+   449→    } else {
+   450→      addScheduleBlock({
+   451→        id: `sch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+   452→        dayOfWeek: day,
+   453→        period,
+   454→        subject: subject.trim(),
+   455→        teacherId: teacherId || null,
+   456→        teacherName: teacher?.name,
+   457→        classId: classId || null,
+   458→        className: cls?.name,
+   459→        room: room.trim() || '—',
+   460→        startTime,
+   461→        endTime,
+   462→        color,
+   463→        notes: notes.trim(),
+   464→      });
+   465→      toast.success('تمت إضافة الحصة بنجاح');
+   466→    }
+   467→    onOpenChange(false);
+   468→  }, [subject, day, period, teacherId, classId, room, startTime, endTime, color, notes, isEdit, block, teachers, classes, addScheduleBlock, updateScheduleBlock, onOpenChange]);
+   469→
+   470→  return (
+   471→    <Dialog open={open} onOpenChange={onOpenChange}>
+   472→      <DialogContent
+   473→        className="sm:max-w-lg max-h-[85vh] overflow-y-auto"
+   474→        dir="rtl"
+   475→        style={{
+   476→          backgroundColor: '#1A1A24',
+   477→          border: '1px solid rgba(255,255,255,0.06)',
+   478→        }}
+   479→      >
+   480→        <DialogHeader>
+   481→          <DialogTitle className="text-white text-xl">
+   482→            {isEdit ? 'تعديل الحصة' : 'إضافة حصة جديدة'}
+   483→          </DialogTitle>
+   484→          <DialogDescription className="text-muted-foreground">
+   485→            {isEdit ? 'قم بتعديل بيانات الحصة الدراسية' : 'أدخل بيانات الحصة الدراسية الجديدة'}
+   486→          </DialogDescription>
+   487→        </DialogHeader>
+   488→
+   489→        <div className="flex flex-col gap-4 mt-2">
+   490→          {/* Day + Period */}
+   491→          <div className="grid grid-cols-2 gap-3">
+   492→            <div className="flex flex-col gap-2">
+   493→              <Label className="text-slate-300 text-sm">اليوم</Label>
+   494→              <Select value={day} onValueChange={(v) => setDay(v as DayOfWeek)}>
+   495→                <SelectTrigger className="bg-white/[0.03] border-white/[0.08] text-slate-200">
+   496→                  <SelectValue />
+   497→                </SelectTrigger>
+   498→                <SelectContent>
+   499→                  {DAYS.map((d) => (
+   500→                    <SelectItem key={d.value} value={d.value}>
+   501→                      {d.label}
+   502→                    </SelectItem>
+   503→                  ))}
+   504→                </SelectContent>
+   505→              </Select>
+   506→            </div>
+   507→            <div className="flex flex-col gap-2">
+   508→              <Label className="text-slate-300 text-sm">الحصة</Label>
+   509→              <Select value={String(period)} onValueChange={handlePeriodChange}>
+   510→                <SelectTrigger className="bg-white/[0.03] border-white/[0.08] text-slate-200">
+   511→                  <SelectValue />
+   512→                </SelectTrigger>
+   513→                <SelectContent>
+   514→                  {PERIODS.map((p) => (
+   515→                    <SelectItem key={p.value} value={String(p.value)}>
+   516→                      {p.label} ({p.time})
+   517→                    </SelectItem>
+   518→                  ))}
+   519→                </SelectContent>
+   520→              </Select>
+   521→            </div>
+   522→          </div>
+   523→
+   524→          {/* Subject with autocomplete */}
+   525→          <div className="flex flex-col gap-2 relative">
+   526→            <Label className="text-slate-300 text-sm">المادة</Label>
+   527→            <Input
+   528→              value={subject}
+   529→              onChange={(e) => {
+   530→                setSubject(e.target.value);
+   531→                setSubjectSuggestionsOpen(true);
+   532→              }}
+   533→              onFocus={() => setSubjectSuggestionsOpen(true)}
+   534→              onBlur={() => setTimeout(() => setSubjectSuggestionsOpen(false), 200)}
+   535→              placeholder="أدخل اسم المادة..."
+   536→              className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   537→            />
+   538→            {subjectSuggestions.length > 0 && subjectSuggestionsOpen && (
+   539→              <div className="absolute top-[68px] right-0 left-0 z-20 rounded-lg border border-white/[0.08] bg-[#1A1A24] shadow-lg overflow-hidden">
+   540→                {subjectSuggestions.map((s) => (
+   541→                  <button
+   542→                    key={s}
+   543→                    type="button"
+   544→                    onMouseDown={() => {
+   545→                      setSubject(s);
+   546→                      setSubjectSuggestionsOpen(false);
+   547→                    }}
+   548→                    className="w-full text-right px-3 py-2 text-sm text-slate-200 hover:bg-white/[0.06] transition-colors"
+   549→                  >
+   550→                    {s}
+   551→                  </button>
+   552→                ))}
+   553→              </div>
+   554→            )}
+   555→          </div>
+   556→
+   557→          {/* Teacher + Class */}
+   558→          <div className="grid grid-cols-2 gap-3">
+   559→            <div className="flex flex-col gap-2">
+   560→              <Label className="text-slate-300 text-sm">المعلم</Label>
+   561→              <Select value={teacherId} onValueChange={setTeacherId}>
+   562→                <SelectTrigger className="bg-white/[0.03] border-white/[0.08] text-slate-200">
+   563→                  <SelectValue placeholder="اختر المعلم" />
+   564→                </SelectTrigger>
+   565→                <SelectContent>
+   566→                  <SelectItem value="__none__">بدون معلم</SelectItem>
+   567→                  {teachers.map((t) => (
+   568→                    <SelectItem key={t.id} value={t.id}>
+   569→                      {t.name}
+   570→                    </SelectItem>
+   571→                  ))}
+   572→                </SelectContent>
+   573→              </Select>
+   574→            </div>
+   575→            <div className="flex flex-col gap-2">
+   576→              <Label className="text-slate-300 text-sm">الفصل</Label>
+   577→              <Select value={classId} onValueChange={setClassId}>
+   578→                <SelectTrigger className="bg-white/[0.03] border-white/[0.08] text-slate-200">
+   579→                  <SelectValue placeholder="اختر الفصل" />
+   580→                </SelectTrigger>
+   581→                <SelectContent>
+   582→                  <SelectItem value="__none__">بدون فصل</SelectItem>
+   583→                  {classes.map((c) => (
+   584→                    <SelectItem key={c.id} value={c.id}>
+   585→                      {c.name}
+   586→                    </SelectItem>
+   587→                  ))}
+   588→                </SelectContent>
+   589→              </Select>
+   590→            </div>
+   591→          </div>
+   592→
+   593→          {/* Room */}
+   594→          <div className="flex flex-col gap-2">
+   595→            <Label className="text-slate-300 text-sm">القاعة</Label>
+   596→            <Input
+   597→              value={room}
+   598→              onChange={(e) => setRoom(e.target.value)}
+   599→              placeholder="رقم أو اسم القاعة..."
+   600→              className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   601→            />
+   602→          </div>
+   603→
+   604→          {/* Times */}
+   605→          <div className="grid grid-cols-2 gap-3">
+   606→            <div className="flex flex-col gap-2">
+   607→              <Label className="text-slate-300 text-sm">وقت البداية</Label>
+   608→              <Input
+   609→                type="time"
+   610→                value={startTime}
+   611→                onChange={(e) => setStartTime(e.target.value)}
+   612→                className="bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   613→              />
+   614→            </div>
+   615→            <div className="flex flex-col gap-2">
+   616→              <Label className="text-slate-300 text-sm">وقت النهاية</Label>
+   617→              <Input
+   618→                type="time"
+   619→                value={endTime}
+   620→                onChange={(e) => setEndTime(e.target.value)}
+   621→                className="bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   622→              />
+   623→            </div>
+   624→          </div>
+   625→
+   626→          {/* Color picker */}
+   627→          <div className="flex flex-col gap-2">
+   628→            <Label className="text-slate-300 text-sm">اللون</Label>
+   629→            <div className="flex items-center gap-2 flex-wrap">
+   630→              {COLOR_PALETTE.map((c) => (
+   631→                <button
+   632→                  key={c.value}
+   633→                  type="button"
+   634→                  onClick={() => setColor(c.value)}
+   635→                  title={c.label}
+   636→                  className={cn(
+   637→                    'h-8 w-8 rounded-full border-2 transition-all duration-200 hover:scale-110',
+   638→                    color === c.value
+   639→                      ? 'border-white scale-110 shadow-lg'
+   640→                      : 'border-transparent'
+   641→                  )}
+   642→                  style={{ backgroundColor: c.value, boxShadow: color === c.value ? `0 0 12px ${c.value}60` : undefined }}
+   643→                />
+   644→              ))}
+   645→            </div>
+   646→          </div>
+   647→
+   648→          {/* Notes */}
+   649→          <div className="flex flex-col gap-2">
+   650→            <Label className="text-slate-300 text-sm">ملاحظات</Label>
+   651→            <Textarea
+   652→              value={notes}
+   653→              onChange={(e) => setNotes(e.target.value)}
+   654→              placeholder="أضف ملاحظات (اختياري)..."
+   655→              className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 min-h-[70px] resize-none"
+   656→            />
+   657→          </div>
+   658→        </div>
+   659→
+   660→        <DialogFooter className="flex-row gap-3 sm:justify-start pt-2">
+   661→          <Button
+   662→            onClick={handleSubmit}
+   663→            className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold rounded-lg px-6 gap-2"
+   664→          >
+   665→            {isEdit ? (
+   666→              <>
+   667→                <Pencil className="h-4 w-4" />
+   668→                حفظ التغييرات
+   669→              </>
+   670→            ) : (
+   671→              <>
+   672→                <Plus className="h-4 w-4" />
+   673→                إضافة الحصة
+   674→              </>
+   675→            )}
+   676→          </Button>
+   677→          <Button
+   678→            type="button"
+   679→            variant="outline"
+   680→            onClick={() => onOpenChange(false)}
+   681→            className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-6"
+   682→          >
+   683→            إلغاء
+   684→          </Button>
+   685→        </DialogFooter>
+   686→      </DialogContent>
+   687→    </Dialog>
+   688→  );
+   689→}
+   690→
+   691→// ---------------------------------------------------------------------------
+   692→// Delete Dialog
+   693→// ---------------------------------------------------------------------------
+   694→
+   695→function DeleteBlockDialog({
+   696→  block,
+   697→  open,
+   698→  onOpenChange,
+   699→}: {
+   700→  block: ScheduleBlock | null;
+   701→  open: boolean;
+   702→  onOpenChange: (open: boolean) => void;
+   703→}) {
+   704→  const { deleteScheduleBlock } = useAppStore();
+   705→
+   706→  const handleDelete = useCallback(() => {
+   707→    if (block) {
+   708→      deleteScheduleBlock(block.id);
+   709→      toast.success('تم حذف الحصة بنجاح');
+   710→      onOpenChange(false);
+   711→    }
+   712→  }, [block, deleteScheduleBlock, onOpenChange]);
+   713→
+   714→  return (
+   715→    <AlertDialog open={open} onOpenChange={onOpenChange}>
+   716→      <AlertDialogContent
+   717→        dir="rtl"
+   718→        style={{
+   719→          backgroundColor: '#1A1A24',
+   720→          border: '1px solid rgba(255,255,255,0.06)',
+   721→        }}
+   722→      >
+   723→        <AlertDialogHeader>
+   724→          <AlertDialogTitle className="text-white text-lg">تأكيد حذف الحصة</AlertDialogTitle>
+   725→          <AlertDialogDescription className="text-muted-foreground leading-relaxed">
+   726→            هل أنت متأكد من حذف حصة{' '}
+   727→            <span className="font-semibold text-slate-200">{block?.subject}</span>
+   728→            {' '}في يوم{' '}
+   729→            <span className="font-semibold text-slate-200">{block ? getDayLabel(block.dayOfWeek) : ''}</span>
+   730→            {' '}— {block ? getPeriodLabel(block.period) : ''}
+   731→            <br />
+   732→            لا يمكن التراجع عن هذا الإجراء.
+   733→          </AlertDialogDescription>
+   734→        </AlertDialogHeader>
+   735→        <AlertDialogFooter className="flex-row gap-3 sm:justify-start mt-2">
+   736→          <AlertDialogCancel className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-6 mt-0">
+   737→            إلغاء
+   738→          </AlertDialogCancel>
+   739→          <AlertDialogAction
+   740→            onClick={handleDelete}
+   741→            className="bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-lg px-6 gap-2"
+   742→          >
+   743→            <Trash2 className="h-4 w-4" />
+   744→            نعم، احذف
+   745→          </AlertDialogAction>
+   746→        </AlertDialogFooter>
+   747→      </AlertDialogContent>
+   748→    </AlertDialog>
+   749→  );
+   750→}
+   751→
+   752→// ---------------------------------------------------------------------------
+   753→// Stats Bar
+   754→// ---------------------------------------------------------------------------
+   755→
+   756→function StatsBar({ blocks }: { blocks: ScheduleBlock[] }) {
+   757→  const totalBlocks = blocks.length;
+   758→  const uniqueSubjects = new Set(blocks.map((b) => b.subject)).size;
+   759→  const uniqueTeachers = new Set(blocks.filter((b) => b.teacherName).map((b) => b.teacherName)).size;
+   760→  const uniqueRooms = new Set(blocks.map((b) => b.room)).size;
+   761→
+   762→  const stats = [
+   763→    { label: 'إجمالي الحصص', value: totalBlocks, icon: CalendarRange, color: '#D4A574' },
+   764→    { label: 'المواد الدراسية', value: uniqueSubjects, icon: BookOpen, color: '#60A5FA' },
+   765→    { label: 'المعلمون', value: uniqueTeachers, icon: User, color: '#34D399' },
+   766→    { label: 'القاعات', value: uniqueRooms, icon: DoorOpen, color: '#A78BFA' },
+   767→  ];
+   768→
+   769→  return (
+   770→    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+   771→      {stats.map((stat) => {
+   772→        const Icon = stat.icon;
+   773→        return (
+   774→          <div
+   775→            key={stat.label}
+   776→            className="rounded-xl p-4 transition-all duration-200 hover:scale-[1.02]"
+   777→            style={{
+   778→              backgroundColor: 'rgba(255,255,255,0.02)',
+   779→              border: '1px solid rgba(255,255,255,0.06)',
+   780→            }}
+   781→          >
+   782→            <div className="flex items-center gap-3">
+   783→              <div
+   784→                className="flex items-center justify-center h-10 w-10 rounded-xl"
+   785→                style={{ backgroundColor: `${stat.color}15` }}
+   786→              >
+   787→                <Icon className="h-5 w-5" style={{ color: stat.color }} />
+   788→              </div>
+   789→              <div>
+   790→                <p className="text-2xl font-bold text-white tabular-nums">{stat.value}</p>
+   791→                <p className="text-xs text-muted-foreground">{stat.label}</p>
+   792→              </div>
+   793→            </div>
+   794→          </div>
+   795→        );
+   796→      })}
+   797→    </div>
+   798→  );
+   799→}
+   800→
+   801→// ---------------------------------------------------------------------------
+   802→// Week View Grid
+   803→// ---------------------------------------------------------------------------
+   804→
+   805→function WeekViewGrid({
+   806→  blocks,
+   807→  onCellClick,
+   808→  onBlockClick,
+   809→}: {
+   810→  blocks: ScheduleBlock[];
+   811→  onCellClick: (day: DayOfWeek, period: number) => void;
+   812→  onBlockClick: (block: ScheduleBlock) => void;
+   813→}) {
+   814→  // Build a lookup map
+   815→  const blockMap = useMemo(() => {
+   816→    const map = new Map<string, ScheduleBlock>();
+   817→    for (const b of blocks) {
+   818→      map.set(`${b.dayOfWeek}-${b.period}`, b);
+   819→    }
+   820→    return map;
+   821→  }, [blocks]);
+   822→
+   823→  return (
+   824→    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+   825→      <div className="overflow-x-auto">
+   826→        <div className="min-w-[900px]">
+   827→          {/* Day headers */}
+   828→          <div className="grid grid-cols-[100px_repeat(6,1fr)]" style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}>
+   829→            <div className="p-3 text-xs text-muted-foreground font-semibold border-b border-l border-white/[0.06] flex items-center justify-center">
+   830→              الفترة
+   831→            </div>
+   832→            {DAYS.map((day) => (
+   833→              <div
+   834→                key={day.value}
+   835→                className="p-3 text-center text-sm font-semibold text-[#D4A574] border-b border-l border-white/[0.06] last:border-l-0"
+   836→              >
+   837→                {day.label}
+   838→              </div>
+   839→            ))}
+   840→          </div>
+   841→
+   842→          {/* Period rows */}
+   843→          {PERIODS.map((p) => (
+   844→            <div key={p.value} className="grid grid-cols-[100px_repeat(6,1fr)]">
+   845→              {/* Period header */}
+   846→              <div className="p-3 border-b border-l border-white/[0.06] flex flex-col items-center justify-center gap-1" style={{ backgroundColor: 'rgba(255,255,255,0.01)' }}>
+   847→                <span className="text-xs font-semibold text-slate-300">{p.label}</span>
+   848→                <span className="text-[10px] text-muted-foreground">{p.time}</span>
+   849→              </div>
+   850→
+   851→              {/* Day cells */}
+   852→              {DAYS.map((day) => {
+   853→                const block = blockMap.get(`${day.value}-${p.value}`);
+   854→                return (
+   855→                  <div
+   856→                    key={`${day.value}-${p.value}`}
+   857→                    className="p-1.5 border-b border-l border-white/[0.04] last:border-l-0 min-h-[72px] transition-colors hover:bg-white/[0.02]"
+   858→                  >
+   859→                    {block ? (
+   860→                      <button
+   861→                        onClick={() => onBlockClick(block)}
+   862→                        className="w-full h-full rounded-lg p-2 text-right transition-all duration-200 hover:scale-[1.03] hover:shadow-md"
+   863→                        style={{
+   864→                          backgroundColor: `${block.color}12`,
+   865→                          border: `1px solid ${block.color}25`,
+   866→                        }}
+   867→                      >
+   868→                        <div className="flex items-center gap-1.5 mb-1">
+   869→                          <div
+   870→                            className="h-2 w-2 rounded-full shrink-0"
+   871→                            style={{ backgroundColor: block.color }}
+   872→                          />
+   873→                          <span
+   874→                            className="text-xs font-semibold truncate"
+   875→                            style={{ color: block.color }}
+   876→                          >
+   877→                            {block.subject}
+   878→                          </span>
+   879→                        </div>
+   880→                        {block.teacherName && (
+   881→                          <p className="text-[10px] text-muted-foreground truncate">
+   882→                            {block.teacherName}
+   883→                          </p>
+   884→                        )}
+   885→                        <p className="text-[10px] text-muted-foreground/60 truncate">
+   886→                          🏫 {block.room}
+   887→                        </p>
+   888→                      </button>
+   889→                    ) : (
+   890→                      <button
+   891→                        onClick={() => onCellClick(day.value, p.value)}
+   892→                        className="w-full h-full rounded-lg flex items-center justify-center text-muted-foreground/30 hover:text-[#D4A574]/60 hover:bg-white/[0.02] transition-all duration-200"
+   893→                        title={`إضافة حصة - ${day.label} - ${p.label}`}
+   894→                      >
+   895→                        <Plus className="h-4 w-4" />
+   896→                      </button>
+   897→                    )}
+   898→                  </div>
+   899→                );
+   900→              })}
+   901→            </div>
+   902→          ))}
+   903→        </div>
+   904→      </div>
+   905→    </div>
+   906→  );
+   907→}
+   908→
+   909→// ---------------------------------------------------------------------------
+   910→// List View
+   911→// ---------------------------------------------------------------------------
+   912→
+   913→function ListView({
+   914→  blocks,
+   915→  onBlockClick,
+   916→  filterDay,
+   917→  setFilterDay,
+   918→  filterSubject,
+   919→  setFilterSubject,
+   920→}: {
+   921→  blocks: ScheduleBlock[];
+   922→  onBlockClick: (block: ScheduleBlock) => void;
+   923→  filterDay: string;
+   924→  setFilterDay: (d: string) => void;
+   925→  filterSubject: string;
+   926→  setFilterSubject: (s: string) => void;
+   927→}) {
+   928→  const uniqueSubjects = useMemo(() => {
+   929→    return Array.from(new Set(blocks.map((b) => b.subject))).sort();
+   930→  }, [blocks]);
+   931→
+   932→  const filteredBlocks = useMemo(() => {
+   933→    let result = [...blocks];
+   934→    if (filterDay !== 'all') {
+   935→      result = result.filter((b) => b.dayOfWeek === filterDay);
+   936→    }
+   937→    if (filterSubject !== 'all') {
+   938→      result = result.filter((b) => b.subject === filterSubject);
+   939→    }
+   940→    // Sort by day then period
+   941→    const dayOrder: Record<string, number> = { sat: 0, sun: 1, mon: 2, tue: 3, wed: 4, thu: 5 };
+   942→    result.sort((a, b) => {
+   943→      const dayDiff = (dayOrder[a.dayOfWeek] ?? 0) - (dayOrder[b.dayOfWeek] ?? 0);
+   944→      if (dayDiff !== 0) return dayDiff;
+   945→      return a.period - b.period;
+   946→    });
+   947→    return result;
+   948→  }, [blocks, filterDay, filterSubject]);
+   949→
+   950→  // Group by day
+   951→  const groupedByDay = useMemo(() => {
+   952→    const groups: Record<string, ScheduleBlock[]> = {};
+   953→    for (const b of filteredBlocks) {
+   954→      const dayLabel = getDayLabel(b.dayOfWeek);
+   955→      if (!groups[dayLabel]) groups[dayLabel] = [];
+   956→      groups[dayLabel].push(b);
+   957→    }
+   958→    return groups;
+   959→  }, [filteredBlocks]);
+   960→
+   961→  return (
+   962→    <div className="flex flex-col gap-4">
+   963→      {/* Filters */}
+   964→      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+   965→        <div className="flex flex-col gap-2">
+   966→          <Label className="text-slate-300 text-sm">تصفية حسب اليوم</Label>
+   967→          <Select value={filterDay} onValueChange={setFilterDay}>
+   968→            <SelectTrigger className="bg-white/[0.03] border-white/[0.08] text-slate-200">
+   969→              <SelectValue />
+   970→            </SelectTrigger>
+   971→            <SelectContent>
+   972→              <SelectItem value="all">جميع الأيام</SelectItem>
+   973→              {DAYS.map((d) => (
+   974→                <SelectItem key={d.value} value={d.value}>
+   975→                  {d.label}
+   976→                </SelectItem>
+   977→              ))}
+   978→            </SelectContent>
+   979→          </Select>
+   980→        </div>
+   981→        <div className="flex flex-col gap-2">
+   982→          <Label className="text-slate-300 text-sm">تصفية حسب المادة</Label>
+   983→          <Select value={filterSubject} onValueChange={setFilterSubject}>
+   984→            <SelectTrigger className="bg-white/[0.03] border-white/[0.08] text-slate-200">
+   985→              <SelectValue />
+   986→            </SelectTrigger>
+   987→            <SelectContent>
+   988→              <SelectItem value="all">جميع المواد</SelectItem>
+   989→              {uniqueSubjects.map((s) => (
+   990→                <SelectItem key={s} value={s}>
+   991→                  {s}
+   992→                </SelectItem>
+   993→              ))}
+   994→            </SelectContent>
+   995→          </Select>
+   996→        </div>
+   997→      </div>
+   998→
+   999→      {/* Grouped list */}
+  1000→      <div className="flex flex-col gap-4 max-h-[600px] overflow-y-auto custom-scrollbar">
+  1001→        {Object.entries(groupedByDay).map(([dayLabel, dayBlocks]) => (
+  1002→          <div key={dayLabel}>
+  1003→            <div className="flex items-center gap-2 mb-2">
+  1004→              <CalendarRange className="h-4 w-4 text-[#D4A574]" />
+  1005→              <h3 className="text-sm font-semibold text-[#D4A574]">{dayLabel}</h3>
+  1006→              <Badge variant="outline" className="text-[10px] border-[#D4A574]/20 text-[#D4A574]">
+  1007→                {dayBlocks.length} حصة
+  1008→              </Badge>
+  1009→            </div>
+  1010→            <div className="flex flex-col gap-2">
+  1011→              {dayBlocks.map((block) => (
+  1012→                <button
+  1013→                  key={block.id}
+  1014→                  onClick={() => onBlockClick(block)}
+  1015→                  className="w-full text-right rounded-xl p-3 transition-all duration-200 hover:scale-[1.01] hover:shadow-md"
+  1016→                  style={{
+  1017→                    backgroundColor: 'rgba(255,255,255,0.02)',
+  1018→                    border: '1px solid rgba(255,255,255,0.06)',
+  1019→                  }}
+  1020→                >
+  1021→                  <div className="flex items-center justify-between gap-3">
+  1022→                    <div className="flex items-center gap-3 min-w-0 flex-1">
+  1023→                      <div
+  1024→                        className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
+  1025→                        style={{ backgroundColor: `${block.color}15` }}
+  1026→                      >
+  1027→                        <BookOpen className="h-5 w-5" style={{ color: block.color }} />
+  1028→                      </div>
+  1029→                      <div className="min-w-0 flex-1">
+  1030→                        <div className="flex items-center gap-2 mb-0.5">
+  1031→                          <span className="text-sm font-semibold text-slate-200 truncate">{block.subject}</span>
+  1032→                          <Badge
+  1033→                            variant="outline"
+  1034→                            className="text-[10px] shrink-0"
+  1035→                            style={{
+  1036→                              borderColor: `${block.color}30`,
+  1037→                              color: block.color,
+  1038→                              backgroundColor: `${block.color}10`,
+  1039→                            }}
+  1040→                          >
+  1041→                            {getPeriodTime(block.period)}
+  1042→                          </Badge>
+  1043→                        </div>
+  1044→                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+  1045→                          {block.teacherName && <span>👨‍🏫 {block.teacherName}</span>}
+  1046→                          {block.className && <span>🏫 {block.className}</span>}
+  1047→                          <span>📍 {block.room}</span>
+  1048→                        </div>
+  1049→                      </div>
+  1050→                    </div>
+  1051→                    <div className="flex items-center gap-1 shrink-0">
+  1052→                      <Eye className="h-4 w-4 text-muted-foreground/40" />
+  1053→                    </div>
+  1054→                  </div>
+  1055→                </button>
+  1056→              ))}
+  1057→            </div>
+  1058→          </div>
+  1059→        ))}
+  1060→
+  1061→        {filteredBlocks.length === 0 && (
+  1062→          <div className="flex flex-col items-center justify-center py-12">
+  1063→            <Info className="h-10 w-10 text-muted-foreground/30 mb-3" />
+  1064→            <p className="text-sm text-muted-foreground">لا توجد حصص مطابقة للتصفية</p>
+  1065→          </div>
+  1066→        )}
+  1067→      </div>
+  1068→    </div>
+  1069→  );
+  1070→}
+  1071→
+  1072→// ---------------------------------------------------------------------------
+  1073→// Main Component
+  1074→// ---------------------------------------------------------------------------
+  1075→
+  1076→export default function TimetableSection() {
+  1077→  const { scheduleBlocks, setScheduleBlocks } = useAppStore();
+  1078→
+  1079→  // View mode
+  1080→  const [viewMode, setViewMode] = useState<'week' | 'list'>('week');
+  1081→
+  1082→  // List view filters
+  1083→  const [filterDay, setFilterDay] = useState('all');
+  1084→  const [filterSubject, setFilterSubject] = useState('all');
+  1085→
+  1086→  // Dialogs
+  1087→  const [addEditOpen, setAddEditOpen] = useState(false);
+  1088→  const [viewOpen, setViewOpen] = useState(false);
+  1089→  const [deleteOpen, setDeleteOpen] = useState(false);
+  1090→  const [selectedBlock, setSelectedBlock] = useState<ScheduleBlock | null>(null);
+  1091→  const [prefillDay, setPrefillDay] = useState<DayOfWeek | undefined>();
+  1092→  const [prefillPeriod, setPrefillPeriod] = useState<number | undefined>();
+  1093→
+  1094→  // Initialize mock data
+  1095→  const initialized = useRef(false);
+  1096→  useEffect(() => {
+  1097→    if (!initialized.current && scheduleBlocks.length === 0) {
+  1098→      initialized.current = true;
+  1099→      const mock = generateMockSchedule();
+  1100→      requestAnimationFrame(() => setScheduleBlocks(mock));
+  1101→    }
+  1102→  }, []);
+  1103→
+  1104→  // Handlers
+  1105→  const handleCellClick = useCallback((day: DayOfWeek, period: number) => {
+  1106→    setPrefillDay(day);
+  1107→    setPrefillPeriod(period);
+  1108→    setSelectedBlock(null);
+  1109→    setAddEditOpen(true);
+  1110→  }, []);
+  1111→
+  1112→  const handleBlockClick = useCallback((block: ScheduleBlock) => {
+  1113→    setSelectedBlock(block);
+  1114→    setViewOpen(true);
+  1115→  }, []);
+  1116→
+  1117→  const handleEditFromView = useCallback(() => {
+  1118→    setViewOpen(false);
+  1119→    setTimeout(() => {
+  1120→      setAddEditOpen(true);
+  1121→    }, 200);
+  1122→  }, []);
+  1123→
+  1124→  const handleDeleteFromView = useCallback(() => {
+  1125→    setViewOpen(false);
+  1126→    setTimeout(() => {
+  1127→      setDeleteOpen(true);
+  1128→    }, 200);
+  1129→  }, []);
+  1130→
+  1131→  const handlePrint = useCallback(() => {
+  1132→    window.print();
+  1133→  }, []);
+  1134→
+  1135→  const handleAddManual = useCallback(() => {
+  1136→    setSelectedBlock(null);
+  1137→    setPrefillDay(undefined);
+  1138→    setPrefillPeriod(undefined);
+  1139→    setAddEditOpen(true);
+  1140→  }, []);
+  1141→
+  1142→  return (
+  1143→    <section className="flex flex-col gap-6" dir="rtl">
+  1144→      {/* Header */}
+  1145→      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+  1146→        <div className="flex items-center gap-3">
+  1147→          <div
+  1148→            className="flex items-center justify-center h-12 w-12 rounded-xl"
+  1149→            style={{ backgroundColor: 'rgba(212,165,116,0.1)' }}
+  1150→          >
+  1151→            <CalendarRange className="h-6 w-6 text-[#D4A574]" />
+  1152→          </div>
+  1153→          <div>
+  1154→            <h1 className="text-2xl font-bold text-white">الجدول الدراسي</h1>
+  1155→            <p className="text-sm text-muted-foreground">إدارة الجدول الأسبوعي للحصص الدراسية</p>
+  1156→          </div>
+  1157→        </div>
+  1158→        <div className="flex items-center gap-2 flex-wrap">
+  1159→          {/* View toggle */}
+  1160→          <div
+  1161→            className="flex items-center rounded-lg overflow-hidden"
+  1162→            style={{ border: '1px solid rgba(255,255,255,0.08)' }}
+  1163→          >
+  1164→            <button
+  1165→              onClick={() => setViewMode('week')}
+  1166→              className={cn(
+  1167→                'flex items-center gap-2 px-3 py-2 text-sm font-medium transition-all duration-200',
+  1168→                viewMode === 'week'
+  1169→                  ? 'bg-[#D4A574]/15 text-[#D4A574]'
+  1170→                  : 'text-slate-400 hover:text-slate-300 hover:bg-white/[0.03]'
+  1171→              )}
+  1172→            >
+  1173→              <LayoutGrid className="h-4 w-4" />
+  1174→              أسبوعي
+  1175→            </button>
+  1176→            <button
+  1177→              onClick={() => setViewMode('list')}
+  1178→              className={cn(
+  1179→                'flex items-center gap-2 px-3 py-2 text-sm font-medium transition-all duration-200',
+  1180→                viewMode === 'list'
+  1181→                  ? 'bg-[#D4A574]/15 text-[#D4A574]'
+  1182→                  : 'text-slate-400 hover:text-slate-300 hover:bg-white/[0.03]'
+  1183→              )}
+  1184→            >
+  1185→              <List className="h-4 w-4" />
+  1186→              قائمة
+  1187→            </button>
+  1188→          </div>
+  1189→
+  1190→          {/* Add button */}
+  1191→          <Button
+  1192→            onClick={handleAddManual}
+  1193→            className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold rounded-lg gap-2"
+  1194→          >
+  1195→            <Plus className="h-4 w-4" />
+  1196→            <span className="hidden sm:inline">إضافة حصة</span>
+  1197→          </Button>
+  1198→
+  1199→          {/* Print button */}
+  1200→          <Button
+  1201→            onClick={handlePrint}
+  1202→            variant="outline"
+  1203→            className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg gap-2"
+  1204→          >
+  1205→            <Printer className="h-4 w-4" />
+  1206→            <span className="hidden sm:inline">طباعة</span>
+  1207→          </Button>
+  1208→        </div>
+  1209→      </div>
+  1210→
+  1211→      {/* Stats Bar */}
+  1212→      <StatsBar blocks={scheduleBlocks} />
+  1213→
+  1214→      {/* Content */}
+  1215→      {viewMode === 'week' ? (
+  1216→        <WeekViewGrid
+  1217→          blocks={scheduleBlocks}
+  1218→          onCellClick={handleCellClick}
+  1219→          onBlockClick={handleBlockClick}
+  1220→        />
+  1221→      ) : (
+  1222→        <ListView
+  1223→          blocks={scheduleBlocks}
+  1224→          onBlockClick={handleBlockClick}
+  1225→          filterDay={filterDay}
+  1226→          setFilterDay={setFilterDay}
+  1227→          filterSubject={filterSubject}
+  1228→          setFilterSubject={setFilterSubject}
+  1229→        />
+  1230→      )}
+  1231→
+  1232→      {/* Empty state */}
+  1233→      {scheduleBlocks.length === 0 && (
+  1234→        <div className="flex flex-col items-center justify-center py-16 px-4">
+  1235→          <div
+  1236→            className="flex items-center justify-center h-20 w-20 rounded-2xl mb-6"
+  1237→            style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+  1238→          >
+  1239→            <CalendarRange className="h-10 w-10 text-slate-500" />
+  1240→          </div>
+  1241→          <h3 className="text-lg font-semibold text-slate-300 mb-2">
+  1242→            لا توجد حصص في الجدول
+  1243→          </h3>
+  1244→          <p className="text-sm text-muted-foreground mb-6 text-center max-w-sm">
+  1245→            ابدأ بإضافة حصص دراسية لبناء الجدول الأسبوعي
+  1246→          </p>
+  1247→          <Button
+  1248→            onClick={handleAddManual}
+  1249→            className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold gap-2 rounded-lg px-6"
+  1250→          >
+  1251→            <Plus className="h-4 w-4" />
+  1252→            إضافة حصة
+  1253→          </Button>
+  1254→        </div>
+  1255→      )}
+  1256→
+  1257→      {/* View Dialog */}
+  1258→      <Dialog open={viewOpen} onOpenChange={setViewOpen}>
+  1259→        <DialogContent
+  1260→          className="sm:max-w-lg"
+  1261→          dir="rtl"
+  1262→          style={{
+  1263→            backgroundColor: '#1A1A24',
+  1264→            border: '1px solid rgba(255,255,255,0.06)',
+  1265→          }}
+  1266→        >
+  1267→          <DialogHeader>
+  1268→            <DialogTitle className="text-white text-xl flex items-center gap-2">
+  1269→              <div
+  1270→                className="h-8 w-8 rounded-lg flex items-center justify-center"
+  1271→                style={{ backgroundColor: `${selectedBlock?.color ?? '#D4A574'}20` }}
+  1272→              >
+  1273→                <BookOpen className="h-4 w-4" style={{ color: selectedBlock?.color ?? '#D4A574' }} />
+  1274→              </div>
+  1275→              {selectedBlock?.subject ?? 'تفاصيل الحصة'}
+  1276→            </DialogTitle>
+  1277→            <DialogDescription className="text-muted-foreground">
+  1278→              {selectedBlock
+  1279→                ? `${getDayLabel(selectedBlock.dayOfWeek)} — ${getPeriodLabel(selectedBlock.period)}`
+  1280→                : ''}
+  1281→            </DialogDescription>
+  1282→          </DialogHeader>
+  1283→
+  1284→          {selectedBlock && (
+  1285→            <div className="flex flex-col gap-4 mt-2">
+  1286→              <div
+  1287→                className="rounded-xl p-4"
+  1288→                style={{
+  1289→                  backgroundColor: 'rgba(255,255,255,0.02)',
+  1290→                  border: '1px solid rgba(255,255,255,0.04)',
+  1291→                }}
+  1292→              >
+  1293→                <div className="grid grid-cols-1 gap-3">
+  1294→                  {/* Subject with color badge */}
+  1295→                  <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04]">
+  1296→                    <div className="flex items-center gap-3">
+  1297→                      <div
+  1298→                        className="flex items-center justify-center h-8 w-8 rounded-lg"
+  1299→                        style={{ backgroundColor: `${selectedBlock.color}15` }}
+  1300→                      >
+  1301→                        <BookOpen className="h-4 w-4" style={{ color: selectedBlock.color }} />
+  1302→                      </div>
+  1303→                      <span className="text-sm text-muted-foreground">المادة</span>
+  1304→                    </div>
+  1305→                    <div className="flex items-center gap-2">
+  1306→                      <div className="h-3 w-3 rounded-full" style={{ backgroundColor: selectedBlock.color }} />
+  1307→                      <span className="text-sm font-medium text-slate-200">{selectedBlock.subject}</span>
+  1308→                    </div>
+  1309→                  </div>
+  1310→
+  1311→                  {/* Day */}
+  1312→                  <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04]">
+  1313→                    <div className="flex items-center gap-3">
+  1314→                      <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#60A5FA]/10">
+  1315→                        <CalendarRange className="h-4 w-4 text-[#60A5FA]" />
+  1316→                      </div>
+  1317→                      <span className="text-sm text-muted-foreground">اليوم</span>
+  1318→                    </div>
+  1319→                    <span className="text-sm font-medium text-slate-200">{getDayLabel(selectedBlock.dayOfWeek)}</span>
+  1320→                  </div>
+  1321→
+  1322→                  {/* Period */}
+  1323→                  <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04]">
+  1324→                    <div className="flex items-center gap-3">
+  1325→                      <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#34D399]/10">
+  1326→                        <Clock className="h-4 w-4 text-[#34D399]" />
+  1327→                      </div>
+  1328→                      <span className="text-sm text-muted-foreground">الحصة</span>
+  1329→                    </div>
+  1330→                    <span className="text-sm font-medium text-slate-200">{getPeriodLabel(selectedBlock.period)}</span>
+  1331→                  </div>
+  1332→
+  1333→                  {/* Teacher */}
+  1334→                  <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04]">
+  1335→                    <div className="flex items-center gap-3">
+  1336→                      <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#A78BFA]/10">
+  1337→                        <User className="h-4 w-4 text-[#A78BFA]" />
+  1338→                      </div>
+  1339→                      <span className="text-sm text-muted-foreground">المعلم</span>
+  1340→                    </div>
+  1341→                    <span className="text-sm font-medium text-slate-200">{selectedBlock.teacherName ?? '—'}</span>
+  1342→                  </div>
+  1343→
+  1344→                  {/* Class */}
+  1345→                  <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04]">
+  1346→                    <div className="flex items-center gap-3">
+  1347→                      <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#FBBF24]/10">
+  1348→                        <DoorOpen className="h-4 w-4 text-[#FBBF24]" />
+  1349→                      </div>
+  1350→                      <span className="text-sm text-muted-foreground">الفصل</span>
+  1351→                    </div>
+  1352→                    <span className="text-sm font-medium text-slate-200">{selectedBlock.className ?? '—'}</span>
+  1353→                  </div>
+  1354→
+  1355→                  {/* Room */}
+  1356→                  <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04]">
+  1357→                    <div className="flex items-center gap-3">
+  1358→                      <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#F472B6]/10">
+  1359→                        <DoorOpen className="h-4 w-4 text-[#F472B6]" />
+  1360→                      </div>
+  1361→                      <span className="text-sm text-muted-foreground">القاعة</span>
+  1362→                    </div>
+  1363→                    <span className="text-sm font-medium text-slate-200">{selectedBlock.room}</span>
+  1364→                  </div>
+  1365→
+  1366→                  {/* Time */}
+  1367→                  <div className="flex items-center justify-between gap-3 py-2">
+  1368→                    <div className="flex items-center gap-3">
+  1369→                      <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#2DD4BF]/10">
+  1370→                        <Clock className="h-4 w-4 text-[#2DD4BF]" />
+  1371→                      </div>
+  1372→                      <span className="text-sm text-muted-foreground">الوقت</span>
+  1373→                    </div>
+  1374→                    <span className="text-sm font-medium text-slate-200">
+  1375→                      {selectedBlock.startTime} — {selectedBlock.endTime}
+  1376→                    </span>
+  1377→                  </div>
+  1378→                </div>
+  1379→              </div>
+  1380→
+  1381→              {/* Notes */}
+  1382→              {selectedBlock.notes && (
+  1383→                <div
+  1384→                  className="rounded-xl p-4"
+  1385→                  style={{
+  1386→                    backgroundColor: 'rgba(255,255,255,0.02)',
+  1387→                    border: '1px solid rgba(255,255,255,0.04)',
+  1388→                  }}
+  1389→                >
+  1390→                  <h4 className="text-sm font-semibold text-slate-300 mb-2 flex items-center gap-2">
+  1391→                    <FileText className="h-4 w-4 text-[#D4A574]" />
+  1392→                    ملاحظات
+  1393→                  </h4>
+  1394→                  <p className="text-sm text-muted-foreground leading-relaxed">{selectedBlock.notes}</p>
+  1395→                </div>
+  1396→              )}
+  1397→            </div>
+  1398→          )}
+  1399→
+  1400→          <DialogFooter className="flex-row gap-3 sm:justify-start pt-2">
+  1401→            <Button
+  1402→              onClick={handleEditFromView}
+  1403→              className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold rounded-lg px-6 gap-2"
+  1404→            >
+  1405→              <Pencil className="h-4 w-4" />
+  1406→              تعديل
+  1407→            </Button>
+  1408→            <Button
+  1409→              onClick={handleDeleteFromView}
+  1410→              variant="outline"
+  1411→              className="border-rose-500/30 text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 rounded-lg px-6 gap-2"
+  1412→            >
+  1413→              <Trash2 className="h-4 w-4" />
+  1414→              حذف
+  1415→            </Button>
+  1416→            <Button
+  1417→              type="button"
+  1418→              variant="outline"
+  1419→              onClick={() => setViewOpen(false)}
+  1420→              className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-6"
+  1421→            >
+  1422→              إغلاق
+  1423→            </Button>
+  1424→          </DialogFooter>
+  1425→        </DialogContent>
+  1426→      </Dialog>
+  1427→
+  1428→      {/* Add/Edit Dialog */}
+  1429→      <AddEditBlockDialog
+  1430→        block={selectedBlock}
+  1431→        open={addEditOpen}
+  1432→        onOpenChange={setAddEditOpen}
+  1433→        defaultDay={prefillDay}
+  1434→        defaultPeriod={prefillPeriod}
+  1435→      />
+  1436→
+  1437→      {/* Delete Dialog */}
+  1438→      <DeleteBlockDialog
+  1439→        block={selectedBlock}
+  1440→        open={deleteOpen}
+  1441→        onOpenChange={setDeleteOpen}
+  1442→      />
+  1443→    </section>
+  1444→  );
+  1445→}
+  1446→

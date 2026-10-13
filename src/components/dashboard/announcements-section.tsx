@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useAppStore } from '@/lib/store';
+import type { Announcement } from '@/lib/types';
 
 // shadcn/ui
 import { Button } from '@/components/ui/button';
@@ -54,21 +56,8 @@ import {
 } from '@/components/ui/select';
 
 // ---------------------------------------------------------------------------
-// Types
+// Types (imported from @/lib/types)
 // ---------------------------------------------------------------------------
-
-interface Announcement {
-  id: string;
-  title: string;
-  content: string;
-  category: 'general' | 'academic' | 'event' | 'urgent' | 'parent';
-  priority: 'low' | 'normal' | 'high' | 'urgent';
-  author: string;
-  pinned: boolean;
-  expiresAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -933,8 +922,15 @@ function AnnouncementCard({
 // ---------------------------------------------------------------------------
 
 export default function AnnouncementsSection() {
-  // Local state for announcements (managed in-memory like other sections)
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  // Global store for announcements
+  const {
+    announcements,
+    setAnnouncements,
+    addAnnouncement,
+    updateAnnouncement,
+    deleteAnnouncement,
+    toggleAnnouncementPin,
+  } = useAppStore();
 
   // UI state
   const [localSearch, setLocalSearch] = useState('');
@@ -1018,12 +1014,10 @@ export default function AnnouncementsSection() {
   }, []);
 
   const handlePin = useCallback((id: string) => {
-    setAnnouncements((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, pinned: !a.pinned } : a)),
-    );
+    toggleAnnouncementPin(id);
     const target = announcements.find((a) => a.id === id);
     toast.success(target?.pinned ? 'تم إلغاء تثبيت الإعلان' : 'تم تثبيت الإعلان');
-  }, [announcements]);
+  }, [announcements, toggleAnnouncementPin]);
 
   const handleSubmit = useCallback(
     (data: Omit<Announcement, 'id' | 'createdAt' | 'updatedAt'>) => {
@@ -1031,13 +1025,7 @@ export default function AnnouncementsSection() {
 
       if (selectedAnnouncement) {
         // Update existing
-        setAnnouncements((prev) =>
-          prev.map((a) =>
-            a.id === selectedAnnouncement.id
-              ? { ...a, ...data, updatedAt: now }
-              : a,
-          ),
-        );
+        updateAnnouncement(selectedAnnouncement.id, { ...data, updatedAt: now });
         toast.success('تم تحديث الإعلان بنجاح');
       } else {
         // Create new
@@ -1047,20 +1035,20 @@ export default function AnnouncementsSection() {
           createdAt: now,
           updatedAt: now,
         };
-        setAnnouncements((prev) => [newAnn, ...prev]);
+        addAnnouncement(newAnn);
         toast.success('تم نشر الإعلان بنجاح');
       }
     },
-    [selectedAnnouncement],
+    [selectedAnnouncement, addAnnouncement, updateAnnouncement],
   );
 
   const handleConfirmDelete = useCallback(() => {
     if (selectedAnnouncement) {
-      setAnnouncements((prev) => prev.filter((a) => a.id !== selectedAnnouncement.id));
+      deleteAnnouncement(selectedAnnouncement.id);
       toast.success('تم حذف الإعلان');
       setDeleteOpen(false);
     }
-  }, [selectedAnnouncement]);
+  }, [selectedAnnouncement, deleteAnnouncement]);
 
   const handlePrevPage = useCallback(() => {
     setCurrentPage((p) => Math.max(1, p - 1));

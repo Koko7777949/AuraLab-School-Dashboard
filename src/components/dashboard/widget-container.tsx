@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, type ReactNode } from 'react';
+import { useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
 import {
   GripVertical,
   Minus,
@@ -45,13 +45,21 @@ export default function WidgetContainer({
 }: WidgetContainerProps) {
   const [isMinimized, setIsMinimized] = useState(defaultMinimized);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
+    };
+  }, []);
 
   const handleRefresh = useCallback(() => {
     if (!onRefresh || isRefreshing) return;
     setIsRefreshing(true);
     onRefresh();
     // Simulate refresh delay for visual feedback
-    setTimeout(() => setIsRefreshing(false), 800);
+    refreshTimeoutRef.current = setTimeout(() => setIsRefreshing(false), 800);
   }, [onRefresh, isRefreshing]);
 
   return (

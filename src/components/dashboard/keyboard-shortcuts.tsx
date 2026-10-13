@@ -101,10 +101,10 @@ export default function KeyboardShortcuts() {
   // ── Global keyboard listener ──
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      // Ctrl+K opens the overlay
+      // Ctrl+K opens the overlay (but skip if command palette is handling it)
       if (e.ctrlKey && e.key === 'k') {
-        e.preventDefault();
-        toggle();
+        // Command palette handles Ctrl+K, so we don't intercept it here
+        // to avoid conflicts. The command palette will handle this shortcut.
         return;
       }
 

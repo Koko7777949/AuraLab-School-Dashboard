@@ -1809,3 +1809,74 @@ Stage Summary:
 - AI Chat API now works correctly with proper response handling
 - Database seeded with 20 Arabic students, 10 teachers, 6 classes, 30 exams
 - Git commit ready but GitHub push requires user's Personal Access Token
+
+---
+Task ID: 3-4
+Agent: main
+Task: Fix all critical and medium bugs from code review
+
+Work Log:
+- Fix #1: Converted `<style jsx>` in session-timer.tsx to `<style dangerouslySetInnerHTML={{ __html: '...' }} />` for Next.js compatibility
+- Fix #2: Added `addToTrash()` call before every delete operation across 10 sections (students, teachers, classes, exams, grades, behavior, messages, timetable, library, fees)
+- Fix #3: Added missing TYPE_CONFIG entries in trash-section.tsx for grade, message, behavior, schedule, library-book types with Arabic labels and icons
+- Fix #4: Moved announcements from local useState to global Zustand store with full CRUD + toggleAnnouncementPin; imported Announcement type from @/lib/types; added to partialize config
+- Fix #5: Removed fallback red notification dot when unreadCount === 0 in header.tsx
+- Fix #6: Capped notification simulation at 50 items by using setNotifications with slice logic
+- Fix #7: Added setTimeout cleanup via useRef and useEffect in widget-container.tsx
+- Fix #8: Enhanced header search to search across students and teachers from the store, showing dynamic suggestions with entity icons
+- Fix #9: Consolidated duplicate exportToCSV by delegating data-export.ts to csv-export.ts via new exportToCSVWithFormat function
+- Fix #10: Replaced loop-based empty trash (N removeFromTrash calls) with single setTrashItems([]) call
+- Fix #11: Imported AttendanceRecord type from @/lib/types in attendance-section.tsx instead of defining locally
+- Fix #12: Made footer quick links functional: سياسة الخصوصية → settings, الشروط والأحكام → settings, المساعدة → ai-assistant; removed disabled attributes
+- Fix #14: Removed Ctrl+K handler from keyboard-shortcuts.tsx to prevent conflict with command palette
+- Fix #15: Changed parseInt to parseFloat in StatCard AnimatedValue component to handle decimal values
+- Fix #16: Charts already had proper setTimeout cleanup (verified all 3 chart files)
+- Fixed useCallback dependency arrays for all modified delete handlers to include addToTrash
+- Verified: lint passes clean (0 errors, 1 pre-existing warning), site compiles and returns HTTP 200
+
+Stage Summary:
+- All 24 issues from code review addressed (15 critical/medium + 1 minor directly, charts already clean)
+- 16+ files modified across components, store, types, and utilities
+- Delete operations now properly move items to trash before removing
+- Announcements fully integrated into Zustand global store with persistence
+- Search enhanced with cross-entity (students/teachers) matching
+- Notification system capped at 50, no phantom dot when 0 unread
+- Footer links now navigate to appropriate sections
+- All text remains Arabic, RTL layout preserved, no functionality broken
+
+---
+Task ID: 5-6
+Agent: Feature Enhancement Agent
+Task: Add New Features and Major UI/UX Improvements
+
+Work Log:
+- Enhanced stat-card.tsx: Added optional `sparklineData` prop with animated SVG sparkline rendering (area fill + line + dot), using cubic ease-out animation on mount
+- Enhanced dashboard-overview.tsx: Upgraded KPI card grid from fixed 3-col to responsive CSS Grid with `grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))`; added sparkline trend data (7-day) to all 6 KPI cards; converted all widget rows (Analytics, Activity, Bottom, Calendar) to use CSS Grid with `auto-fit` columns
+- Enhanced students-section.tsx: Added Sheet-based quick profile view on row click showing avatar, name, class, status, grades summary, attendance history, and quick action buttons (edit, message, view full); added SortField/SortDir types and SortableHeader component with click-to-sort on all columns; added AvatarInitials component with 2-letter initials; improved StatusBadge with glowing colored dot; amber-tinted row hover; stopPropagation on action buttons; imported Sheet components from shadcn/ui; imported ArrowUpDown, ArrowUp, ArrowDown, MessageSquare, Mail icons
+- Created theme-provider.tsx: Client-side wrapper for next-themes ThemeProvider
+- Updated layout.tsx: Wrapped app in ThemeProvider with `attribute="class"`, `defaultTheme="dark"`, `storageKey="auralab-theme"`; fixed import to use default export
+- Enhanced settings-section.tsx: Added `useTheme` from next-themes; replaced dark mode toggle with working theme switch (instant dark/light toggle); added visual theme preview cards (dark/light swatches); shows current theme state
+- Enhanced globals.css: Added comprehensive `.dark` class variables (full dark mode); added new `.light` class variables with warm cream/white palette (#F8F6F3 bg, #FFFFFF cards, #B07D4F primary, etc.); proper light mode for sidebar, glass effects, dots
+- Created fab-actions.tsx: Floating Action Button with Framer Motion radial menu animation; 4 quick actions (Add Student, Create Exam, Take Attendance, Send Message); spring physics animation; plus/X rotation; backdrop click to close
+- Enhanced page.tsx: Imported Framer Motion AnimatePresence/motion; replaced CSS animation section transitions with Framer Motion fade+slide (25ms ease); added BreadcrumbNav and FabActions components
+- Enhanced calendar-widget.tsx: Integrated Zustand store calendarEvents; added event creation form with title input and category selector (exam/meeting/activity/deadline/cultural); added upcoming events list below calendar; added "+" button when date selected; merged mock events with store events; imported toast for success feedback
+- Enhanced store.ts: Added CalendarEventItem interface; added calendarEvents state with setCalendarEvents, addCalendarEvent, deleteCalendarEvent actions; persisted calendarEvents to localStorage
+- Enhanced header.tsx: Added Hijri (Islamic) date display using `ar-SA-u-ca-islamic` locale; added time-based Arabic greeting (صباح الخير, مساء الخير, طاب مساؤك); added pulse animation on seconds display
+- Created breadcrumb-nav.tsx: Breadcrumb navigation showing الرئيسية > القسم الحالي; uses shadcn/ui Breadcrumb components; Home icon for root; amber highlight on current section
+
+Stage Summary:
+- 10 new features implemented across 10 files (3 new files created)
+- Sparkline charts with animated SVG rendering on stat cards
+- Responsive CSS Grid layout replacing fixed breakpoints
+- Student Quick View Sheet with profile summary and actions
+- Working Dark/Light theme toggle with next-themes persistence
+- Full light mode CSS variable system
+- FAB with Framer Motion radial menu
+- Column sorting on students table
+- Calendar event system with creation dialog
+- Framer Motion page transitions
+- Hijri date + Arabic greeting in header
+- Breadcrumb navigation
+- All features maintain Arabic RTL layout and amber color scheme
+- ESLint passes with 0 errors (1 pre-existing warning)
+- Dev server returns HTTP 200

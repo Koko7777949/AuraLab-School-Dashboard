@@ -105,12 +105,81 @@
   --dot-spacing: 20px;
 }
 
-/* Global dark mode (always dark) */
+/* Global dark mode variables */
 .dark {
   --background: #121218;
   --foreground: #F1F1F6;
   --card: #1A1A24;
   --card-foreground: #F1F1F6;
+  --popover: #1A1A24;
+  --popover-foreground: #F1F1F6;
+  --primary: #D4A574;
+  --primary-foreground: #121218;
+  --secondary: #22222E;
+  --secondary-foreground: #F1F1F6;
+  --muted: #1E1E28;
+  --muted-foreground: #8888A0;
+  --accent: #2A2A38;
+  --accent-foreground: #F1F1F6;
+  --destructive: #EF4444;
+  --border: rgba(255, 255, 255, 0.06);
+  --input: rgba(255, 255, 255, 0.08);
+  --ring: #D4A574;
+  --sidebar: #16161E;
+  --sidebar-foreground: #C8C8D8;
+  --sidebar-primary: #D4A574;
+  --sidebar-primary-foreground: #121218;
+  --sidebar-accent: #22222E;
+  --sidebar-accent-foreground: #F1F1F6;
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+  --sidebar-ring: #D4A574;
+  --glow-amber: rgba(212, 165, 116, 0.15);
+  --glow-amber-subtle: rgba(212, 165, 116, 0.08);
+  --glow-amber-lg: rgba(212, 165, 116, 0.25);
+  --glass-bg: rgba(26, 26, 36, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --dot-color: rgba(255, 255, 255, 0.04);
+}
+
+/* Light mode variables */
+.light {
+  --background: #F8F6F3;
+  --foreground: #1A1A24;
+  --card: #FFFFFF;
+  --card-foreground: #1A1A24;
+  --popover: #FFFFFF;
+  --popover-foreground: #1A1A24;
+  --primary: #B07D4F;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F0ECE6;
+  --secondary-foreground: #1A1A24;
+  --muted: #F0ECE6;
+  --muted-foreground: #7A7A8A;
+  --accent: #E8DFD3;
+  --accent-foreground: #1A1A24;
+  --destructive: #EF4444;
+  --border: rgba(0, 0, 0, 0.08);
+  --input: rgba(0, 0, 0, 0.1);
+  --ring: #B07D4F;
+  --chart-1: #B07D4F;
+  --chart-2: #16A34A;
+  --chart-3: #2563EB;
+  --chart-4: #7C3AED;
+  --chart-5: #E11D48;
+  --sidebar: #F0ECE6;
+  --sidebar-foreground: #3A3A4A;
+  --sidebar-primary: #B07D4F;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #E8DFD3;
+  --sidebar-accent-foreground: #1A1A24;
+  --sidebar-border: rgba(0, 0, 0, 0.08);
+  --sidebar-ring: #B07D4F;
+  --glow-amber: rgba(176, 125, 79, 0.12);
+  --glow-amber-subtle: rgba(176, 125, 79, 0.06);
+  --glow-amber-lg: rgba(176, 125, 79, 0.2);
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(0, 0, 0, 0.06);
+  --dot-color: rgba(0, 0, 0, 0.04);
 }
 
 @layer base {

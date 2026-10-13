@@ -1,0 +1,1607 @@
+     1→'use client';
+     2→
+     3→import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+     4→import {
+     5→  ShieldAlert,
+     6→  Plus,
+     7→  Search,
+     8→  Eye,
+     9→  Pencil,
+    10→  Trash2,
+    11→  Download,
+    12→  Filter,
+    13→  TrendingUp,
+    14→  TrendingDown,
+    15→  Star,
+    16→  AlertTriangle,
+    17→  CheckCircle2,
+    18→  Clock,
+    19→  Users,
+    20→  ChevronLeft,
+    21→  ChevronRight,
+    22→  Save,
+    23→  ThumbsUp,
+    24→  ThumbsDown,
+    25→} from 'lucide-react';
+    26→import { useAppStore } from '@/lib/store';
+    27→import { cn } from '@/lib/utils';
+    28→import { toast } from 'sonner';
+    29→import type { BehaviorRecord } from '@/lib/types';
+    30→
+    31→// shadcn/ui
+    32→import { Button } from '@/components/ui/button';
+    33→import { Input } from '@/components/ui/input';
+    34→import { Label } from '@/components/ui/label';
+    35→import { Badge } from '@/components/ui/badge';
+    36→import { Textarea } from '@/components/ui/textarea';
+    37→import {
+    38→  Dialog,
+    39→  DialogContent,
+    40→  DialogDescription,
+    41→  DialogFooter,
+    42→  DialogHeader,
+    43→  DialogTitle,
+    44→} from '@/components/ui/dialog';
+    45→import {
+    46→  AlertDialog,
+    47→  AlertDialogAction,
+    48→  AlertDialogCancel,
+    49→  AlertDialogContent,
+    50→  AlertDialogDescription,
+    51→  AlertDialogFooter,
+    52→  AlertDialogHeader,
+    53→  AlertDialogTitle,
+    54→} from '@/components/ui/alert-dialog';
+    55→import {
+    56→  Select,
+    57→  SelectContent,
+    58→  SelectItem,
+    59→  SelectTrigger,
+    60→  SelectValue,
+    61→} from '@/components/ui/select';
+    62→
+    63→// ---------------------------------------------------------------------------
+    64→// Constants
+    65→// ---------------------------------------------------------------------------
+    66→
+    67→const ITEMS_PER_PAGE = 10;
+    68→
+    69→const POSITIVE_CATEGORIES = ['مشاركة', 'تميز', 'مساعدة زملاء'];
+    70→const NEGATIVE_CATEGORIES = ['تأخر', 'غياب بدون عذر', 'سلوك سيء'];
+    71→const ALL_CATEGORIES = [...POSITIVE_CATEGORIES, ...NEGATIVE_CATEGORIES];
+    72→
+    73→const POSITIVE_ACTIONS = ['تكريم', 'شكر وتقدير', 'نقاط إضافية', 'لا يوجد'];
+    74→const NEGATIVE_ACTIONS = ['إنذار شفهي', 'اتصال ولي الأمر', 'إنذار كتابي', 'إحالة للمرشد', 'لا يوجد'];
+    75→
+    76→const SEVERITY_LABELS: Record<string, string> = {
+    77→  low: 'منخفض',
+    78→  medium: 'متوسط',
+    79→  high: 'مرتفع',
+    80→};
+    81→
+    82→const SEVERITY_COLORS: Record<string, string> = {
+    83→  low: 'bg-emerald-500',
+    84→  medium: 'bg-amber-500',
+    85→  high: 'bg-rose-500',
+    86→};
+    87→
+    88→const TYPE_CONFIG = {
+    89→  positive: {
+    90→    label: 'إيجابي',
+    91→    icon: ThumbsUp,
+    92→    color: 'text-emerald-400',
+    93→    bgClass: 'bg-emerald-500/10 border-emerald-500/20',
+    94→    badgeClass: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20',
+    95→    glowColor: 'rgba(16, 185, 129, 0.08)',
+    96→  },
+    97→  negative: {
+    98→    label: 'سلبي',
+    99→    icon: ThumbsDown,
+   100→    color: 'text-rose-400',
+   101→    bgClass: 'bg-rose-500/10 border-rose-500/20',
+   102→    badgeClass: 'bg-rose-500/15 text-rose-400 border-rose-500/20',
+   103→    glowColor: 'rgba(244, 63, 94, 0.08)',
+   104→  },
+   105→} as const;
+   106→
+   107→// ---------------------------------------------------------------------------
+   108→// Mock Data
+   109→// ---------------------------------------------------------------------------
+   110→
+   111→function generateMockBehaviors(): BehaviorRecord[] {
+   112→  const students = [
+   113→    { id: 'std-001', name: 'أحمد محمد علي', classId: 'class-1', className: 'الصف الأول - أ' },
+   114→    { id: 'std-002', name: 'فاطمة أحمد حسن', classId: 'class-2', className: 'الصف الأول - ب' },
+   115→    { id: 'std-003', name: 'عبدالله خالد العتيبي', classId: 'class-3', className: 'الصف الثاني - أ' },
+   116→    { id: 'std-004', name: 'نورة سعيد القحطاني', classId: 'class-1', className: 'الصف الأول - أ' },
+   117→    { id: 'std-005', name: 'محمد عبدالرحمن الدوسري', classId: 'class-5', className: 'الصف الثالث - أ' },
+   118→    { id: 'std-006', name: 'ريم فهد المطيري', classId: 'class-4', className: 'الصف الثاني - ب' },
+   119→    { id: 'std-007', name: 'سلطان فيصل الشمري', classId: 'class-3', className: 'الصف الثاني - أ' },
+   120→    { id: 'std-008', name: 'لطيفة عايض الحربي', classId: 'class-6', className: 'الصف الثالث - ب' },
+   121→    { id: 'std-009', name: 'يزيد ناصر البقمي', classId: 'class-2', className: 'الصف الأول - ب' },
+   122→    { id: 'std-010', name: 'سارة ماجد العنزي', classId: 'class-5', className: 'الصف الثالث - أ' },
+   123→  ];
+   124→
+   125→  const templates: {
+   126→    type: 'positive' | 'negative';
+   127→    category: string;
+   128→    severity: 'low' | 'medium' | 'high';
+   129→    description: string;
+   130→    action: string;
+   131→    points: number;
+   132→  }[] = [
+   133→    { type: 'positive', category: 'مشاركة', severity: 'low', description: 'شارك بنشاط في النقاش الصفي وأبدى رأياً بناءً', action: 'شكر وتقدير', points: 3 },
+   134→    { type: 'positive', category: 'تميز', severity: 'high', description: 'حصل على أعلى درجة في اختبار الرياضيات', action: 'تكريم', points: 10 },
+   135→    { type: 'positive', category: 'مساعدة زملاء', severity: 'medium', description: 'ساعد زميله في فهم material الدرس', action: 'نقاط إضافية', points: 5 },
+   136→    { type: 'positive', category: 'مشاركة', severity: 'medium', description: 'قدم عرضاً مميزاً أمام الصف', action: 'شكر وتقدير', points: 4 },
+   137→    { type: 'positive', category: 'تميز', severity: 'low', description: 'أنهى الواجب المنزلي بدقة وإتقان', action: 'لا يوجد', points: 2 },
+   138→    { type: 'positive', category: 'مساعدة زملاء', severity: 'high', description: 'تطوع لمساعدة زملائه في تنظيف الفصل', action: 'تكريم', points: 8 },
+   139→    { type: 'positive', category: 'مشاركة', severity: 'low', description: 'أجاب على جميع الأسئلة المطروحة', action: 'لا يوجد', points: 3 },
+   140→    { type: 'positive', category: 'تميز', severity: 'medium', description: 'أظهر تحسناً ملحوظاً في المستوى الدراسي', action: 'نقاط إضافية', points: 5 },
+   141→    { type: 'positive', category: 'مساعدة زملاء', severity: 'low', description: 'شارك أدواته مع زميل نسي حقيبته', action: 'لا يوجد', points: 2 },
+   142→    { type: 'positive', category: 'مشاركة', severity: 'medium', description: 'طرح سؤالاً ذكياً خلال الحصة', action: 'شكر وتقدير', points: 4 },
+   143→    { type: 'negative', category: 'تأخر', severity: 'low', description: 'تأخر عن الحصة لمدة 10 دقائق', action: 'إنذار شفهي', points: -2 },
+   144→    { type: 'negative', category: 'غياب بدون عذر', severity: 'high', description: 'تغيب عن المدرسة بدون عذر رسمي', action: 'اتصال ولي الأمر', points: -8 },
+   145→    { type: 'negative', category: 'سلوك سيء', severity: 'medium', description: 'أثار ضجيجاً أثناء الشرح مما أثر على سير الحصة', action: 'إنذار شفهي', points: -3 },
+   146→    { type: 'negative', category: 'تأخر', severity: 'low', description: 'تأخر عن تسليم الواجب المنزلي', action: 'إنذار شفهي', points: -2 },
+   147→    { type: 'negative', category: 'سلوك سيء', severity: 'high', description: 'تعامل بعدم أدب مع أحد المعلمين', action: 'اتصال ولي الأمر', points: -10 },
+   148→    { type: 'negative', category: 'غياب بدون عذر', severity: 'medium', description: 'غاب عن حصتين متتاليتين بدون عذر', action: 'إنذار كتابي', points: -5 },
+   149→    { type: 'negative', category: 'سلوك سيء', severity: 'low', description: 'لم يحترم دور زميله في العرض', action: 'إنذار شفهي', points: -2 },
+   150→    { type: 'negative', category: 'تأخر', severity: 'medium', description: 'تأخر عن الدخول للفصل عدة مرات هذا الأسبوع', action: 'إنذار كتابي', points: -4 },
+   151→    { type: 'negative', category: 'سلوك سيء', severity: 'medium', description: 'استخدام الهاتف المحمول أثناء الحصة', action: 'إنذار شفهي', points: -3 },
+   152→    { type: 'negative', category: 'غياب بدون عذر', severity: 'high', description: 'تغيب عن الاختبار بدون عذر مقبول', action: 'إحالة للمرشد', points: -10 },
+   153→  ];
+   154→
+   155→  const records: BehaviorRecord[] = [];
+   156→  const today = new Date();
+   157→
+   158→  for (let i = 0; i < 20; i++) {
+   159→    const tpl = templates[i];
+   160→    const student = students[i % students.length];
+   161→    const dayOffset = Math.floor(i / 3);
+   162→    const date = new Date(today);
+   163→    date.setDate(date.getDate() - dayOffset);
+   164→    const hours = 8 + Math.floor(Math.random() * 4);
+   165→    const mins = Math.floor(Math.random() * 60);
+   166→    date.setHours(hours, mins, 0, 0);
+   167→
+   168→    records.push({
+   169→      id: `beh-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+   170→      studentId: student.id,
+   171→      studentName: student.name,
+   172→      classId: student.classId,
+   173→      className: student.className,
+   174→      date: date.toISOString(),
+   175→      type: tpl.type,
+   176→      category: tpl.category,
+   177→      severity: tpl.severity,
+   178→      description: tpl.description,
+   179→      action: tpl.action,
+   180→      points: tpl.points,
+   181→      recordedBy: 'المعلم: خالد العمري',
+   182→      createdAt: date.toISOString(),
+   183→    });
+   184→  }
+   185→
+   186→  return records;
+   187→}
+   188→
+   189→// ---------------------------------------------------------------------------
+   190→// Helpers
+   191→// ---------------------------------------------------------------------------
+   192→
+   193→function formatDate(dateStr: string): string {
+   194→  return new Date(dateStr).toLocaleDateString('ar-SA', {
+   195→    year: 'numeric',
+   196→    month: 'short',
+   197→    day: 'numeric',
+   198→  });
+   199→}
+   200→
+   201→function formatTime(dateStr: string): string {
+   202→  return new Date(dateStr).toLocaleTimeString('ar-SA', {
+   203→    hour: '2-digit',
+   204→    minute: '2-digit',
+   205→  });
+   206→}
+   207→
+   208→function getDateGroup(dateStr: string): string {
+   209→  const date = new Date(dateStr);
+   210→  const today = new Date();
+   211→  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+   212→  const yesterdayStart = new Date(todayStart);
+   213→  yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+   214→  const weekStart = new Date(todayStart);
+   215→  weekStart.setDate(weekStart.getDate() - 7);
+   216→
+   217→  if (date >= todayStart) return 'اليوم';
+   218→  if (date >= yesterdayStart) return 'أمس';
+   219→  if (date >= weekStart) return 'هذا الأسبوع';
+   220→  return 'أقدم';
+   221→}
+   222→
+   223→function getAutoPoints(type: 'positive' | 'negative', severity: 'low' | 'medium' | 'high'): number {
+   224→  const matrix = {
+   225→    positive: { low: 2, medium: 5, high: 10 },
+   226→    negative: { low: -2, medium: -5, high: -10 },
+   227→  };
+   228→  return matrix[type][severity];
+   229→}
+   230→
+   231→function exportToCSV(records: BehaviorRecord[]) {
+   232→  const headers = ['اسم الطالب', 'الفصل', 'التاريخ', 'النوع', 'الفئة', 'الشدة', 'الوصف', 'الإجراء', 'النقاط', 'بواسطة'];
+   233→  const rows = records.map((r) => [
+   234→    r.studentName || '',
+   235→    r.className || '',
+   236→    formatDate(r.date),
+   237→    r.type === 'positive' ? 'إيجابي' : 'سلبي',
+   238→    r.category,
+   239→    SEVERITY_LABELS[r.severity],
+   240→    r.description,
+   241→    r.action,
+   242→    r.points.toString(),
+   243→    r.recordedBy,
+   244→  ]);
+   245→
+   246→  const BOM = '\uFEFF';
+   247→  const csv = BOM + [headers, ...rows].map((row) => row.map((cell) => `"${cell}"`).join(',')).join('\n');
+   248→  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+   249→  const url = URL.createObjectURL(blob);
+   250→  const link = document.createElement('a');
+   251→  link.href = url;
+   252→  link.download = `behavior_records_${new Date().toISOString().split('T')[0]}.csv`;
+   253→  link.click();
+   254→  URL.revokeObjectURL(url);
+   255→  toast.success('تم تصدير البيانات بنجاح');
+   256→}
+   257→
+   258→// ---------------------------------------------------------------------------
+   259→// Sub-components
+   260→// ---------------------------------------------------------------------------
+   261→
+   262→/** Stat card */
+   263→function StatCard({
+   264→  icon: Icon,
+   265→  label,
+   266→  value,
+   267→  colorClass,
+   268→  bgColor,
+   269→}: {
+   270→  icon: typeof Star;
+   271→  label: string;
+   272→  value: string | number;
+   273→  colorClass: string;
+   274→  bgColor: string;
+   275→}) {
+   276→  return (
+   277→    <div
+   278→      className="rounded-xl p-4 transition-all duration-300 hover:scale-[1.02]"
+   279→      style={{
+   280→        backgroundColor: 'rgba(255,255,255,0.02)',
+   281→        border: '1px solid rgba(255,255,255,0.06)',
+   282→      }}
+   283→    >
+   284→      <div className="flex items-center gap-3">
+   285→        <div className={cn('flex items-center justify-center h-10 w-10 rounded-xl', bgColor)}>
+   286→          <Icon className={cn('h-5 w-5', colorClass)} />
+   287→        </div>
+   288→        <div>
+   289→          <p className="text-2xl font-bold text-white tabular-nums">{value}</p>
+   290→          <p className="text-xs text-muted-foreground">{label}</p>
+   291→        </div>
+   292→      </div>
+   293→    </div>
+   294→  );
+   295→}
+   296→
+   297→/** Category badge */
+   298→function CategoryBadge({ category, type }: { category: string; type: 'positive' | 'negative' }) {
+   299→  const config = TYPE_CONFIG[type];
+   300→  return (
+   301→    <Badge variant="outline" className={cn('text-xs font-medium px-2.5 py-0.5 rounded-full', config.badgeClass)}>
+   302→      {category}
+   303→    </Badge>
+   304→  );
+   305→}
+   306→
+   307→/** Severity dot indicator */
+   308→function SeverityDot({ severity }: { severity: 'low' | 'medium' | 'high' }) {
+   309→  return (
+   310→    <div className="flex items-center gap-1.5">
+   311→      {(['low', 'medium', 'high'] as const).map((level) => (
+   312→        <div
+   313→          key={level}
+   314→          className={cn(
+   315→            'h-1.5 w-1.5 rounded-full transition-all',
+   316→            SEVERITY_COLORS[level],
+   317→            severity === level ? 'opacity-100 scale-125' : 'opacity-20 scale-100'
+   318→          )}
+   319→        />
+   320→      ))}
+   321→      <span className="text-[10px] text-muted-foreground mr-1">{SEVERITY_LABELS[severity]}</span>
+   322→    </div>
+   323→  );
+   324→}
+   325→
+   326→/** Points badge */
+   327→function PointsBadge({ points }: { points: number }) {
+   328→  const isPositive = points > 0;
+   329→  return (
+   330→    <span
+   331→      className={cn(
+   332→        'inline-flex items-center gap-0.5 text-xs font-bold px-2 py-0.5 rounded-full',
+   333→        isPositive
+   334→          ? 'bg-emerald-500/15 text-emerald-400'
+   335→          : 'bg-rose-500/15 text-rose-400'
+   336→      )}
+   337→    >
+   338→      {isPositive ? '+' : ''}{points}
+   339→    </span>
+   340→  );
+   341→}
+   342→
+   343→// ---------------------------------------------------------------------------
+   344→// View Dialog
+   345→// ---------------------------------------------------------------------------
+   346→
+   347→function ViewBehaviorDialog({
+   348→  record,
+   349→  open,
+   350→  onOpenChange,
+   351→}: {
+   352→  record: BehaviorRecord | null;
+   353→  open: boolean;
+   354→  onOpenChange: (open: boolean) => void;
+   355→}) {
+   356→  if (!record) return null;
+   357→  const config = TYPE_CONFIG[record.type];
+   358→  const TypeIcon = config.icon;
+   359→
+   360→  return (
+   361→    <Dialog open={open} onOpenChange={onOpenChange}>
+   362→      <DialogContent
+   363→        className="sm:max-w-lg"
+   364→        dir="rtl"
+   365→        style={{
+   366→          backgroundColor: '#1A1A24',
+   367→          border: '1px solid rgba(255,255,255,0.06)',
+   368→        }}
+   369→      >
+   370→        <DialogHeader>
+   371→          <DialogTitle className="text-white text-xl flex items-center gap-2">
+   372→            <Eye className="h-5 w-5 text-[#D4A574]" />
+   373→            تفاصيل سجل السلوك
+   374→          </DialogTitle>
+   375→          <DialogDescription className="text-muted-foreground">
+   376→            عرض تفاصيل سجل سلوك الطالب
+   377→          </DialogDescription>
+   378→        </DialogHeader>
+   379→
+   380→        <div className="flex flex-col gap-4 mt-2">
+   381→          <div
+   382→            className="rounded-xl p-4"
+   383→            style={{
+   384→              backgroundColor: 'rgba(255,255,255,0.02)',
+   385→              border: '1px solid rgba(255,255,255,0.04)',
+   386→            }}
+   387→          >
+   388→            <div className="grid grid-cols-1 gap-3">
+   389→              <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04]">
+   390→                <div className="flex items-center gap-3">
+   391→                  <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#D4A574]/10">
+   392→                    <Users className="h-4 w-4 text-[#D4A574]" />
+   393→                  </div>
+   394→                  <span className="text-sm text-muted-foreground">اسم الطالب</span>
+   395→                </div>
+   396→                <span className="text-sm font-medium text-slate-200">{record.studentName}</span>
+   397→              </div>
+   398→
+   399→              <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04]">
+   400→                <div className="flex items-center gap-3">
+   401→                  <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#D4A574]/10">
+   402→                    <SchoolIcon />
+   403→                  </div>
+   404→                  <span className="text-sm text-muted-foreground">الفصل</span>
+   405→                </div>
+   406→                <span className="text-sm font-medium text-slate-200">{record.className || '—'}</span>
+   407→              </div>
+   408→
+   409→              <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04]">
+   410→                <div className="flex items-center gap-3">
+   411→                  <div className={cn('flex items-center justify-center h-8 w-8 rounded-lg', config.bgClass)}>
+   412→                    <TypeIcon className={cn('h-4 w-4', config.color)} />
+   413→                  </div>
+   414→                  <span className="text-sm text-muted-foreground">النوع</span>
+   415→                </div>
+   416→                <Badge variant="outline" className={cn('text-xs px-2.5 py-0.5 rounded-full', config.badgeClass)}>
+   417→                  {config.label}
+   418→                </Badge>
+   419→              </div>
+   420→
+   421→              <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04]">
+   422→                <div className="flex items-center gap-3">
+   423→                  <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#D4A574]/10">
+   424→                    <AlertTriangle className="h-4 w-4 text-[#D4A574]" />
+   425→                  </div>
+   426→                  <span className="text-sm text-muted-foreground">الفئة</span>
+   427→                </div>
+   428→                <CategoryBadge category={record.category} type={record.type} />
+   429→              </div>
+   430→
+   431→              <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04]">
+   432→                <div className="flex items-center gap-3">
+   433→                  <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#D4A574]/10">
+   434→                    <ShieldAlert className="h-4 w-4 text-[#D4A574]" />
+   435→                  </div>
+   436→                  <span className="text-sm text-muted-foreground">الشدة</span>
+   437→                </div>
+   438→                <SeverityDot severity={record.severity} />
+   439→              </div>
+   440→
+   441→              <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04]">
+   442→                <div className="flex items-center gap-3">
+   443→                  <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#D4A574]/10">
+   444→                    <Star className="h-4 w-4 text-[#D4A574]" />
+   445→                  </div>
+   446→                  <span className="text-sm text-muted-foreground">النقاط</span>
+   447→                </div>
+   448→                <PointsBadge points={record.points} />
+   449→              </div>
+   450→
+   451→              <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04]">
+   452→                <div className="flex items-center gap-3">
+   453→                  <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#D4A574]/10">
+   454→                    <CheckCircle2 className="h-4 w-4 text-[#D4A574]" />
+   455→                  </div>
+   456→                  <span className="text-sm text-muted-foreground">الإجراء المتخذ</span>
+   457→                </div>
+   458→                <span className="text-sm font-medium text-slate-200">{record.action}</span>
+   459→              </div>
+   460→
+   461→              <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04]">
+   462→                <div className="flex items-center gap-3">
+   463→                  <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#D4A574]/10">
+   464→                    <Clock className="h-4 w-4 text-[#D4A574]" />
+   465→                  </div>
+   466→                  <span className="text-sm text-muted-foreground">التاريخ</span>
+   467→                </div>
+   468→                <span className="text-sm font-medium text-slate-200">{formatDate(record.date)} — {formatTime(record.date)}</span>
+   469→              </div>
+   470→            </div>
+   471→          </div>
+   472→
+   473→          <div
+   474→            className="rounded-xl p-4"
+   475→            style={{
+   476→              backgroundColor: 'rgba(255,255,255,0.02)',
+   477→              border: '1px solid rgba(255,255,255,0.04)',
+   478→            }}
+   479→          >
+   480→            <h4 className="text-sm font-semibold text-slate-300 mb-2">الوصف</h4>
+   481→            <p className="text-sm text-muted-foreground leading-relaxed">{record.description}</p>
+   482→          </div>
+   483→        </div>
+   484→      </DialogContent>
+   485→    </Dialog>
+   486→  );
+   487→}
+   488→
+   489→function SchoolIcon() {
+   490→  return (
+   491→    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#D4A574]">
+   492→      <path d="M22 10l-10-7L2 10l10 7z" /><path d="M6 12v5c3 3 6 3 6 3s3 0 6-3v-5" /><path d="M22 10v7" /><path d="M18 12v3" />
+   493→    </svg>
+   494→  );
+   495→}
+   496→
+   497→// ---------------------------------------------------------------------------
+   498→// Add / Edit Dialog
+   499→// ---------------------------------------------------------------------------
+   500→
+   501→interface BehaviorFormData {
+   502→  studentId: string;
+   503→  type: 'positive' | 'negative';
+   504→  category: string;
+   505→  severity: 'low' | 'medium' | 'high';
+   506→  description: string;
+   507→  action: string;
+   508→  points: number;
+   509→}
+   510→
+   511→function getDefaultFormData(): BehaviorFormData {
+   512→  return {
+   513→    studentId: '',
+   514→    type: 'positive',
+   515→    category: '',
+   516→    severity: 'low',
+   517→    description: '',
+   518→    action: '',
+   519→    points: 2,
+   520→  };
+   521→}
+   522→
+   523→function BehaviorFormDialog({
+   524→  record,
+   525→  open,
+   526→  onOpenChange,
+   527→  students,
+   528→}: {
+   529→  record: BehaviorRecord | null;
+   530→  open: boolean;
+   531→  onOpenChange: (open: boolean) => void;
+   532→  students: { id: string; name: string; classId: string | null; className?: string }[];
+   533→}) {
+   534→  const { addBehavior, updateBehavior } = useAppStore();
+   535→  const isEdit = !!record;
+   536→
+   537→  const [form, setForm] = useState<BehaviorFormData>(getDefaultFormData);
+   538→
+   539→  // Reset form when dialog opens
+   540→  const prevOpenRef = useRef(false);
+   541→  useEffect(() => {
+   542→    if (open && !prevOpenRef.current) {
+   543→      requestAnimationFrame(() => {
+   544→        if (record) {
+   545→          setForm({
+   546→            studentId: record.studentId,
+   547→            type: record.type,
+   548→            category: record.category,
+   549→            severity: record.severity,
+   550→            description: record.description,
+   551→            action: record.action,
+   552→            points: record.points,
+   553→          });
+   554→        } else {
+   555→          setForm(getDefaultFormData());
+   556→        }
+   557→      });
+   558→    }
+   559→    prevOpenRef.current = open;
+   560→  }, [open, record]);
+   561→
+   562→  const categories = form.type === 'positive' ? POSITIVE_CATEGORIES : NEGATIVE_CATEGORIES;
+   563→  const actions = form.type === 'positive' ? POSITIVE_ACTIONS : NEGATIVE_ACTIONS;
+   564→
+   565→  const updateField = useCallback(<K extends keyof BehaviorFormData>(key: K, value: BehaviorFormData[K]) => {
+   566→    setForm((prev) => {
+   567→      const next = { ...prev, [key]: value };
+   568→      // Auto-calculate points when type or severity changes
+   569→      if (key === 'type' || key === 'severity') {
+   570→        next.points = getAutoPoints(next.type, next.severity);
+   571→        // Reset category when type changes
+   572→        if (key === 'type') {
+   573→          next.category = '';
+   574→          next.action = '';
+   575→        }
+   576→      }
+   577→      return next;
+   578→    });
+   579→  }, []);
+   580→
+   581→  const handleSubmit = useCallback(() => {
+   582→    if (!form.studentId) {
+   583→      toast.error('يرجى اختيار الطالب');
+   584→      return;
+   585→    }
+   586→    if (!form.category) {
+   587→      toast.error('يرجى اختيار الفئة');
+   588→      return;
+   589→    }
+   590→    if (!form.description.trim()) {
+   591→      toast.error('يرجى كتابة الوصف');
+   592→      return;
+   593→    }
+   594→
+   595→    const student = students.find((s) => s.id === form.studentId);
+   596→
+   597→    if (isEdit && record) {
+   598→      updateBehavior(record.id, {
+   599→        studentId: form.studentId,
+   600→        studentName: student?.name,
+   601→        classId: student?.classId || undefined,
+   602→        className: student?.className,
+   603→        type: form.type,
+   604→        category: form.category,
+   605→        severity: form.severity,
+   606→        description: form.description,
+   607→        action: form.action,
+   608→        points: form.points,
+   609→      });
+   610→      toast.success('تم تحديث سجل السلوك بنجاح');
+   611→    } else {
+   612→      const now = new Date().toISOString();
+   613→      addBehavior({
+   614→        id: `beh-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+   615→        studentId: form.studentId,
+   616→        studentName: student?.name,
+   617→        classId: student?.classId || undefined,
+   618→        className: student?.className,
+   619→        date: now,
+   620→        type: form.type,
+   621→        category: form.category,
+   622→        severity: form.severity,
+   623→        description: form.description,
+   624→        action: form.action || 'لا يوجد',
+   625→        points: form.points,
+   626→        recordedBy: 'المعلم: خالد العمري',
+   627→        createdAt: now,
+   628→      });
+   629→      toast.success('تم تسجيل سلوك جديد بنجاح');
+   630→    }
+   631→    onOpenChange(false);
+   632→  }, [form, isEdit, record, students, addBehavior, updateBehavior, onOpenChange]);
+   633→
+   634→  return (
+   635→    <Dialog open={open} onOpenChange={onOpenChange}>
+   636→      <DialogContent
+   637→        className="sm:max-w-lg max-h-[85vh] overflow-hidden flex flex-col"
+   638→        dir="rtl"
+   639→        style={{
+   640→          backgroundColor: '#1A1A24',
+   641→          border: '1px solid rgba(255,255,255,0.06)',
+   642→        }}
+   643→      >
+   644→        <DialogHeader>
+   645→          <DialogTitle className="text-white text-xl flex items-center gap-2">
+   646→            <Plus className="h-5 w-5 text-[#D4A574]" />
+   647→            {isEdit ? 'تعديل سجل السلوك' : 'تسجيل سلوك جديد'}
+   648→          </DialogTitle>
+   649→          <DialogDescription className="text-muted-foreground">
+   650→            {isEdit ? `تعديل سجل سلوك ${record?.studentName}` : 'أضف سجل سلوك جديد لطالب'}
+   651→          </DialogDescription>
+   652→        </DialogHeader>
+   653→
+   654→        <div className="flex-1 overflow-y-auto -mx-1 px-1 flex flex-col gap-4 mt-2">
+   655→          {/* Student selector */}
+   656→          <div className="flex flex-col gap-2">
+   657→            <Label className="text-slate-300 text-sm">اسم الطالب</Label>
+   658→            <Select
+   659→              value={form.studentId}
+   660→              onValueChange={(v) => updateField('studentId', v)}
+   661→            >
+   662→              <SelectTrigger className="bg-white/[0.03] border-white/[0.08] text-slate-200">
+   663→                <SelectValue placeholder="اختر الطالب..." />
+   664→              </SelectTrigger>
+   665→              <SelectContent>
+   666→                {students.map((s) => (
+   667→                  <SelectItem key={s.id} value={s.id}>
+   668→                    {s.name}{s.className ? ` — ${s.className}` : ''}
+   669→                  </SelectItem>
+   670→                ))}
+   671→              </SelectContent>
+   672→            </Select>
+   673→          </div>
+   674→
+   675→          {/* Type radio */}
+   676→          <div className="flex flex-col gap-2">
+   677→            <Label className="text-slate-300 text-sm">نوع السلوك</Label>
+   678→            <div className="grid grid-cols-2 gap-2">
+   679→              {(['positive', 'negative'] as const).map((t) => {
+   680→                const config = TYPE_CONFIG[t];
+   681→                const Icon = config.icon;
+   682→                const isSelected = form.type === t;
+   683→                return (
+   684→                  <button
+   685→                    key={t}
+   686→                    type="button"
+   687→                    onClick={() => updateField('type', t)}
+   688→                    className={cn(
+   689→                      'flex items-center justify-center gap-2 rounded-xl py-3 px-4 border transition-all duration-200',
+   690→                      isSelected
+   691→                        ? config.bgClass + ' ' + config.color + ' font-semibold'
+   692→                        : 'border-white/[0.06] text-slate-400 hover:bg-white/[0.04] hover:text-slate-300'
+   693→                    )}
+   694→                  >
+   695→                    <Icon className="h-4 w-4" />
+   696→                    <span className="text-sm">{config.label}</span>
+   697→                  </button>
+   698→                );
+   699→              })}
+   700→            </div>
+   701→          </div>
+   702→
+   703→          {/* Category dropdown */}
+   704→          <div className="flex flex-col gap-2">
+   705→            <Label className="text-slate-300 text-sm">الفئة</Label>
+   706→            <Select
+   707→              value={form.category}
+   708→              onValueChange={(v) => updateField('category', v)}
+   709→            >
+   710→              <SelectTrigger className="bg-white/[0.03] border-white/[0.08] text-slate-200">
+   711→                <SelectValue placeholder="اختر الفئة..." />
+   712→              </SelectTrigger>
+   713→              <SelectContent>
+   714→                {categories.map((c) => (
+   715→                  <SelectItem key={c} value={c}>{c}</SelectItem>
+   716→                ))}
+   717→              </SelectContent>
+   718→            </Select>
+   719→          </div>
+   720→
+   721→          {/* Severity selector */}
+   722→          <div className="flex flex-col gap-2">
+   723→            <Label className="text-slate-300 text-sm">مستوى الشدة</Label>
+   724→            <div className="grid grid-cols-3 gap-2">
+   725→              {(['low', 'medium', 'high'] as const).map((level) => {
+   726→                const isSelected = form.severity === level;
+   727→                return (
+   728→                  <button
+   729→                    key={level}
+   730→                    type="button"
+   731→                    onClick={() => updateField('severity', level)}
+   732→                    className={cn(
+   733→                      'flex flex-col items-center gap-1.5 rounded-xl py-3 px-3 border transition-all duration-200',
+   734→                      isSelected
+   735→                        ? 'bg-[#D4A574]/10 border-[#D4A574]/30 text-[#D4A574] font-semibold'
+   736→                        : 'border-white/[0.06] text-slate-400 hover:bg-white/[0.04] hover:text-slate-300'
+   737→                    )}
+   738→                  >
+   739→                    <div className="flex items-center gap-1">
+   740→                      <div className={cn('h-2.5 w-2.5 rounded-full', SEVERITY_COLORS[level])} />
+   741→                    </div>
+   742→                    <span className="text-xs">{SEVERITY_LABELS[level]}</span>
+   743→                  </button>
+   744→                );
+   745→              })}
+   746→            </div>
+   747→          </div>
+   748→
+   749→          {/* Description */}
+   750→          <div className="flex flex-col gap-2">
+   751→            <Label className="text-slate-300 text-sm">الوصف</Label>
+   752→            <Textarea
+   753→              value={form.description}
+   754→              onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
+   755→              placeholder="اكتب وصفاً تفصيلياً للسلوك..."
+   756→              className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 min-h-[80px] resize-none"
+   757→            />
+   758→          </div>
+   759→
+   760→          {/* Action dropdown */}
+   761→          <div className="flex flex-col gap-2">
+   762→            <Label className="text-slate-300 text-sm">الإجراء المتخذ</Label>
+   763→            <Select
+   764→              value={form.action}
+   765→              onValueChange={(v) => updateField('action', v)}
+   766→            >
+   767→              <SelectTrigger className="bg-white/[0.03] border-white/[0.08] text-slate-200">
+   768→                <SelectValue placeholder="اختر الإجراء..." />
+   769→              </SelectTrigger>
+   770→              <SelectContent>
+   771→                {actions.map((a) => (
+   772→                  <SelectItem key={a} value={a}>{a}</SelectItem>
+   773→                ))}
+   774→              </SelectContent>
+   775→            </Select>
+   776→          </div>
+   777→
+   778→          {/* Points preview */}
+   779→          <div
+   780→            className="rounded-xl p-3 flex items-center justify-between"
+   781→            style={{
+   782→              backgroundColor: 'rgba(255,255,255,0.02)',
+   783→              border: '1px solid rgba(255,255,255,0.04)',
+   784→            }}
+   785→          >
+   786→            <span className="text-sm text-muted-foreground">النقاط (تلقائي)</span>
+   787→            <PointsBadge points={form.points} />
+   788→          </div>
+   789→        </div>
+   790→
+   791→        <DialogFooter className="flex-row gap-3 sm:justify-start pt-3 border-t border-white/[0.06] mt-2">
+   792→          <Button
+   793→            onClick={handleSubmit}
+   794→            className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold rounded-lg px-6 gap-2"
+   795→          >
+   796→            <Save className="h-4 w-4" />
+   797→            {isEdit ? 'حفظ التغييرات' : 'تسجيل'}
+   798→          </Button>
+   799→          <Button
+   800→            type="button"
+   801→            variant="outline"
+   802→            onClick={() => onOpenChange(false)}
+   803→            className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-6"
+   804→          >
+   805→            إلغاء
+   806→          </Button>
+   807→        </DialogFooter>
+   808→      </DialogContent>
+   809→    </Dialog>
+   810→  );
+   811→}
+   812→
+   813→// ---------------------------------------------------------------------------
+   814→// Delete Dialog
+   815→// ---------------------------------------------------------------------------
+   816→
+   817→function DeleteBehaviorDialog({
+   818→  record,
+   819→  open,
+   820→  onOpenChange,
+   821→}: {
+   822→  record: BehaviorRecord | null;
+   823→  open: boolean;
+   824→  onOpenChange: (open: boolean) => void;
+   825→}) {
+   826→  const { deleteBehavior } = useAppStore();
+   827→
+   828→  const handleDelete = useCallback(() => {
+   829→    if (record) {
+   830→      deleteBehavior(record.id);
+   831→      toast.success('تم حذف سجل السلوك بنجاح');
+   832→      onOpenChange(false);
+   833→    }
+   834→  }, [record, deleteBehavior, onOpenChange]);
+   835→
+   836→  return (
+   837→    <AlertDialog open={open} onOpenChange={onOpenChange}>
+   838→      <AlertDialogContent
+   839→        dir="rtl"
+   840→        style={{
+   841→          backgroundColor: '#1A1A24',
+   842→          border: '1px solid rgba(255,255,255,0.06)',
+   843→        }}
+   844→      >
+   845→        <AlertDialogHeader>
+   846→          <AlertDialogTitle className="text-white text-lg">تأكيد حذف سجل السلوك</AlertDialogTitle>
+   847→          <AlertDialogDescription className="text-muted-foreground leading-relaxed">
+   848→            هل أنت متأكد من حذف سجل سلوك{' '}
+   849→            <span className="font-semibold text-slate-200">{record?.studentName}</span>
+   850→            {' '}({record?.category})؟
+   851→            <br />
+   852→            لا يمكن التراجع عن هذا الإجراء.
+   853→          </AlertDialogDescription>
+   854→        </AlertDialogHeader>
+   855→        <AlertDialogFooter className="flex-row gap-3 sm:justify-start mt-2">
+   856→          <AlertDialogCancel className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-6 mt-0">
+   857→            إلغاء
+   858→          </AlertDialogCancel>
+   859→          <AlertDialogAction
+   860→            onClick={handleDelete}
+   861→            className="bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-lg px-6 gap-2"
+   862→          >
+   863→            <Trash2 className="h-4 w-4" />
+   864→            نعم، احذف
+   865→          </AlertDialogAction>
+   866→        </AlertDialogFooter>
+   867→      </AlertDialogContent>
+   868→    </AlertDialog>
+   869→  );
+   870→}
+   871→
+   872→// ---------------------------------------------------------------------------
+   873→// Student Behavior Summary Widget
+   874→// ---------------------------------------------------------------------------
+   875→
+   876→function StudentBehaviorSummary({ records }: { records: BehaviorRecord[] }) {
+   877→  const positiveByStudent = useMemo(() => {
+   878→    const map = new Map<string, { name: string; total: number; count: number }>();
+   879→    for (const r of records.filter((r) => r.type === 'positive')) {
+   880→      const key = r.studentId;
+   881→      if (!map.has(key)) {
+   882→        map.set(key, { name: r.studentName || 'غير معروف', total: 0, count: 0 });
+   883→      }
+   884→      const entry = map.get(key)!;
+   885→      entry.total += r.points;
+   886→      entry.count += 1;
+   887→    }
+   888→    return Array.from(map.values())
+   889→      .sort((a, b) => b.total - a.total)
+   890→      .slice(0, 5);
+   891→  }, [records]);
+   892→
+   893→  const negativeByStudent = useMemo(() => {
+   894→    const map = new Map<string, { name: string; total: number; count: number }>();
+   895→    for (const r of records.filter((r) => r.type === 'negative')) {
+   896→      const key = r.studentId;
+   897→      if (!map.has(key)) {
+   898→        map.set(key, { name: r.studentName || 'غير معروف', total: 0, count: 0 });
+   899→      }
+   900→      const entry = map.get(key)!;
+   901→      entry.total += Math.abs(r.points);
+   902→      entry.count += 1;
+   903→    }
+   904→    return Array.from(map.values())
+   905→      .sort((a, b) => b.total - a.total)
+   906→      .slice(0, 5);
+   907→  }, [records]);
+   908→
+   909→  const maxPositive = positiveByStudent.length > 0 ? positiveByStudent[0].total : 1;
+   910→  const maxNegative = negativeByStudent.length > 0 ? negativeByStudent[0].total : 1;
+   911→
+   912→  if (positiveByStudent.length === 0 && negativeByStudent.length === 0) return null;
+   913→
+   914→  return (
+   915→    <div
+   916→      className="rounded-xl p-5"
+   917→      style={{
+   918→        backgroundColor: 'rgba(255,255,255,0.02)',
+   919→        border: '1px solid rgba(255,255,255,0.06)',
+   920→      }}
+   921→    >
+   922→      <h3 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
+   923→        <Star className="h-4 w-4 text-[#D4A574]" />
+   924→        ملخص سلوك الطلاب
+   925→      </h3>
+   926→
+   927→      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+   928→        {/* Top Positive */}
+   929→        {positiveByStudent.length > 0 && (
+   930→          <div>
+   931→            <h4 className="text-xs font-medium text-emerald-400 mb-3 flex items-center gap-1.5">
+   932→              <TrendingUp className="h-3.5 w-3.5" />
+   933→              الأكثر إيجابية
+   934→            </h4>
+   935→            <div className="flex flex-col gap-2">
+   936→              {positiveByStudent.map((s, i) => (
+   937→                <div key={s.name} className="flex items-center gap-3">
+   938→                  <span className="text-xs text-muted-foreground w-4 tabular-nums">{i + 1}.</span>
+   939→                  <div className="flex-1 min-w-0">
+   940→                    <div className="flex items-center justify-between mb-1">
+   941→                      <span className="text-xs text-slate-300 truncate">{s.name}</span>
+   942→                      <span className="text-xs font-bold text-emerald-400 tabular-nums">+{s.total}</span>
+   943→                    </div>
+   944→                    <div className="h-1.5 w-full rounded-full bg-white/[0.04] overflow-hidden">
+   945→                      <div
+   946→                        className="h-full rounded-full bg-emerald-500/50 transition-all duration-500"
+   947→                        style={{ width: `${Math.max(8, (s.total / maxPositive) * 100)}%` }}
+   948→                      />
+   949→                    </div>
+   950→                  </div>
+   951→                </div>
+   952→              ))}
+   953→            </div>
+   954→          </div>
+   955→        )}
+   956→
+   957→        {/* Top Negative */}
+   958→        {negativeByStudent.length > 0 && (
+   959→          <div>
+   960→            <h4 className="text-xs font-medium text-rose-400 mb-3 flex items-center gap-1.5">
+   961→              <TrendingDown className="h-3.5 w-3.5" />
+   962→              الأكثر سلبية
+   963→            </h4>
+   964→            <div className="flex flex-col gap-2">
+   965→              {negativeByStudent.map((s, i) => (
+   966→                <div key={s.name} className="flex items-center gap-3">
+   967→                  <span className="text-xs text-muted-foreground w-4 tabular-nums">{i + 1}.</span>
+   968→                  <div className="flex-1 min-w-0">
+   969→                    <div className="flex items-center justify-between mb-1">
+   970→                      <span className="text-xs text-slate-300 truncate">{s.name}</span>
+   971→                      <span className="text-xs font-bold text-rose-400 tabular-nums">-{s.total}</span>
+   972→                    </div>
+   973→                    <div className="h-1.5 w-full rounded-full bg-white/[0.04] overflow-hidden">
+   974→                      <div
+   975→                        className="h-full rounded-full bg-rose-500/50 transition-all duration-500"
+   976→                        style={{ width: `${Math.max(8, (s.total / maxNegative) * 100)}%` }}
+   977→                      />
+   978→                    </div>
+   979→                  </div>
+   980→                </div>
+   981→              ))}
+   982→            </div>
+   983→          </div>
+   984→        )}
+   985→      </div>
+   986→    </div>
+   987→  );
+   988→}
+   989→
+   990→// ---------------------------------------------------------------------------
+   991→// Timeline View
+   992→// ---------------------------------------------------------------------------
+   993→
+   994→function TimelineView({
+   995→  records,
+   996→  onView,
+   997→  onEdit,
+   998→  onDelete,
+   999→}: {
+  1000→  records: BehaviorRecord[];
+  1001→  onView: (record: BehaviorRecord) => void;
+  1002→  onEdit: (record: BehaviorRecord) => void;
+  1003→  onDelete: (record: BehaviorRecord) => void;
+  1004→}) {
+  1005→  // Group by date group
+  1006→  const grouped = useMemo(() => {
+  1007→    const groups: { label: string; records: BehaviorRecord[] }[] = [];
+  1008→    const groupOrder = ['اليوم', 'أمس', 'هذا الأسبوع', 'أقدم'];
+  1009→    const groupMap = new Map<string, BehaviorRecord[]>();
+  1010→
+  1011→    for (const r of records) {
+  1012→      const group = getDateGroup(r.date);
+  1013→      if (!groupMap.has(group)) groupMap.set(group, []);
+  1014→      groupMap.get(group)!.push(r);
+  1015→    }
+  1016→
+  1017→    for (const label of groupOrder) {
+  1018→      const items = groupMap.get(label);
+  1019→      if (items && items.length > 0) {
+  1020→        groups.push({ label, records: items });
+  1021→      }
+  1022→    }
+  1023→
+  1024→    return groups;
+  1025→  }, [records]);
+  1026→
+  1027→  if (records.length === 0) {
+  1028→    return (
+  1029→      <div className="flex flex-col items-center justify-center py-16 px-4">
+  1030→        <div className="flex items-center justify-center h-20 w-20 rounded-2xl bg-white/[0.03] border border-white/[0.06] mb-6">
+  1031→          <ShieldAlert className="h-10 w-10 text-slate-500" />
+  1032→        </div>
+  1033→        <h3 className="text-lg font-semibold text-slate-300 mb-2">
+  1034→          لا توجد سجلات سلوك
+  1035→        </h3>
+  1036→        <p className="text-sm text-muted-foreground mb-6 text-center max-w-sm">
+  1037→          ابدأ بتسجيل سلوكيات الطلاب لمتابعة أدائهم السلوكي
+  1038→        </p>
+  1039→      </div>
+  1040→    );
+  1041→  }
+  1042→
+  1043→  return (
+  1044→    <div className="flex flex-col gap-6">
+  1045→      {grouped.map((group) => (
+  1046→        <div key={group.label}>
+  1047→          <div className="flex items-center gap-3 mb-3">
+  1048→            <div className="h-6 w-1 rounded-full bg-[#D4A574]" />
+  1049→            <h3 className="text-sm font-semibold text-slate-300">{group.label}</h3>
+  1050→            <Badge variant="outline" className="text-xs text-muted-foreground border-white/[0.08]">
+  1051→              {group.records.length}
+  1052→            </Badge>
+  1053→          </div>
+  1054→
+  1055→          <div className="flex flex-col gap-2 mr-3 border-r border-white/[0.06] pr-4">
+  1056→            {group.records.map((record) => {
+  1057→              const config = TYPE_CONFIG[record.type];
+  1058→              const TypeIcon = config.icon;
+  1059→
+  1060→              return (
+  1061→                <div
+  1062→                  key={record.id}
+  1063→                  className="relative rounded-xl p-4 transition-all duration-200 group cursor-default hover:scale-[1.005]"
+  1064→                  style={{
+  1065→                    backgroundColor: 'rgba(255,255,255,0.02)',
+  1066→                    border: '1px solid rgba(255,255,255,0.04)',
+  1067→                  }}
+  1068→                  onMouseEnter={(e) => {
+  1069→                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+  1070→                    e.currentTarget.style.boxShadow = `0 0 20px ${config.glowColor}`;
+  1071→                  }}
+  1072→                  onMouseLeave={(e) => {
+  1073→                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)';
+  1074→                    e.currentTarget.style.boxShadow = 'none';
+  1075→                  }}
+  1076→                >
+  1077→                  {/* Timeline dot */}
+  1078→                  <div
+  1079→                    className={cn(
+  1080→                      'absolute -right-[21px] top-6 h-3 w-3 rounded-full border-2 border-[#121218]',
+  1081→                      record.type === 'positive' ? 'bg-emerald-500' : 'bg-rose-500'
+  1082→                    )}
+  1083→                  />
+  1084→
+  1085→                  <div className="flex items-start justify-between gap-3">
+  1086→                    <div className="flex-1 min-w-0">
+  1087→                      {/* Student name + class badge */}
+  1088→                      <div className="flex items-center gap-2 flex-wrap mb-2">
+  1089→                        <span className="text-sm font-semibold text-slate-200">{record.studentName}</span>
+  1090→                        {record.className && (
+  1091→                          <Badge variant="outline" className="text-[10px] text-muted-foreground border-white/[0.08] px-1.5 py-0">
+  1092→                            {record.className}
+  1093→                          </Badge>
+  1094→                        )}
+  1095→                      </div>
+  1096→
+  1097→                      {/* Category + severity + points row */}
+  1098→                      <div className="flex items-center gap-2 flex-wrap mb-2">
+  1099→                        <CategoryBadge category={record.category} type={record.type} />
+  1100→                        <SeverityDot severity={record.severity} />
+  1101→                        <PointsBadge points={record.points} />
+  1102→                      </div>
+  1103→
+  1104→                      {/* Description */}
+  1105→                      <p className="text-sm text-muted-foreground leading-relaxed mb-2">{record.description}</p>
+  1106→
+  1107→                      {/* Action + time row */}
+  1108→                      <div className="flex items-center gap-3 text-xs text-muted-foreground/60">
+  1109→                        {record.action && (
+  1110→                          <span className="flex items-center gap-1">
+  1111→                            <CheckCircle2 className="h-3 w-3" />
+  1112→                            {record.action}
+  1113→                          </span>
+  1114→                        )}
+  1115→                        <span className="flex items-center gap-1">
+  1116→                          <Clock className="h-3 w-3" />
+  1117→                          {formatTime(record.date)}
+  1118→                        </span>
+  1119→                      </div>
+  1120→                    </div>
+  1121→
+  1122→                    {/* Action buttons */}
+  1123→                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+  1124→                      <button
+  1125→                        onClick={() => onView(record)}
+  1126→                        className="flex items-center justify-center h-8 w-8 rounded-lg text-slate-400 hover:text-[#D4A574] hover:bg-[#D4A574]/10 transition-colors"
+  1127→                        title="عرض"
+  1128→                      >
+  1129→                        <Eye className="h-4 w-4" />
+  1130→                      </button>
+  1131→                      <button
+  1132→                        onClick={() => onEdit(record)}
+  1133→                        className="flex items-center justify-center h-8 w-8 rounded-lg text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 transition-colors"
+  1134→                        title="تعديل"
+  1135→                      >
+  1136→                        <Pencil className="h-4 w-4" />
+  1137→                      </button>
+  1138→                      <button
+  1139→                        onClick={() => onDelete(record)}
+  1140→                        className="flex items-center justify-center h-8 w-8 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+  1141→                        title="حذف"
+  1142→                      >
+  1143→                        <Trash2 className="h-4 w-4" />
+  1144→                      </button>
+  1145→                    </div>
+  1146→                  </div>
+  1147→                </div>
+  1148→              );
+  1149→            })}
+  1150→          </div>
+  1151→        </div>
+  1152→      ))}
+  1153→    </div>
+  1154→  );
+  1155→}
+  1156→
+  1157→// ---------------------------------------------------------------------------
+  1158→// Pagination
+  1159→// ---------------------------------------------------------------------------
+  1160→
+  1161→function Pagination({
+  1162→  currentPage,
+  1163→  totalPages,
+  1164→  onPageChange,
+  1165→}: {
+  1166→  currentPage: number;
+  1167→  totalPages: number;
+  1168→  onPageChange: (page: number) => void;
+  1169→}) {
+  1170→  if (totalPages <= 1) return null;
+  1171→
+  1172→  const getPages = () => {
+  1173→    const pages: (number | '...')[] = [];
+  1174→    if (totalPages <= 7) {
+  1175→      for (let i = 1; i <= totalPages; i++) pages.push(i);
+  1176→    } else {
+  1177→      pages.push(1);
+  1178→      if (currentPage > 3) pages.push('...');
+  1179→      for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+  1180→        pages.push(i);
+  1181→      }
+  1182→      if (currentPage < totalPages - 2) pages.push('...');
+  1183→      pages.push(totalPages);
+  1184→    }
+  1185→    return pages;
+  1186→  };
+  1187→
+  1188→  return (
+  1189→    <div className="flex items-center justify-center gap-1.5 mt-6">
+  1190→      <button
+  1191→        onClick={() => onPageChange(currentPage - 1)}
+  1192→        disabled={currentPage === 1}
+  1193→        className="flex items-center justify-center h-9 w-9 rounded-lg border border-white/[0.06] text-slate-400 hover:text-white hover:bg-white/[0.05] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+  1194→      >
+  1195→        <ChevronRight className="h-4 w-4" />
+  1196→      </button>
+  1197→      {getPages().map((page, i) =>
+  1198→        page === '...' ? (
+  1199→          <span key={`dots-${i}`} className="h-9 w-9 flex items-center justify-center text-sm text-muted-foreground">
+  1200→            ...
+  1201→          </span>
+  1202→        ) : (
+  1203→          <button
+  1204→            key={page}
+  1205→            onClick={() => onPageChange(page as number)}
+  1206→            className={cn(
+  1207→              'flex items-center justify-center h-9 w-9 rounded-lg text-sm font-medium transition-all duration-200',
+  1208→              currentPage === page
+  1209→                ? 'bg-[#D4A574] text-slate-900 font-bold'
+  1210→                : 'border border-white/[0.06] text-slate-400 hover:text-white hover:bg-white/[0.05]'
+  1211→            )}
+  1212→          >
+  1213→            {page}
+  1214→          </button>
+  1215→        )
+  1216→      )}
+  1217→      <button
+  1218→        onClick={() => onPageChange(currentPage + 1)}
+  1219→        disabled={currentPage === totalPages}
+  1220→        className="flex items-center justify-center h-9 w-9 rounded-lg border border-white/[0.06] text-slate-400 hover:text-white hover:bg-white/[0.05] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+  1221→      >
+  1222→        <ChevronLeft className="h-4 w-4" />
+  1223→      </button>
+  1224→    </div>
+  1225→  );
+  1226→}
+  1227→
+  1228→// ---------------------------------------------------------------------------
+  1229→// Main Component
+  1230→// ---------------------------------------------------------------------------
+  1231→
+  1232→export default function BehaviorSection() {
+  1233→  const { students, behaviors, setBehaviors } = useAppStore();
+  1234→
+  1235→  // Local filter state
+  1236→  const [localSearch, setLocalSearch] = useState('');
+  1237→  const [typeFilter, setTypeFilter] = useState<string>('all');
+  1238→  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  1239→  const [severityFilter, setSeverityFilter] = useState<string>('all');
+  1240→  const [classFilter, setClassFilter] = useState<string>('all');
+  1241→  const [dateFrom, setDateFrom] = useState<string>('');
+  1242→  const [dateTo, setDateTo] = useState<string>('');
+  1243→  const [showFilters, setShowFilters] = useState(false);
+  1244→  const [currentPage, setCurrentPage] = useState(1);
+  1245→
+  1246→  // Dialogs
+  1247→  const [addOpen, setAddOpen] = useState(false);
+  1248→  const [editOpen, setEditOpen] = useState(false);
+  1249→  const [viewOpen, setViewOpen] = useState(false);
+  1250→  const [deleteOpen, setDeleteOpen] = useState(false);
+  1251→  const [selectedRecord, setSelectedRecord] = useState<BehaviorRecord | null>(null);
+  1252→
+  1253→  // Initialize mock data once
+  1254→  const initialized = useRef(false);
+  1255→  useEffect(() => {
+  1256→    if (!initialized.current && behaviors.length === 0) {
+  1257→      initialized.current = true;
+  1258→      const mock = generateMockBehaviors();
+  1259→      requestAnimationFrame(() => setBehaviors(mock));
+  1260→    }
+  1261→  }, []);
+  1262→
+  1263→  // Statistics
+  1264→  const stats = useMemo(() => {
+  1265→    const total = behaviors.length;
+  1266→    const positive = behaviors.filter((b) => b.type === 'positive').length;
+  1267→    const negative = behaviors.filter((b) => b.type === 'negative').length;
+  1268→    const totalPoints = behaviors.reduce((sum, b) => sum + b.points, 0);
+  1269→    return { total, positive, negative, totalPoints };
+  1270→  }, [behaviors]);
+  1271→
+  1272→  // Filtered records
+  1273→  const filteredRecords = useMemo(() => {
+  1274→    let result = [...behaviors];
+  1275→
+  1276→    if (localSearch.trim()) {
+  1277→      const q = localSearch.trim().toLowerCase();
+  1278→      result = result.filter((r) => r.studentName?.toLowerCase().includes(q));
+  1279→    }
+  1280→    if (typeFilter !== 'all') {
+  1281→      result = result.filter((r) => r.type === typeFilter);
+  1282→    }
+  1283→    if (categoryFilter !== 'all') {
+  1284→      result = result.filter((r) => r.category === categoryFilter);
+  1285→    }
+  1286→    if (severityFilter !== 'all') {
+  1287→      result = result.filter((r) => r.severity === severityFilter);
+  1288→    }
+  1289→    if (classFilter !== 'all') {
+  1290→      result = result.filter((r) => r.classId === classFilter);
+  1291→    }
+  1292→    if (dateFrom) {
+  1293→      const from = new Date(dateFrom);
+  1294→      from.setHours(0, 0, 0, 0);
+  1295→      result = result.filter((r) => new Date(r.date) >= from);
+  1296→    }
+  1297→    if (dateTo) {
+  1298→      const to = new Date(dateTo);
+  1299→      to.setHours(23, 59, 59, 999);
+  1300→      result = result.filter((r) => new Date(r.date) <= to);
+  1301→    }
+  1302→
+  1303→    result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  1304→    return result;
+  1305→  }, [behaviors, localSearch, typeFilter, categoryFilter, severityFilter, classFilter, dateFrom, dateTo]);
+  1306→
+  1307→  // Paginated records
+  1308→  const totalPages = Math.max(1, Math.ceil(filteredRecords.length / ITEMS_PER_PAGE));
+  1309→  const paginatedRecords = filteredRecords.slice(
+  1310→    (currentPage - 1) * ITEMS_PER_PAGE,
+  1311→    currentPage * ITEMS_PER_PAGE,
+  1312→  );
+  1313→
+  1314→  // Reset page when filters change
+  1315→  useEffect(() => {
+  1316→    requestAnimationFrame(() => setCurrentPage(1));
+  1317→  }, [localSearch, typeFilter, categoryFilter, severityFilter, classFilter, dateFrom, dateTo]);
+  1318→
+  1319→  // Handlers
+  1320→  const handleView = useCallback((record: BehaviorRecord) => {
+  1321→    setSelectedRecord(record);
+  1322→    setViewOpen(true);
+  1323→  }, []);
+  1324→
+  1325→  const handleEdit = useCallback((record: BehaviorRecord) => {
+  1326→    setSelectedRecord(record);
+  1327→    setEditOpen(true);
+  1328→  }, []);
+  1329→
+  1330→  const handleDelete = useCallback((record: BehaviorRecord) => {
+  1331→    setSelectedRecord(record);
+  1332→    setDeleteOpen(true);
+  1333→  }, []);
+  1334→
+  1335→  const handleExport = useCallback(() => {
+  1336→    if (filteredRecords.length === 0) {
+  1337→      toast.error('لا توجد بيانات للتصدير');
+  1338→      return;
+  1339→    }
+  1340→    exportToCSV(filteredRecords);
+  1341→  }, [filteredRecords]);
+  1342→
+  1343→  const hasActiveFilters = typeFilter !== 'all' || categoryFilter !== 'all' || severityFilter !== 'all' || classFilter !== 'all' || dateFrom || dateTo;
+  1344→
+  1345→  return (
+  1346→    <div className="space-y-6">
+  1347→      {/* Header */}
+  1348→      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+  1349→        <div className="flex items-center gap-3">
+  1350→          <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-[#D4A574]/10">
+  1351→            <ShieldAlert className="h-5 w-5 text-[#D4A574]" />
+  1352→          </div>
+  1353→          <div>
+  1354→            <h1 className="text-xl font-bold text-white">سلوك الطلاب</h1>
+  1355→            <p className="text-xs text-muted-foreground">متابعة وتسجيل سلوكيات الطلاب</p>
+  1356→          </div>
+  1357→        </div>
+  1358→
+  1359→        <div className="flex items-center gap-2">
+  1360→          <Button
+  1361→            onClick={() => setAddOpen(true)}
+  1362→            className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold gap-2 rounded-lg px-4 btn-shine"
+  1363→          >
+  1364→            <Plus className="h-4 w-4" />
+  1365→            <span className="hidden sm:inline">تسجيل سلوك</span>
+  1366→          </Button>
+  1367→          <Button
+  1368→            onClick={handleExport}
+  1369→            variant="outline"
+  1370→            className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-4 gap-2 btn-amber-glow"
+  1371→          >
+  1372→            <Download className="h-4 w-4" />
+  1373→            <span className="hidden sm:inline">تصدير CSV</span>
+  1374→          </Button>
+  1375→          <Button
+  1376→            onClick={() => setShowFilters(!showFilters)}
+  1377→            variant={showFilters ? 'default' : 'outline'}
+  1378→            className={cn(
+  1379→              'rounded-lg px-4 gap-2',
+  1380→              showFilters
+  1381→                ? 'bg-[#D4A574]/20 text-[#D4A574] border border-[#D4A574]/30 hover:bg-[#D4A574]/30'
+  1382→                : 'border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white'
+  1383→            )}
+  1384→          >
+  1385→            <Filter className="h-4 w-4" />
+  1386→            <span className="hidden sm:inline">تصفية</span>
+  1387→          </Button>
+  1388→        </div>
+  1389→      </div>
+  1390→
+  1391→      {/* Stat Cards */}
+  1392→      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+  1393→        <StatCard
+  1394→          icon={AlertTriangle}
+  1395→          label="إجمالي الحوادث"
+  1396→          value={stats.total}
+  1397→          colorClass="text-[#D4A574]"
+  1398→          bgColor="bg-[#D4A574]/10"
+  1399→        />
+  1400→        <StatCard
+  1401→          icon={ThumbsUp}
+  1402→          label="إيجابي"
+  1403→          value={stats.positive}
+  1404→          colorClass="text-emerald-400"
+  1405→          bgColor="bg-emerald-500/10"
+  1406→        />
+  1407→        <StatCard
+  1408→          icon={ThumbsDown}
+  1409→          label="سلبي"
+  1410→          value={stats.negative}
+  1411→          colorClass="text-rose-400"
+  1412→          bgColor="bg-rose-500/10"
+  1413→        />
+  1414→        <StatCard
+  1415→          icon={Star}
+  1416→          label="مجموع النقاط"
+  1417→          value={stats.totalPoints > 0 ? `+${stats.totalPoints}` : stats.totalPoints}
+  1418→          colorClass={stats.totalPoints >= 0 ? 'text-emerald-400' : 'text-rose-400'}
+  1419→          bgColor={stats.totalPoints >= 0 ? 'bg-emerald-500/10' : 'bg-rose-500/10'}
+  1420→        />
+  1421→      </div>
+  1422→
+  1423→      {/* Search + Filter bar */}
+  1424→      <div
+  1425→        className="rounded-xl p-4"
+  1426→        style={{
+  1427→          backgroundColor: 'rgba(255,255,255,0.02)',
+  1428→          border: '1px solid rgba(255,255,255,0.06)',
+  1429→        }}
+  1430→      >
+  1431→        {/* Search */}
+  1432→        <div className="relative">
+  1433→          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+  1434→          <Input
+  1435→            value={localSearch}
+  1436→            onChange={(e) => setLocalSearch(e.target.value)}
+  1437→            placeholder="البحث باسم الطالب..."
+  1438→            className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 pr-10 rounded-lg h-10"
+  1439→          />
+  1440→        </div>
+  1441→
+  1442→        {/* Expanded filters */}
+  1443→        {showFilters && (
+  1444→          <div className="mt-4 pt-4 border-t border-white/[0.06]">
+  1445→            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+  1446→              {/* Type filter */}
+  1447→              <Select value={typeFilter} onValueChange={setTypeFilter}>
+  1448→                <SelectTrigger className="bg-white/[0.03] border-white/[0.08] text-slate-200 h-9">
+  1449→                  <SelectValue placeholder="النوع" />
+  1450→                </SelectTrigger>
+  1451→                <SelectContent>
+  1452→                  <SelectItem value="all">الكل</SelectItem>
+  1453→                  <SelectItem value="positive">إيجابي</SelectItem>
+  1454→                  <SelectItem value="negative">سلبي</SelectItem>
+  1455→                </SelectContent>
+  1456→              </Select>
+  1457→
+  1458→              {/* Category filter */}
+  1459→              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+  1460→                <SelectTrigger className="bg-white/[0.03] border-white/[0.08] text-slate-200 h-9">
+  1461→                  <SelectValue placeholder="الفئة" />
+  1462→                </SelectTrigger>
+  1463→                <SelectContent>
+  1464→                  <SelectItem value="all">جميع الفئات</SelectItem>
+  1465→                  {ALL_CATEGORIES.map((c) => (
+  1466→                    <SelectItem key={c} value={c}>{c}</SelectItem>
+  1467→                  ))}
+  1468→                </SelectContent>
+  1469→              </Select>
+  1470→
+  1471→              {/* Severity filter */}
+  1472→              <Select value={severityFilter} onValueChange={setSeverityFilter}>
+  1473→                <SelectTrigger className="bg-white/[0.03] border-white/[0.08] text-slate-200 h-9">
+  1474→                  <SelectValue placeholder="الشدة" />
+  1475→                </SelectTrigger>
+  1476→                <SelectContent>
+  1477→                  <SelectItem value="all">جميع المستويات</SelectItem>
+  1478→                  <SelectItem value="low">منخفض</SelectItem>
+  1479→                  <SelectItem value="medium">متوسط</SelectItem>
+  1480→                  <SelectItem value="high">مرتفع</SelectItem>
+  1481→                </SelectContent>
+  1482→              </Select>
+  1483→
+  1484→              {/* Date from */}
+  1485→              <Input
+  1486→                type="date"
+  1487→                value={dateFrom}
+  1488→                onChange={(e) => setDateFrom(e.target.value)}
+  1489→                className="bg-white/[0.03] border-white/[0.08] text-slate-200 h-9 rounded-lg"
+  1490→                placeholder="من تاريخ"
+  1491→              />
+  1492→
+  1493→              {/* Date to */}
+  1494→              <Input
+  1495→                type="date"
+  1496→                value={dateTo}
+  1497→                onChange={(e) => setDateTo(e.target.value)}
+  1498→                className="bg-white/[0.03] border-white/[0.08] text-slate-200 h-9 rounded-lg"
+  1499→                placeholder="إلى تاريخ"
+  1500→              />
+  1501→            </div>
+  1502→
+  1503→            {/* Active filters + clear */}
+  1504→            {hasActiveFilters && (
+  1505→              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/[0.04]">
+  1506→                <span className="text-xs text-muted-foreground">فلاتر نشطة:</span>
+  1507→                {typeFilter !== 'all' && (
+  1508→                  <Badge variant="outline" className="text-xs bg-[#D4A574]/10 text-[#D4A574] border-[#D4A574]/20 px-2 py-0.5 rounded-full cursor-pointer" onClick={() => setTypeFilter('all')}>
+  1509→                    {typeFilter === 'positive' ? 'إيجابي' : 'سلبي'} ✕
+  1510→                  </Badge>
+  1511→                )}
+  1512→                {categoryFilter !== 'all' && (
+  1513→                  <Badge variant="outline" className="text-xs bg-[#D4A574]/10 text-[#D4A574] border-[#D4A574]/20 px-2 py-0.5 rounded-full cursor-pointer" onClick={() => setCategoryFilter('all')}>
+  1514→                    {categoryFilter} ✕
+  1515→                  </Badge>
+  1516→                )}
+  1517→                {severityFilter !== 'all' && (
+  1518→                  <Badge variant="outline" className="text-xs bg-[#D4A574]/10 text-[#D4A574] border-[#D4A574]/20 px-2 py-0.5 rounded-full cursor-pointer" onClick={() => setSeverityFilter('all')}>
+  1519→                    {SEVERITY_LABELS[severityFilter]} ✕
+  1520→                  </Badge>
+  1521→                )}
+  1522→                {dateFrom && (
+  1523→                  <Badge variant="outline" className="text-xs bg-[#D4A574]/10 text-[#D4A574] border-[#D4A574]/20 px-2 py-0.5 rounded-full cursor-pointer" onClick={() => setDateFrom('')}>
+  1524→                    من: {dateFrom} ✕
+  1525→                  </Badge>
+  1526→                )}
+  1527→                {dateTo && (
+  1528→                  <Badge variant="outline" className="text-xs bg-[#D4A574]/10 text-[#D4A574] border-[#D4A574]/20 px-2 py-0.5 rounded-full cursor-pointer" onClick={() => setDateTo('')}>
+  1529→                    إلى: {dateTo} ✕
+  1530→                  </Badge>
+  1531→                )}
+  1532→                <button
+  1533→                  onClick={() => {
+  1534→                    setTypeFilter('all');
+  1535→                    setCategoryFilter('all');
+  1536→                    setSeverityFilter('all');
+  1537→                    setClassFilter('all');
+  1538→                    setDateFrom('');
+  1539→                    setDateTo('');
+  1540→                  }}
+  1541→                  className="text-xs text-rose-400 hover:text-rose-300 mr-auto transition-colors"
+  1542→                >
+  1543→                  مسح الكل
+  1544→                </button>
+  1545→              </div>
+  1546→            )}
+  1547→          </div>
+  1548→        )}
+  1549→
+  1550→        {/* Results count */}
+  1551→        <div className="mt-3 flex items-center justify-between">
+  1552→          <span className="text-xs text-muted-foreground">
+  1553→            {filteredRecords.length} سجل {hasActiveFilters ? '(بعد التصفية)' : ''}
+  1554→          </span>
+  1555→        </div>
+  1556→      </div>
+  1557→
+  1558→      {/* Content area: Timeline + Summary */}
+  1559→      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  1560→        {/* Timeline - 2 columns */}
+  1561→        <div className="lg:col-span-2">
+  1562→          <TimelineView
+  1563→            records={paginatedRecords}
+  1564→            onView={handleView}
+  1565→            onEdit={handleEdit}
+  1566→            onDelete={handleDelete}
+  1567→          />
+  1568→          <Pagination
+  1569→            currentPage={currentPage}
+  1570→            totalPages={totalPages}
+  1571→            onPageChange={setCurrentPage}
+  1572→          />
+  1573→        </div>
+  1574→
+  1575→        {/* Student Summary Widget - 1 column */}
+  1576→        <div className="lg:col-span-1">
+  1577→          <StudentBehaviorSummary records={behaviors} />
+  1578→        </div>
+  1579→      </div>
+  1580→
+  1581→      {/* Dialogs */}
+  1582→      <BehaviorFormDialog
+  1583→        record={null}
+  1584→        open={addOpen}
+  1585→        onOpenChange={setAddOpen}
+  1586→        students={students}
+  1587→      />
+  1588→      <BehaviorFormDialog
+  1589→        record={selectedRecord}
+  1590→        open={editOpen}
+  1591→        onOpenChange={setEditOpen}
+  1592→        students={students}
+  1593→      />
+  1594→      <ViewBehaviorDialog
+  1595→        record={selectedRecord}
+  1596→        open={viewOpen}
+  1597→        onOpenChange={setViewOpen}
+  1598→      />
+  1599→      <DeleteBehaviorDialog
+  1600→        record={selectedRecord}
+  1601→        open={deleteOpen}
+  1602→        onOpenChange={setDeleteOpen}
+  1603→      />
+  1604→    </div>
+  1605→  );
+  1606→}
+  1607→

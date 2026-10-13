@@ -9,6 +9,7 @@ import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
 import { toast } from 'sonner';
+import { useTheme } from 'next-themes';
 import {
   Select,
   SelectContent,
@@ -696,6 +697,14 @@ export default function SettingsSection() {
   ];
 
   /* ── appearance toggles ── */
+  const { theme, setTheme } = useTheme();
+  const isDark = theme === 'dark';
+
+  const handleThemeToggle = (checked: boolean) => {
+    setTheme(checked ? 'dark' : 'light');
+    setSaved(false);
+  };
+
   const appearanceDefaults: ToggleSetting[] = [
     { key: 'darkMode', label: 'الوضع الداكن', description: 'تفعيل المظهر الداكن (موصى به)', icon: <Moon className="h-4 w-4" />, defaultOn: true },
     { key: 'sidebarDefault', label: 'الشريط الجانبي مفتوح', description: 'عرض الشريط الجانبي افتراضياً عند فتح الصفحة', icon: <Monitor className="h-4 w-4" />, defaultOn: true },
@@ -800,15 +809,72 @@ export default function SettingsSection() {
       </SettingCard>
 
       {/* ============================================================ */}
-      {/* Section 2 – المظهر                                           */}
+      {/* Section 2 – المظهر (with working theme toggle)               */}
       {/* ============================================================ */}
       <SettingCard
         title="المظهر"
         icon={<Monitor className="h-5 w-5" />}
         badge="تخصيص العرض"
       >
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {appearanceDefaults.map((s) => (
+        <div className="flex flex-col gap-3">
+          {/* Working Theme Toggle */}
+          <div
+            className="flex items-center justify-between gap-4 rounded-xl p-4 transition-all duration-200"
+            style={{
+              backgroundColor: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.04)',
+            }}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex shrink-0 items-center justify-center h-9 w-9 rounded-lg bg-[#D4A574]/10 text-[#D4A574]">
+                <Moon className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <Label className="cursor-pointer text-sm font-medium text-slate-200 block">
+                  الوضع الداكن
+                </Label>
+                <p className="text-xs text-slate-500 mt-0.5">تفعيل المظهر الداكن (موصى به) — التبديل فوري</p>
+              </div>
+            </div>
+            <Switch
+              id="theme-dark-toggle"
+              checked={isDark}
+              onCheckedChange={handleThemeToggle}
+              className="data-[state=checked]:bg-[#D4A574] data-[state=unchecked]:bg-slate-600 shrink-0"
+            />
+          </div>
+
+          {/* Theme preview */}
+          <div className="flex items-center gap-3 rounded-xl p-4" style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setTheme('dark'); setSaved(false); }}
+                className={cn(
+                  'flex flex-col items-center gap-2 rounded-xl p-3 transition-all duration-200 border',
+                  isDark ? 'border-[#D4A574]/30 bg-[#D4A574]/10' : 'border-white/[0.06] hover:bg-white/[0.03]'
+                )}
+              >
+                <div className="h-8 w-12 rounded-md" style={{ background: 'linear-gradient(135deg, #121218, #1A1A24)' }} />
+                <span className={cn('text-xs font-medium', isDark ? 'text-[#D4A574]' : 'text-slate-500')}>داكن</span>
+              </button>
+              <button
+                onClick={() => { setTheme('light'); setSaved(false); }}
+                className={cn(
+                  'flex flex-col items-center gap-2 rounded-xl p-3 transition-all duration-200 border',
+                  !isDark ? 'border-[#D4A574]/30 bg-[#D4A574]/10' : 'border-white/[0.06] hover:bg-white/[0.03]'
+                )}
+              >
+                <div className="h-8 w-12 rounded-md" style={{ background: 'linear-gradient(135deg, #F8F6F3, #FFFFFF)' }} />
+                <span className={cn('text-xs font-medium', !isDark ? 'text-[#D4A574]' : 'text-slate-500')}>فاتح</span>
+              </button>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-slate-200">النظام الحالي: <span className="text-[#D4A574]">{isDark ? 'داكن' : 'فاتح'}</span></p>
+              <p className="text-xs text-slate-500">يتم حفظ التفضيل تلقائياً</p>
+            </div>
+          </div>
+
+          {appearanceDefaults.filter(s => s.key !== 'darkMode').map((s) => (
             <ToggleRow
               key={s.key}
               setting={s}

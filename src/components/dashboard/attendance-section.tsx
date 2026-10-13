@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { create } from 'zustand';
 import { useAppStore } from '@/lib/store';
+import type { AttendanceRecord as AttendanceRecordType } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -65,20 +66,14 @@ import {
 } from '@/components/ui/select';
 
 // ---------------------------------------------------------------------------
-// Types (local)
+// Types (re-export from @/lib/types with local extension)
 // ---------------------------------------------------------------------------
 
-type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
+type AttendanceStatus = AttendanceRecordType['status'];
 
-interface AttendanceRecord {
-  id: string;
-  studentId: string;
-  classId: string | null;
-  date: string;
-  status: AttendanceStatus;
-  notes: string;
-  createdAt: string;
+interface AttendanceRecord extends Omit<AttendanceRecordType, 'className'> {
   studentName: string;
+  classId: string | null;
 }
 
 interface ClassOption {

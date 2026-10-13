@@ -1330,6 +1330,7 @@ export default function MessagesSection() {
     setMessages,
     addMessage,
     deleteMessage,
+    addToTrash,
     archiveMessage,
     unarchiveMessage,
     toggleMessageStar,
@@ -1444,11 +1445,21 @@ export default function MessagesSection() {
 
   const handleDelete = useCallback(() => {
     if (!selectedMessage) return;
+    addToTrash({
+      id: `trash-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      itemType: 'message',
+      itemId: selectedMessage.id,
+      itemName: selectedMessage.subject,
+      deletedBy: 'المدير',
+      dataJson: JSON.stringify(selectedMessage),
+      restoredAt: null,
+      createdAt: new Date().toISOString(),
+    });
     deleteMessage(selectedMessage.id);
     setSelectedId(null);
     setMobileShowDetail(false);
     toast.success('تم حذف الرسالة');
-  }, [selectedMessage, deleteMessage]);
+  }, [selectedMessage, deleteMessage, addToTrash]);
 
   const handleArchive = useCallback(() => {
     if (!selectedMessage) return;

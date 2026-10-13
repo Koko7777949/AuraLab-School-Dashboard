@@ -1,0 +1,1125 @@
+     1→'use client';
+     2→
+     3→import { useState, useMemo, useCallback } from 'react';
+     4→import {
+     5→  X,
+     6→  Pencil,
+     7→  Printer,
+     8→  Send,
+     9→  StickyNote,
+    10→  User,
+    11→  BookOpen,
+    12→  GraduationCap,
+    13→  Calendar,
+    14→  Clock,
+    15→  FileText,
+    16→  Brain,
+    17→  ShieldCheck,
+    18→  TrendingUp,
+    19→  AlertCircle,
+    20→  Download,
+    21→  CheckCircle2,
+    22→  XCircle,
+    23→  Plus,
+    24→} from 'lucide-react';
+    25→import { useAppStore } from '@/lib/store';
+    26→import type { Student, GradeRecord } from '@/lib/types';
+    27→import { cn } from '@/lib/utils';
+    28→import { toast } from 'sonner';
+    29→import { exportToCSV, formatCsvDate } from '@/lib/csv-export';
+    30→
+    31→// shadcn/ui
+    32→import { Button } from '@/components/ui/button';
+    33→import { Label } from '@/components/ui/label';
+    34→import { Badge } from '@/components/ui/badge';
+    35→import { Textarea } from '@/components/ui/textarea';
+    36→import {
+    37→  Table,
+    38→  TableHeader,
+    39→  TableBody,
+    40→  TableHead,
+    41→  TableRow,
+    42→  TableCell,
+    43→} from '@/components/ui/table';
+    44→import {
+    45→  Dialog,
+    46→  DialogContent,
+    47→  DialogHeader,
+    48→  DialogTitle,
+    49→  DialogDescription,
+    50→} from '@/components/ui/dialog';
+    51→import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+    52→import { Separator } from '@/components/ui/separator';
+    53→
+    54→// ---------------------------------------------------------------------------
+    55→// Constants
+    56→// ---------------------------------------------------------------------------
+    57→
+    58→const STATUS_MAP: Record<Student['status'], { label: string; className: string; color: string }> = {
+    59→  active: {
+    60→    label: 'نشط',
+    61→    className: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20',
+    62→    color: '#34d399',
+    63→  },
+    64→  inactive: {
+    65→    label: 'غير نشط',
+    66→    className: 'bg-amber-500/15 text-amber-400 border-amber-500/20',
+    67→    color: '#fbbf24',
+    68→  },
+    69→  graduated: {
+    70→    label: 'متخرج',
+    71→    className: 'bg-sky-500/15 text-sky-400 border-sky-500/20',
+    72→    color: '#38bdf8',
+    73→  },
+    74→};
+    75→
+    76→const CLASS_OPTIONS = [
+    77→  { value: 'class-1', label: 'الصف الأول - أ' },
+    78→  { value: 'class-2', label: 'الصف الأول - ب' },
+    79→  { value: 'class-3', label: 'الصف الثاني - أ' },
+    80→  { value: 'class-4', label: 'الصف الثاني - ب' },
+    81→  { value: 'class-5', label: 'الصف الثالث - أ' },
+    82→  { value: 'class-6', label: 'الصف الثالث - ب' },
+    83→];
+    84→
+    85→const ATTENDANCE_STATUS_MAP: Record<string, { label: string; className: string; color: string }> = {
+    86→  present: { label: 'حاضر', className: 'bg-emerald-500/15 text-emerald-400', color: '#34d399' },
+    87→  absent: { label: 'غائب', className: 'bg-rose-500/15 text-rose-400', color: '#fb7185' },
+    88→  late: { label: 'متأخر', className: 'bg-amber-500/15 text-amber-400', color: '#fbbf24' },
+    89→  excused: { label: 'مستأذن', className: 'bg-sky-500/15 text-sky-400', color: '#38bdf8' },
+    90→};
+    91→
+    92→// Mock attendance records (seeded via useRef pattern)
+    93→function generateMockAttendance(studentId: string) {
+    94→  const statuses: Array<'present' | 'absent' | 'late' | 'excused'> = ['present', 'present', 'present', 'present', 'present', 'present', 'present', 'late', 'absent', 'excused', 'present', 'present', 'present', 'late', 'present'];
+    95→  const records: Array<{ id: string; date: string; status: 'present' | 'absent' | 'late' | 'excused'; notes: string }> = [];
+    96→  const now = new Date();
+    97→  for (let i = 0; i < 30; i++) {
+    98→    const d = new Date(now);
+    99→    d.setDate(d.getDate() - i);
+   100→    // Skip weekends (Friday=5, Saturday=6)
+   101→    if (d.getDay() === 5 || d.getDay() === 6) continue;
+   102→    const statusIdx = i % statuses.length;
+   103→    records.push({
+   104→      id: `att-${studentId}-${i}`,
+   105→      date: d.toISOString().split('T')[0],
+   106→      status: statuses[statusIdx],
+   107→      notes: '',
+   108→    });
+   109→  }
+   110→  return records;
+   111→}
+   112→
+   113→// Mock psychological notes
+   114→function generateMockPsychNotes(studentId: string) {
+   115→  return [
+   116→    { id: `pn-${studentId}-1`, date: '2024-11-15', content: 'الطالب يظهر تفاعلاً إيجابياً مع زملائه في الفصل. يشارك بنشاط في الأنشطة الجماعية ويظهر قدرات قيادية واعدة.', author: 'الأخصائي النفسي' },
+   117→    { id: `pn-${studentId}-2`, date: '2024-10-20', content: 'تم إجراء مقابلة فردية مع الطالب. أظهر الطالب تحسناً ملحوظاً في التركيز والمشاركة. يُنصح بتكليفه بمهام قيادية ضمن الفريق.', author: 'المرشد التربوي' },
+   118→    { id: `pn-${studentId}-3`, date: '2024-09-25', content: 'في بداية الفصل، لوحظ أن الطالب يحتاج إلى وقت للتكيف مع البيئة الصفية. تم وضع خطة متابعة أسبوعية.', author: 'الأخصائي النفسي' },
+   119→  ];
+   120→}
+   121→
+   122→// ---------------------------------------------------------------------------
+   123→// Helpers
+   124→// ---------------------------------------------------------------------------
+   125→
+   126→function getClassName(classId: string | null): string {
+   127→  if (!classId) return '—';
+   128→  const found = CLASS_OPTIONS.find((c) => c.value === classId);
+   129→  return found ? found.label : '—';
+   130→}
+   131→
+   132→function getGradeColor(percentage: number): string {
+   133→  if (percentage >= 90) return '#34d399';
+   134→  if (percentage >= 80) return '#D4A574';
+   135→  if (percentage >= 70) return '#fbbf24';
+   136→  if (percentage >= 60) return '#fb923c';
+   137→  return '#fb7185';
+   138→}
+   139→
+   140→function getGradeLabel(percentage: number): string {
+   141→  if (percentage >= 90) return 'ممتاز';
+   142→  if (percentage >= 80) return 'جيد جداً';
+   143→  if (percentage >= 70) return 'جيد';
+   144→  if (percentage >= 60) return 'مقبول';
+   145→  return 'ضعيف';
+   146→}
+   147→
+   148→
+   149→
+   150→// ---------------------------------------------------------------------------
+   151→// SVG Sparkline Component (pure SVG, no external libs)
+   152→// ---------------------------------------------------------------------------
+   153→
+   154→function SparklineChart({ data, width = 200, height = 50 }: { data: number[]; width?: number; height?: number }) {
+   155→  if (data.length < 2) {
+   156→    return (
+   157→      <svg width={width} height={height} className="block">
+   158→        <text x={width / 2} y={height / 2} textAnchor="middle" dominantBaseline="central" fill="#64748b" fontSize="10">
+   159→          لا توجد بيانات كافية
+   160→        </text>
+   161→      </svg>
+   162→    );
+   163→  }
+   164→
+   165→  const padding = 4;
+   166→  const chartW = width - padding * 2;
+   167→  const chartH = height - padding * 2;
+   168→  const min = Math.min(...data);
+   169→  const max = Math.max(...data);
+   170→  const range = max - min || 1;
+   171→
+   172→  const points = data.map((v, i) => ({
+   173→    x: padding + (i / (data.length - 1)) * chartW,
+   174→    y: padding + chartH - ((v - min) / range) * chartH,
+   175→  }));
+   176→
+   177→  // Build smooth path using catmull-rom to bezier
+   178→  const pathD = points.reduce((acc, point, idx) => {
+   179→    if (idx === 0) return `M ${point.x} ${point.y}`;
+   180→    const prev = points[idx - 1];
+   181→    const cpx1 = prev.x + (point.x - prev.x) * 0.4;
+   182→    const cpx2 = prev.x + (point.x - prev.x) * 0.6;
+   183→    return `${acc} C ${cpx1} ${prev.y}, ${cpx2} ${point.y}, ${point.x} ${point.y}`;
+   184→  }, '');
+   185→
+   186→  // Area fill path
+   187→  const areaD = `${pathD} L ${points[points.length - 1].x} ${height - padding} L ${points[0].x} ${height - padding} Z`;
+   188→
+   189→  const gradientId = `sparkline-grad-${Math.random().toString(36).slice(2, 7)}`;
+   190→
+   191→  return (
+   192→    <svg width={width} height={height} className="block" preserveAspectRatio="xMidYMid meet">
+   193→      <defs>
+   194→        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+   195→          <stop offset="0%" stopColor="#D4A574" stopOpacity="0.3" />
+   196→          <stop offset="100%" stopColor="#D4A574" stopOpacity="0" />
+   197→        </linearGradient>
+   198→      </defs>
+   199→      {/* Area fill */}
+   200→      <path d={areaD} fill={`url(#${gradientId})`} />
+   201→      {/* Line */}
+   202→      <path d={pathD} fill="none" stroke="#D4A574" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+   203→      {/* End dot */}
+   204→      <circle cx={points[points.length - 1].x} cy={points[points.length - 1].y} r="3" fill="#D4A574" />
+   205→      <circle cx={points[points.length - 1].x} cy={points[points.length - 1].y} r="5" fill="#D4A574" opacity="0.3" />
+   206→    </svg>
+   207→  );
+   208→}
+   209→
+   210→// ---------------------------------------------------------------------------
+   211→// Grade Distribution Bar (pure SVG)
+   212→// ---------------------------------------------------------------------------
+   213→
+   214→function GradeDistributionBar({ grades }: { grades: GradeRecord[] }) {
+   215→  const distribution = useMemo(() => {
+   216→    const counts = { excellent: 0, veryGood: 0, good: 0, pass: 0, fail: 0 };
+   217→    for (const g of grades) {
+   218→      const pct = (g.score / g.maxScore) * 100;
+   219→      if (pct >= 90) counts.excellent++;
+   220→      else if (pct >= 80) counts.veryGood++;
+   221→      else if (pct >= 70) counts.good++;
+   222→      else if (pct >= 60) counts.pass++;
+   223→      else counts.fail++;
+   224→    }
+   225→    return counts;
+   226→  }, [grades]);
+   227→
+   228→  const total = grades.length || 1;
+   229→  const segments = [
+   230→    { label: 'ممتاز', count: distribution.excellent, color: '#34d399' },
+   231→    { label: 'جيد جداً', count: distribution.veryGood, color: '#D4A574' },
+   232→    { label: 'جيد', count: distribution.good, color: '#fbbf24' },
+   233→    { label: 'مقبول', count: distribution.pass, color: '#fb923c' },
+   234→    { label: 'ضعيف', count: distribution.fail, color: '#fb7185' },
+   235→  ];
+   236→
+   237→  return (
+   238→    <div className="flex flex-col gap-2">
+   239→      <div className="flex rounded-full overflow-hidden h-3 w-full">
+   240→        {segments.map((seg) => (
+   241→          <div
+   242→            key={seg.label}
+   243→            style={{
+   244→              width: `${(seg.count / total) * 100}%`,
+   245→              backgroundColor: seg.color,
+   246→              minWidth: seg.count > 0 ? 4 : 0,
+   247→            }}
+   248→            className="transition-all duration-500"
+   249→            title={`${seg.label}: ${seg.count}`}
+   250→          />
+   251→        ))}
+   252→      </div>
+   253→      <div className="flex flex-wrap gap-x-4 gap-y-1">
+   254→        {segments.map((seg) => (
+   255→          <div key={seg.label} className="flex items-center gap-1.5 text-xs">
+   256→            <div className="h-2 w-2 rounded-full" style={{ backgroundColor: seg.color }} />
+   257→            <span className="text-muted-foreground">{seg.label}</span>
+   258→            <span className="text-slate-300 font-semibold tabular-nums">{seg.count}</span>
+   259→          </div>
+   260→        ))}
+   261→      </div>
+   262→    </div>
+   263→  );
+   264→}
+   265→
+   266→// ---------------------------------------------------------------------------
+   267→// Attendance Heatmap (last 30 days, pure SVG)
+   268→// ---------------------------------------------------------------------------
+   269→
+   270→function AttendanceHeatmap({ records }: { records: Array<{ date: string; status: string }> }) {
+   271→  const today = new Date();
+   272→  const days: Array<{ date: string; dayOfWeek: number; day: number; status: string | null }> = [];
+   273→
+   274→  for (let i = 29; i >= 0; i--) {
+   275→    const d = new Date(today);
+   276→    d.setDate(d.getDate() - i);
+   277→    const dateStr = d.toISOString().split('T')[0];
+   278→    const record = records.find((r) => r.date === dateStr);
+   279→    days.push({
+   280→      date: dateStr,
+   281→      dayOfWeek: d.getDay(),
+   282→      day: d.getDate(),
+   283→      status: record?.status ?? null,
+   284→    });
+   285→  }
+   286→
+   287→  const cellSize = 16;
+   288→  const gap = 2;
+   289→  const cols = 7; // Mon-Sun (Sat-first for Arabic, but 7 cols grid)
+   290→
+   291→  return (
+   292→    <div className="glass-card-elevated rounded-xl p-4">
+   293→      <h3 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+   294→        <Calendar className="h-4 w-4 text-[#D4A574]" />
+   295→        خريطة الحضور - آخر 30 يوم
+   296→      </h3>
+   297→      <div className="flex gap-1 justify-center flex-wrap">
+   298→        {days.map((day) => {
+   299→          const isWeekend = day.dayOfWeek === 5 || day.dayOfWeek === 6;
+   300→          const statusInfo = day.status ? ATTENDANCE_STATUS_MAP[day.status] : null;
+   301→          const bgColor = isWeekend
+   302→            ? 'rgba(255,255,255,0.02)'
+   303→            : statusInfo
+   304→              ? `${statusInfo.color}30`
+   305→              : 'rgba(255,255,255,0.04)';
+   306→          const dotColor = statusInfo?.color ?? (isWeekend ? 'transparent' : 'rgba(255,255,255,0.08)');
+   307→
+   308→          return (
+   309→            <div
+   310→              key={day.date}
+   311→              className="flex flex-col items-center gap-0.5"
+   312→              title={`${day.date}: ${statusInfo?.label ?? (isWeekend ? 'عطلة' : 'لا بيانات')}`}
+   313→            >
+   314→              <span className="text-[9px] text-muted-foreground/50 tabular-nums">{day.day}</span>
+   315→              <div
+   316→                className="rounded-sm flex items-center justify-center"
+   317→                style={{
+   318→                  width: cellSize,
+   319→                  height: cellSize,
+   320→                  backgroundColor: bgColor,
+   321→                  border: '1px solid rgba(255,255,255,0.04)',
+   322→                }}
+   323→              >
+   324→                {!isWeekend && (
+   325→                  <div
+   326→                    className="rounded-full"
+   327→                    style={{
+   328→                      width: 6,
+   329→                      height: 6,
+   330→                      backgroundColor: dotColor,
+   331→                    }}
+   332→                  />
+   333→                )}
+   334→              </div>
+   335→            </div>
+   336→          );
+   337→        })}
+   338→      </div>
+   339→      {/* Legend */}
+   340→      <div className="flex items-center justify-center gap-4 mt-3">
+   341→        {Object.values(ATTENDANCE_STATUS_MAP).map((s) => (
+   342→          <div key={s.label} className="flex items-center gap-1 text-[10px] text-muted-foreground">
+   343→            <div className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: `${s.color}30` }} />
+   344→            <span>{s.label}</span>
+   345→          </div>
+   346→        ))}
+   347→      </div>
+   348→    </div>
+   349→  );
+   350→}
+   351→
+   352→// ---------------------------------------------------------------------------
+   353→// Main Component
+   354→// ---------------------------------------------------------------------------
+   355→
+   356→export default function StudentProfile({ student, onClose }: { student: Student; onClose: () => void }) {
+   357→  const { grades, updateStudent } = useAppStore();
+   358→
+   359→  // Local state
+   360→  const [activeTab, setActiveTab] = useState('personal');
+   361→  const [isEditing, setIsEditing] = useState(false);
+   362→  const [editNotes, setEditNotes] = useState(student.notes);
+   363→  const [editPsychBackground, setEditPsychBackground] = useState(student.psychBackground);
+   364→  const [newPsychNote, setNewPsychNote] = useState('');
+   365→
+   366→  // Seed mock attendance and psych notes via lazy state initializer (runs once)
+   367→  const [attendanceRecords] = useState(() => generateMockAttendance(student.id));
+   368→  const [psychNotes, setPsychNotes] = useState(() => generateMockPsychNotes(student.id));
+   369→
+   370→  // Get student grades from store
+   371→  const studentGrades = useMemo(() => {
+   372→    return grades.filter((g) => g.studentId === student.studentId || g.studentId === student.id);
+   373→  }, [grades, student.studentId, student.id]);
+   374→
+   375→  // If no grades in store, show placeholder
+   376→  const displayGrades = studentGrades;
+   377→
+   378→  // Attendance stats
+   379→  const attendanceStats = useMemo(() => {
+   380→    const records = attendanceRecords;
+   381→    const present = records.filter((r) => r.status === 'present').length;
+   382→    const absent = records.filter((r) => r.status === 'absent').length;
+   383→    const late = records.filter((r) => r.status === 'late').length;
+   384→    const excused = records.filter((r) => r.status === 'excused').length;
+   385→    const total = present + absent + late + excused;
+   386→    return {
+   387→      total,
+   388→      present,
+   389→      absent,
+   390→      late,
+   391→      excused,
+   392→      presentRate: total > 0 ? Math.round((present / total) * 100) : 0,
+   393→    };
+   394→  }, [attendanceRecords]);
+   395→
+   396→  // Grade stats
+   397→  const gradeStats = useMemo(() => {
+   398→    if (displayGrades.length === 0) {
+   399→      return { avg: 0, highest: 0, lowest: 0, trend: [] as number[] };
+   400→    }
+   401→    const percentages = displayGrades.map((g) => (g.score / g.maxScore) * 100);
+   402→    const avg = percentages.reduce((a, b) => a + b, 0) / percentages.length;
+   403→    const highest = Math.max(...percentages);
+   404→    const lowest = Math.min(...percentages);
+   405→    return { avg: Math.round(avg), highest: Math.round(highest), lowest: Math.round(lowest), trend: percentages };
+   406→  }, [displayGrades]);
+   407→
+   408→  // Handlers
+   409→  const handleSavePersonal = useCallback(() => {
+   410→    updateStudent(student.id, {
+   411→      notes: editNotes,
+   412→      psychBackground: editPsychBackground,
+   413→      updatedAt: new Date().toISOString(),
+   414→    });
+   415→    setIsEditing(false);
+   416→    toast.success('تم حفظ الملاحظات بنجاح');
+   417→  }, [student.id, editNotes, editPsychBackground, updateStudent]);
+   418→
+   419→  const handleCancelEdit = useCallback(() => {
+   420→    setEditNotes(student.notes);
+   421→    setEditPsychBackground(student.psychBackground);
+   422→    setIsEditing(false);
+   423→  }, [student.notes, student.psychBackground]);
+   424→
+   425→  const handleAddPsychNote = useCallback(() => {
+   426→    if (!newPsychNote.trim()) return;
+   427→    const note = {
+   428→      id: `pn-${Date.now()}`,
+   429→      date: new Date().toISOString().split('T')[0],
+   430→      content: newPsychNote.trim(),
+   431→      author: 'المستخدم الحالي',
+   432→    };
+   433→    setPsychNotes((prev) => [note, ...prev]);
+   434→    setNewPsychNote('');
+   435→    toast.success('تم إضافة الملاحظة النفسية');
+   436→  }, [newPsychNote]);
+   437→
+   438→  const handleExportGrades = useCallback(() => {
+   439→    if (displayGrades.length === 0) {
+   440→      toast.error('لا توجد درجات للتصدير');
+   441→      return;
+   442→    }
+   443→    const exportData = displayGrades.map((g) => ({
+   444→      subject: g.subject,
+   445→      examType: g.examType,
+   446→      score: g.score,
+   447→      maxScore: g.maxScore,
+   448→      percentage: `${Math.round((g.score / g.maxScore) * 100)}%`,
+   449→      date: formatCsvDate(g.date),
+   450→      notes: g.notes,
+   451→    }));
+   452→    exportToCSV(exportData, `grades-${student.studentId}`, [
+   453→      { key: 'subject', label: 'المادة' },
+   454→      { key: 'examType', label: 'نوع الاختبار' },
+   455→      { key: 'score', label: 'الدرجة' },
+   456→      { key: 'maxScore', label: 'الدرجة القصوى' },
+   457→      { key: 'percentage', label: 'النسبة' },
+   458→      { key: 'date', label: 'التاريخ' },
+   459→      { key: 'notes', label: 'ملاحظات' },
+   460→    ]);
+   461→    toast.success('تم تصدير الدرجات بنجاح');
+   462→  }, [displayGrades, student.studentId]);
+   463→
+   464→  const handlePrint = useCallback(() => {
+   465→    window.print();
+   466→  }, []);
+   467→
+   468→  const handleSendMessage = useCallback(() => {
+   469→    toast.info('سيتم إرسال رسالة إلى ولي الأمر');
+   470→  }, []);
+   471→
+   472→  const handleAddNote = useCallback(() => {
+   473→    setIsEditing(true);
+   474→    setActiveTab('personal');
+   475→  }, []);
+   476→
+   477→  const statusConfig = STATUS_MAP[student.status];
+   478→
+   479→  return (
+   480→    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+   481→      <DialogContent
+   482→        className="max-w-4xl w-[95vw] max-h-[92vh] overflow-hidden p-0"
+   483→        dir="rtl"
+   484→        lang="ar"
+   485→        style={{
+   486→          backgroundColor: '#121218',
+   487→          border: '1px solid rgba(255,255,255,0.06)',
+   488→        }}
+   489→      >
+   490→        <div className="flex flex-col h-full overflow-y-auto">
+   491→          {/* ── Profile Header ── */}
+   492→          <div className="relative p-6 pb-4">
+   493→            {/* Close button */}
+   494→            <Button
+   495→              variant="ghost"
+   496→              size="icon"
+   497→              onClick={onClose}
+   498→              className="absolute top-4 left-4 h-8 w-8 text-slate-400 hover:text-white hover:bg-white/[0.08] rounded-lg z-10"
+   499→            >
+   500→              <X className="h-4 w-4" />
+   501→            </Button>
+   502→
+   503→            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+   504→              {/* Avatar */}
+   505→              <div
+   506→                className="flex items-center justify-center h-20 w-20 rounded-full shrink-0 text-2xl font-bold border-2"
+   507→                style={{
+   508→                  background: `linear-gradient(135deg, ${statusConfig.color}25, ${statusConfig.color}08)`,
+   509→                  borderColor: `${statusConfig.color}30`,
+   510→                  color: statusConfig.color,
+   511→                }}
+   512→              >
+   513→                {student.name.charAt(0)}
+   514→              </div>
+   515→
+   516→              {/* Info */}
+   517→              <div className="flex-1 min-w-0">
+   518→                <div className="flex flex-wrap items-center gap-3 mb-1">
+   519→                  <h2 className="text-xl font-bold text-white truncate">
+   520→                    {student.name}
+   521→                  </h2>
+   522→                  <Badge
+   523→                    variant="outline"
+   524→                    className="text-xs font-mono px-2 py-0.5 rounded-full bg-white/[0.05] text-slate-300 border-white/[0.1]"
+   525→                    dir="ltr"
+   526→                  >
+   527→                    {student.studentId}
+   528→                  </Badge>
+   529→                  <Badge
+   530→                    variant="outline"
+   531→                    className={cn('text-xs px-2.5 py-0.5 rounded-full', statusConfig.className)}
+   532→                  >
+   533→                    <span className={cn('inline-block h-1.5 w-1.5 rounded-full mr-1', {
+   534→                      'bg-emerald-400': student.status === 'active',
+   535→                      'bg-amber-400': student.status === 'inactive',
+   536→                      'bg-sky-400': student.status === 'graduated',
+   537→                    })} />
+   538→                    {statusConfig.label}
+   539→                  </Badge>
+   540→                </div>
+   541→                <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+   542→                  <span className="flex items-center gap-1.5">
+   543→                    <GraduationCap className="h-3.5 w-3.5 text-[#D4A574]" />
+   544→                    {getClassName(student.classId)}
+   545→                  </span>
+   546→                  <span className="flex items-center gap-1.5">
+   547→                    <Calendar className="h-3.5 w-3.5 text-[#D4A574]" />
+   548→                    تاريخ التسجيل: {new Date(student.createdAt).toLocaleDateString('ar-SA')}
+   549→                  </span>
+   550→                </div>
+   551→              </div>
+   552→
+   553→              {/* Action Buttons */}
+   554→              <div className="flex items-center gap-2 shrink-0">
+   555→                <Button
+   556→                  variant="outline"
+   557→                  size="sm"
+   558→                  onClick={handleSendMessage}
+   559→                  className="border-white/[0.08] text-slate-300 hover:bg-white/[0.06] hover:text-white rounded-lg gap-1.5 h-9 text-xs"
+   560→                >
+   561→                  <Send className="h-3.5 w-3.5" />
+   562→                  إرسال رسالة
+   563→                </Button>
+   564→                <Button
+   565→                  variant="outline"
+   566→                  size="sm"
+   567→                  onClick={handleAddNote}
+   568→                  className="border-white/[0.08] text-slate-300 hover:bg-white/[0.06] hover:text-white rounded-lg gap-1.5 h-9 text-xs"
+   569→                >
+   570→                  <StickyNote className="h-3.5 w-3.5" />
+   571→                  إضافة ملاحظة
+   572→                </Button>
+   573→                <Separator orientation="vertical" className="h-6 mx-1 bg-white/[0.06]" />
+   574→                <Button
+   575→                  variant="ghost"
+   576→                  size="icon"
+   577→                  onClick={handlePrint}
+   578→                  className="h-8 w-8 text-slate-400 hover:text-white hover:bg-white/[0.06] rounded-lg"
+   579→                  title="طباعة"
+   580→                >
+   581→                  <Printer className="h-4 w-4" />
+   582→                </Button>
+   583→              </div>
+   584→            </div>
+   585→
+   586→            <Separator className="mt-4 bg-white/[0.06]" />
+   587→          </div>
+   588→
+   589→          {/* ── Tab Navigation ── */}
+   590→          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 px-6 pb-6">
+   591→            <TabsList className="bg-white/[0.04] p-1 rounded-xl h-auto w-full mb-4">
+   592→              <TabsTrigger
+   593→                value="personal"
+   594→                className={cn(
+   595→                  'flex-1 rounded-lg py-2.5 text-xs font-medium transition-all gap-1.5',
+   596→                  activeTab === 'personal'
+   597→                    ? 'bg-[#D4A574]/15 text-[#D4A574] shadow-sm'
+   598→                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
+   599→                )}
+   600→              >
+   601→                <User className="h-3.5 w-3.5" />
+   602→                المعلومات الشخصية
+   603→              </TabsTrigger>
+   604→              <TabsTrigger
+   605→                value="grades"
+   606→                className={cn(
+   607→                  'flex-1 rounded-lg py-2.5 text-xs font-medium transition-all gap-1.5',
+   608→                  activeTab === 'grades'
+   609→                    ? 'bg-[#D4A574]/15 text-[#D4A574] shadow-sm'
+   610→                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
+   611→                )}
+   612→              >
+   613→                <TrendingUp className="h-3.5 w-3.5" />
+   614→                الدرجات والأداء
+   615→              </TabsTrigger>
+   616→              <TabsTrigger
+   617→                value="attendance"
+   618→                className={cn(
+   619→                  'flex-1 rounded-lg py-2.5 text-xs font-medium transition-all gap-1.5',
+   620→                  activeTab === 'attendance'
+   621→                    ? 'bg-[#D4A574]/15 text-[#D4A574] shadow-sm'
+   622→                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
+   623→                )}
+   624→              >
+   625→                <CheckCircle2 className="h-3.5 w-3.5" />
+   626→                الحضور
+   627→              </TabsTrigger>
+   628→              <TabsTrigger
+   629→                value="psych"
+   630→                className={cn(
+   631→                  'flex-1 rounded-lg py-2.5 text-xs font-medium transition-all gap-1.5',
+   632→                  activeTab === 'psych'
+   633→                    ? 'bg-[#D4A574]/15 text-[#D4A574] shadow-sm'
+   634→                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
+   635→                )}
+   636→              >
+   637→                <Brain className="h-3.5 w-3.5" />
+   638→                ملاحظات نفسية
+   639→              </TabsTrigger>
+   640→            </TabsList>
+   641→
+   642→            {/* ── Tab 1: Personal Info ── */}
+   643→            <TabsContent value="personal">
+   644→              <div className="glass-card-elevated rounded-xl p-5">
+   645→                <div className="flex items-center justify-between mb-4">
+   646→                  <h3 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
+   647→                    <FileText className="h-4 w-4 text-[#D4A574]" />
+   648→                    المعلومات الشخصية
+   649→                  </h3>
+   650→                  {!isEditing && (
+   651→                    <Button
+   652→                      variant="outline"
+   653→                      size="sm"
+   654→                      onClick={() => setIsEditing(true)}
+   655→                      className="border-[#D4A574]/30 text-[#D4A574] hover:bg-[#D4A574]/10 rounded-lg gap-1.5 h-8 text-xs"
+   656→                    >
+   657→                      <Pencil className="h-3 w-3" />
+   658→                      تعديل
+   659→                    </Button>
+   660→                  )}
+   661→                </div>
+   662→
+   663→                {/* Read-only fields */}
+   664→                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+   665→                  {[
+   666→                    { label: 'الاسم الكامل', value: student.name, icon: User },
+   667→                    { label: 'الرقم التعريفي', value: student.studentId, icon: BookOpen },
+   668→                    { label: 'الفصل', value: getClassName(student.classId), icon: GraduationCap },
+   669→                    { label: 'الحالة', value: statusConfig.label, icon: ShieldCheck },
+   670→                    { label: 'تاريخ التسجيل', value: new Date(student.createdAt).toLocaleDateString('ar-SA'), icon: Calendar },
+   671→                    { label: 'آخر تحديث', value: new Date(student.updatedAt).toLocaleDateString('ar-SA'), icon: Clock },
+   672→                  ].map((field) => (
+   673→                    <div
+   674→                      key={field.label}
+   675→                      className="flex items-center gap-3 p-3 rounded-lg bg-white/[0.02] border border-white/[0.04]"
+   676→                    >
+   677→                      <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#D4A574]/10 shrink-0">
+   678→                        <field.icon className="h-4 w-4 text-[#D4A574]" />
+   679→                      </div>
+   680→                      <div className="min-w-0">
+   681→                        <p className="text-[11px] text-muted-foreground mb-0.5">{field.label}</p>
+   682→                        <p className="text-sm font-medium text-slate-200 truncate">{field.value}</p>
+   683→                      </div>
+   684→                    </div>
+   685→                  ))}
+   686→                </div>
+   687→
+   688→                {/* Editable fields */}
+   689→                <div className="space-y-4">
+   690→                  <div className="flex flex-col gap-2">
+   691→                    <Label className="text-slate-300 text-sm flex items-center gap-2">
+   692→                      <StickyNote className="h-3.5 w-3.5 text-[#D4A574]" />
+   693→                      ملاحظات عامة
+   694→                    </Label>
+   695→                    <Textarea
+   696→                      value={editNotes}
+   697→                      onChange={(e) => setEditNotes(e.target.value)}
+   698→                      disabled={!isEditing}
+   699→                      placeholder="أضف ملاحظات عامة حول الطالب..."
+   700→                      className="bg-white/[0.02] border-white/[0.06] text-slate-200 placeholder:text-muted-foreground/40 focus:border-[#D4A574]/40 focus:ring-[#D4A574]/15 min-h-[80px] resize-none disabled:opacity-70"
+   701→                    />
+   702→                  </div>
+   703→                  <div className="flex flex-col gap-2">
+   704→                    <Label className="text-slate-300 text-sm flex items-center gap-2">
+   705→                      <Brain className="h-3.5 w-3.5 text-[#D4A574]" />
+   706→                      الخلفية النفسية
+   707→                    </Label>
+   708→                    <Textarea
+   709→                      value={editPsychBackground}
+   710→                      onChange={(e) => setEditPsychBackground(e.target.value)}
+   711→                      disabled={!isEditing}
+   712→                      placeholder="أضف معلومات عن الخلفية النفسية للطالب..."
+   713→                      className="bg-white/[0.02] border-white/[0.06] text-slate-200 placeholder:text-muted-foreground/40 focus:border-[#D4A574]/40 focus:ring-[#D4A574]/15 min-h-[80px] resize-none disabled:opacity-70"
+   714→                    />
+   715→                  </div>
+   716→
+   717→                  {/* Save/Cancel buttons */}
+   718→                  {isEditing && (
+   719→                    <div className="flex items-center gap-2 pt-2">
+   720→                      <Button
+   721→                        onClick={handleSavePersonal}
+   722→                        className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold rounded-lg px-5 h-9 text-sm gap-1.5"
+   723→                      >
+   724→                        <CheckCircle2 className="h-3.5 w-3.5" />
+   725→                        حفظ التغييرات
+   726→                      </Button>
+   727→                      <Button
+   728→                        variant="outline"
+   729→                        onClick={handleCancelEdit}
+   730→                        className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-5 h-9 text-sm"
+   731→                      >
+   732→                        إلغاء
+   733→                      </Button>
+   734→                    </div>
+   735→                  )}
+   736→                </div>
+   737→              </div>
+   738→            </TabsContent>
+   739→
+   740→            {/* ── Tab 2: Grades & Performance ── */}
+   741→            <TabsContent value="grades">
+   742→              <div className="space-y-4">
+   743→                {/* Stats Cards */}
+   744→                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+   745→                  <div className="glass-card-elevated rounded-xl p-4 text-center">
+   746→                    <p className="text-[11px] text-muted-foreground mb-1">المعدل العام</p>
+   747→                    <p className="text-2xl font-bold text-[#D4A574] tabular-nums">
+   748→                      {displayGrades.length > 0 ? `${gradeStats.avg}%` : '—'}
+   749→                    </p>
+   750→                    <p className="text-[10px] text-muted-foreground mt-1">
+   751→                      {displayGrades.length > 0 ? getGradeLabel(gradeStats.avg) : 'لا توجد بيانات'}
+   752→                    </p>
+   753→                  </div>
+   754→                  <div className="glass-card-elevated rounded-xl p-4 text-center">
+   755→                    <p className="text-[11px] text-muted-foreground mb-1">أعلى درجة</p>
+   756→                    <p className="text-2xl font-bold text-emerald-400 tabular-nums">
+   757→                      {displayGrades.length > 0 ? `${gradeStats.highest}%` : '—'}
+   758→                    </p>
+   759→                    <p className="text-[10px] text-muted-foreground mt-1 flex items-center justify-center gap-1">
+   760→                      <TrendingUp className="h-3 w-3" />
+   761→                      أداء مميز
+   762→                    </p>
+   763→                  </div>
+   764→                  <div className="glass-card-elevated rounded-xl p-4 text-center">
+   765→                    <p className="text-[11px] text-muted-foreground mb-1">أقل درجة</p>
+   766→                    <p className="text-2xl font-bold text-rose-400 tabular-nums">
+   767→                      {displayGrades.length > 0 ? `${gradeStats.lowest}%` : '—'}
+   768→                    </p>
+   769→                    <p className="text-[10px] text-muted-foreground mt-1 flex items-center justify-center gap-1">
+   770→                      {gradeStats.lowest >= 60 ? (
+   771→                        <TrendingUp className="h-3 w-3" />
+   772→                      ) : (
+   773→                        <AlertCircle className="h-3 w-3" />
+   774→                      )}
+   775→                      {displayGrades.length > 0 ? (gradeStats.lowest >= 60 ? 'مقبول' : 'يحتاج تحسين') : ''}
+   776→                    </p>
+   777→                  </div>
+   778→                  <div className="glass-card-elevated rounded-xl p-4 text-center">
+   779→                    <p className="text-[11px] text-muted-foreground mb-1">عدد الاختبارات</p>
+   780→                    <p className="text-2xl font-bold text-sky-400 tabular-nums">{displayGrades.length}</p>
+   781→                    <p className="text-[10px] text-muted-foreground mt-1">إجمالي السجلات</p>
+   782→                  </div>
+   783→                </div>
+   784→
+   785→                {/* Grade Distribution + Sparkline */}
+   786→                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+   787→                  <div className="glass-card-elevated rounded-xl p-4">
+   788→                    <h3 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+   789→                      <FileText className="h-4 w-4 text-[#D4A574]" />
+   790→                      توزيع الدرجات
+   791→                    </h3>
+   792→                    {displayGrades.length > 0 ? (
+   793→                      <GradeDistributionBar grades={displayGrades} />
+   794→                    ) : (
+   795→                      <p className="text-sm text-muted-foreground text-center py-4">لا توجد درجات مسجلة</p>
+   796→                    )}
+   797→                  </div>
+   798→                  <div className="glass-card-elevated rounded-xl p-4">
+   799→                    <h3 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+   800→                      <TrendingUp className="h-4 w-4 text-[#D4A574]" />
+   801→                      اتجاه الأداء
+   802→                    </h3>
+   803→                    {gradeStats.trend.length > 0 ? (
+   804→                      <div className="flex flex-col items-center gap-2">
+   805→                        <SparklineChart data={gradeStats.trend} width={280} height={60} />
+   806→                        <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
+   807→                          <span className="flex items-center gap-1">
+   808→                            <div className="h-1 w-4 bg-[#D4A574] rounded-full" />
+   809→                            نسبة الدرجات
+   810→                          </span>
+   811→                        </div>
+   812→                      </div>
+   813→                    ) : (
+   814→                      <p className="text-sm text-muted-foreground text-center py-4">لا توجد بيانات كافية</p>
+   815→                    )}
+   816→                  </div>
+   817→                </div>
+   818→
+   819→                {/* Grades Table */}
+   820→                <div className="glass-card-elevated rounded-xl overflow-hidden">
+   821→                  <div className="flex items-center justify-between p-4 pb-0">
+   822→                    <h3 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
+   823→                      <BookOpen className="h-4 w-4 text-[#D4A574]" />
+   824→                      سجل الدرجات
+   825→                    </h3>
+   826→                    {displayGrades.length > 0 && (
+   827→                      <Button
+   828→                        variant="outline"
+   829→                        size="sm"
+   830→                        onClick={handleExportGrades}
+   831→                        className="border-[#D4A574]/30 text-[#D4A574] hover:bg-[#D4A574]/10 rounded-lg gap-1.5 h-8 text-xs"
+   832→                      >
+   833→                        <Download className="h-3 w-3" />
+   834→                        تصدير
+   835→                      </Button>
+   836→                    )}
+   837→                  </div>
+   838→
+   839→                  {displayGrades.length > 0 ? (
+   840→                    <div className="max-h-72 overflow-y-auto">
+   841→                      <Table>
+   842→                        <TableHeader>
+   843→                          <TableRow className="border-b border-white/[0.06] hover:bg-transparent">
+   844→                            <TableHead className="text-slate-400 font-semibold text-xs py-3 px-4">المادة</TableHead>
+   845→                            <TableHead className="text-slate-400 font-semibold text-xs py-3 px-4">نوع الاختبار</TableHead>
+   846→                            <TableHead className="text-slate-400 font-semibold text-xs py-3 px-4 text-center">الدرجة</TableHead>
+   847→                            <TableHead className="text-slate-400 font-semibold text-xs py-3 px-4 text-center">النسبة</TableHead>
+   848→                            <TableHead className="text-slate-400 font-semibold text-xs py-3 px-4 hidden sm:table-cell">التاريخ</TableHead>
+   849→                          </TableRow>
+   850→                        </TableHeader>
+   851→                        <TableBody>
+   852→                          {displayGrades.map((grade, idx) => {
+   853→                            const pct = Math.round((grade.score / grade.maxScore) * 100);
+   854→                            const color = getGradeColor(pct);
+   855→                            return (
+   856→                              <TableRow
+   857→                                key={grade.id}
+   858→                                className={cn(
+   859→                                  'border-b border-white/[0.04] transition-colors duration-200',
+   860→                                  'hover:bg-white/[0.03]',
+   861→                                  idx % 2 === 1 ? 'bg-white/[0.01]' : '',
+   862→                                )}
+   863→                              >
+   864→                                <TableCell className="py-2.5 px-4 text-sm text-slate-200">{grade.subject}</TableCell>
+   865→                                <TableCell className="py-2.5 px-4 text-sm text-muted-foreground">{grade.examType}</TableCell>
+   866→                                <TableCell className="py-2.5 px-4 text-center">
+   867→                                  <span className="text-sm font-medium tabular-nums text-slate-200">
+   868→                                    {grade.score}<span className="text-muted-foreground/50">/{grade.maxScore}</span>
+   869→                                  </span>
+   870→                                </TableCell>
+   871→                                <TableCell className="py-2.5 px-4 text-center">
+   872→                                  <Badge
+   873→                                    variant="outline"
+   874→                                    className="text-xs px-2 py-0 rounded-full"
+   875→                                    style={{
+   876→                                      backgroundColor: `${color}15`,
+   877→                                      color,
+   878→                                      borderColor: `${color}25`,
+   879→                                    }}
+   880→                                  >
+   881→                                    {pct}%
+   882→                                  </Badge>
+   883→                                </TableCell>
+   884→                                <TableCell className="py-2.5 px-4 text-sm text-muted-foreground hidden sm:table-cell" dir="ltr">
+   885→                                  {new Date(grade.date).toLocaleDateString('ar-SA')}
+   886→                                </TableCell>
+   887→                              </TableRow>
+   888→                            );
+   889→                          })}
+   890→                        </TableBody>
+   891→                      </Table>
+   892→                    </div>
+   893→                  ) : (
+   894→                    <div className="flex flex-col items-center justify-center py-12 px-4">
+   895→                      <div className="flex items-center justify-center h-14 w-14 rounded-xl bg-white/[0.03] border border-white/[0.06] mb-4">
+   896→                        <BookOpen className="h-7 w-7 text-slate-500" />
+   897→                      </div>
+   898→                      <p className="text-sm text-muted-foreground text-center">
+   899→                        لا توجد درجات مسجلة لهذا الطالب بعد
+   900→                      </p>
+   901→                      <p className="text-xs text-muted-foreground/60 mt-1 text-center">
+   902→                        يمكن إضافة درجات من قسم الاختبارات أو الامتحانات
+   903→                      </p>
+   904→                    </div>
+   905→                  )}
+   906→                </div>
+   907→              </div>
+   908→            </TabsContent>
+   909→
+   910→            {/* ── Tab 3: Attendance ── */}
+   911→            <TabsContent value="attendance">
+   912→              <div className="space-y-4">
+   913→                {/* Attendance Summary Cards */}
+   914→                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+   915→                  <div className="glass-card-elevated rounded-xl p-4 text-center">
+   916→                    <p className="text-[11px] text-muted-foreground mb-1">نسبة الحضور</p>
+   917→                    <p className="text-2xl font-bold text-emerald-400 tabular-nums">{attendanceStats.presentRate}%</p>
+   918→                    <div className="mt-2 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+   919→                      <div
+   920→                        className="h-full rounded-full bg-emerald-400 transition-all duration-700"
+   921→                        style={{ width: `${attendanceStats.presentRate}%` }}
+   922→                      />
+   923→                    </div>
+   924→                  </div>
+   925→                  <div className="glass-card-elevated rounded-xl p-4 text-center">
+   926→                    <p className="text-[11px] text-muted-foreground mb-1">أيام الغياب</p>
+   927→                    <p className="text-2xl font-bold text-rose-400 tabular-nums">{attendanceStats.absent}</p>
+   928→                    <p className="text-[10px] text-muted-foreground mt-1 flex items-center justify-center gap-1">
+   929→                      <XCircle className="h-3 w-3 text-rose-400/60" />
+   930→                      من {attendanceStats.total} يوم
+   931→                    </p>
+   932→                  </div>
+   933→                  <div className="glass-card-elevated rounded-xl p-4 text-center">
+   934→                    <p className="text-[11px] text-muted-foreground mb-1">أيام التأخير</p>
+   935→                    <p className="text-2xl font-bold text-amber-400 tabular-nums">{attendanceStats.late}</p>
+   936→                    <p className="text-[10px] text-muted-foreground mt-1 flex items-center justify-center gap-1">
+   937→                      <Clock className="h-3 w-3 text-amber-400/60" />
+   938→                      تأخر عن الدوام
+   939→                    </p>
+   940→                  </div>
+   941→                  <div className="glass-card-elevated rounded-xl p-4 text-center">
+   942→                    <p className="text-[11px] text-muted-foreground mb-1">أيام الإذن</p>
+   943→                    <p className="text-2xl font-bold text-sky-400 tabular-nums">{attendanceStats.excused}</p>
+   944→                    <p className="text-[10px] text-muted-foreground mt-1 flex items-center justify-center gap-1">
+   945→                      <ShieldCheck className="h-3 w-3 text-sky-400/60" />
+   946→                      إذن رسمي
+   947→                    </p>
+   948→                  </div>
+   949→                </div>
+   950→
+   951→                {/* Heatmap */}
+   952→                <AttendanceHeatmap records={attendanceRecords} />
+   953→
+   954→                {/* Attendance Table */}
+   955→                <div className="glass-card-elevated rounded-xl overflow-hidden">
+   956→                  <h3 className="text-sm font-semibold text-slate-300 p-4 pb-0 flex items-center gap-2">
+   957→                    <CheckCircle2 className="h-4 w-4 text-[#D4A574]" />
+   958→                    سجل الحضور التفصيلي
+   959→                  </h3>
+   960→                  <div className="max-h-72 overflow-y-auto">
+   961→                    <Table>
+   962→                      <TableHeader>
+   963→                        <TableRow className="border-b border-white/[0.06] hover:bg-transparent">
+   964→                          <TableHead className="text-slate-400 font-semibold text-xs py-3 px-4">التاريخ</TableHead>
+   965→                          <TableHead className="text-slate-400 font-semibold text-xs py-3 px-4 text-center">الحالة</TableHead>
+   966→                          <TableHead className="text-slate-400 font-semibold text-xs py-3 px-4">اليوم</TableHead>
+   967→                        </TableRow>
+   968→                      </TableHeader>
+   969→                      <TableBody>
+   970→                        {attendanceRecords.map((record, idx) => {
+   971→                          const statusInfo = ATTENDANCE_STATUS_MAP[record.status];
+   972→                          const dateObj = new Date(record.date);
+   973→                          const dayNames = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+   974→                          return (
+   975→                            <TableRow
+   976→                              key={record.id}
+   977→                              className={cn(
+   978→                                'border-b border-white/[0.04] transition-colors duration-200',
+   979→                                'hover:bg-white/[0.03]',
+   980→                                idx % 2 === 1 ? 'bg-white/[0.01]' : '',
+   981→                              )}
+   982→                            >
+   983→                              <TableCell className="py-2.5 px-4 text-sm text-slate-200 tabular-nums" dir="ltr">
+   984→                                {dateObj.toLocaleDateString('ar-SA')}
+   985→                              </TableCell>
+   986→                              <TableCell className="py-2.5 px-4 text-center">
+   987→                                <Badge
+   988→                                  variant="outline"
+   989→                                  className={cn('text-xs px-2 py-0 rounded-full', statusInfo.className)}
+   990→                                >
+   991→                                  {statusInfo.label}
+   992→                                </Badge>
+   993→                              </TableCell>
+   994→                              <TableCell className="py-2.5 px-4 text-sm text-muted-foreground">
+   995→                                {dayNames[dateObj.getDay()]}
+   996→                              </TableCell>
+   997→                            </TableRow>
+   998→                          );
+   999→                        })}
+  1000→                      </TableBody>
+  1001→                    </Table>
+  1002→                  </div>
+  1003→                </div>
+  1004→              </div>
+  1005→            </TabsContent>
+  1006→
+  1007→            {/* ── Tab 4: Psychological Notes ── */}
+  1008→            <TabsContent value="psych">
+  1009→              <div className="space-y-4">
+  1010→                {/* Confidential Warning */}
+  1011→                <div className="flex items-center gap-3 p-4 rounded-xl bg-amber-500/[0.06] border border-amber-500/15">
+  1012→                  <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-amber-500/15 shrink-0">
+  1013→                    <ShieldCheck className="h-5 w-5 text-amber-400" />
+  1014→                  </div>
+  1015→                  <div>
+  1016→                    <p className="text-sm font-semibold text-amber-300">معلومات سرية</p>
+  1017→                    <p className="text-xs text-amber-400/70 mt-0.5">
+  1018→                      هذه المعلومات خاصة بالأخصائي النفسي والمرشد التربوي. يُمنع مشاركتها مع أطراف غير مخولة.
+  1019→                    </p>
+  1020→                  </div>
+  1021→                </div>
+  1022→
+  1023→                {/* Psych Background */}
+  1024→                <div className="glass-card-elevated rounded-xl p-5">
+  1025→                  <h3 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+  1026→                    <Brain className="h-4 w-4 text-[#D4A574]" />
+  1027→                    الخلفية النفسية العامة
+  1028→                  </h3>
+  1029→                  <p className="text-sm text-muted-foreground leading-relaxed">
+  1030→                    {student.psychBackground || 'لم يتم تسجيل خلفية نفسية للطالب بعد.'}
+  1031→                  </p>
+  1032→                </div>
+  1033→
+  1034→                {/* Add New Note */}
+  1035→                <div className="glass-card-elevated rounded-xl p-5">
+  1036→                  <h3 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+  1037→                    <Plus className="h-4 w-4 text-[#D4A574]" />
+  1038→                    إضافة ملاحظة جديدة
+  1039→                  </h3>
+  1040→                  <div className="space-y-3">
+  1041→                    <Textarea
+  1042→                      value={newPsychNote}
+  1043→                      onChange={(e) => setNewPsychNote(e.target.value)}
+  1044→                      placeholder="اكتب الملاحظة النفسية هنا..."
+  1045→                      className="bg-white/[0.02] border-white/[0.06] text-slate-200 placeholder:text-muted-foreground/40 focus:border-[#D4A574]/40 focus:ring-[#D4A574]/15 min-h-[80px] resize-none"
+  1046→                    />
+  1047→                    <div className="flex justify-end">
+  1048→                      <Button
+  1049→                        onClick={handleAddPsychNote}
+  1050→                        disabled={!newPsychNote.trim()}
+  1051→                        className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold rounded-lg px-5 h-9 text-sm gap-1.5 disabled:opacity-40"
+  1052→                      >
+  1053→                        <Plus className="h-3.5 w-3.5" />
+  1054→                        إضافة الملاحظة
+  1055→                      </Button>
+  1056→                    </div>
+  1057→                  </div>
+  1058→                </div>
+  1059→
+  1060→                {/* Notes Timeline */}
+  1061→                <div className="glass-card-elevated rounded-xl p-5">
+  1062→                  <h3 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
+  1063→                    <FileText className="h-4 w-4 text-[#D4A574]" />
+  1064→                    سجل الملاحظات النفسية
+  1065→                    <Badge className="bg-[#D4A574]/15 text-[#D4A574] border-[#D4A574]/20 text-xs px-2 py-0 rounded-full tabular-nums">
+  1066→                      {psychNotes.length}
+  1067→                    </Badge>
+  1068→                  </h3>
+  1069→
+  1070→                  {psychNotes.length > 0 ? (
+  1071→                    <div className="relative space-y-0">
+  1072→                      {/* Timeline line */}
+  1073→                      <div className="absolute top-3 bottom-3 right-[17px] w-px bg-white/[0.06]" />
+  1074→
+  1075→                      {psychNotes.map((note, idx) => (
+  1076→                        <div key={note.id} className="flex gap-4 pb-6 relative">
+  1077→                          {/* Timeline dot */}
+  1078→                          <div className="flex flex-col items-center shrink-0 mt-0.5">
+  1079→                            <div
+  1080→                              className={cn(
+  1081→                                'h-[9px] w-[9px] rounded-full border-2 shrink-0',
+  1082→                                idx === 0
+  1083→                                  ? 'bg-[#D4A574] border-[#D4A574]/30'
+  1084→                                  : 'bg-white/[0.08] border-white/[0.12]'
+  1085→                              )}
+  1086→                            />
+  1087→                          </div>
+  1088→                          {/* Note content */}
+  1089→                          <div className="flex-1 min-w-0">
+  1090→                            <div className="flex items-center gap-3 mb-1.5">
+  1091→                              <span className="text-xs text-muted-foreground tabular-nums" dir="ltr">
+  1092→                                {new Date(note.date).toLocaleDateString('ar-SA')}
+  1093→                              </span>
+  1094→                              <Badge
+  1095→                                variant="outline"
+  1096→                                className="text-[10px] px-2 py-0 rounded-full bg-white/[0.03] text-muted-foreground border-white/[0.06]"
+  1097→                              >
+  1098→                                {note.author}
+  1099→                              </Badge>
+  1100→                            </div>
+  1101→                            <div className="p-3 rounded-lg bg-white/[0.02] border border-white/[0.04]">
+  1102→                              <p className="text-sm text-slate-300 leading-relaxed">{note.content}</p>
+  1103→                            </div>
+  1104→                          </div>
+  1105→                        </div>
+  1106→                      ))}
+  1107→                    </div>
+  1108→                  ) : (
+  1109→                    <div className="flex flex-col items-center justify-center py-8">
+  1110→                      <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-white/[0.03] border border-white/[0.06] mb-3">
+  1111→                        <Brain className="h-6 w-6 text-slate-500" />
+  1112→                      </div>
+  1113→                      <p className="text-sm text-muted-foreground">لا توجد ملاحظات نفسية مسجلة</p>
+  1114→                    </div>
+  1115→                  )}
+  1116→                </div>
+  1117→              </div>
+  1118→            </TabsContent>
+  1119→          </Tabs>
+  1120→        </div>
+  1121→      </DialogContent>
+  1122→    </Dialog>
+  1123→  );
+  1124→}
+  1125→

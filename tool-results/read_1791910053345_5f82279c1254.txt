@@ -1,0 +1,970 @@
+     1→'use client';
+     2→
+     3→import { useState } from 'react';
+     4→import { Switch } from '@/components/ui/switch';
+     5→import { Label } from '@/components/ui/label';
+     6→import { Button } from '@/components/ui/button';
+     7→import { Badge } from '@/components/ui/badge';
+     8→import { Slider } from '@/components/ui/slider';
+     9→import { cn } from '@/lib/utils';
+    10→import { useAppStore } from '@/lib/store';
+    11→import { toast } from 'sonner';
+    12→import {
+    13→  Select,
+    14→  SelectContent,
+    15→  SelectItem,
+    16→  SelectTrigger,
+    17→  SelectValue,
+    18→} from '@/components/ui/select';
+    19→import {
+    20→  Settings,
+    21→  Bell,
+    22→  Volume2,
+    23→  Mail,
+    24→  Smartphone,
+    25→  BarChart3,
+    26→  Activity,
+    27→  Target,
+    28→  Clock,
+    29→  Globe,
+    30→  Shield,
+    31→  RotateCcw,
+    32→  User,
+    33→  Moon,
+    34→  Monitor,
+    35→  School,
+    36→  CalendarDays,
+    37→  Check,
+    38→  Save,
+    39→  Palette,
+    40→  Layers,
+    41→  Sparkles,
+    42→  CheckCircle2,
+    43→} from 'lucide-react';
+    44→
+    45→/* ------------------------------------------------------------------ */
+    46→/*  Types                                                              */
+    47→/* ------------------------------------------------------------------ */
+    48→interface ToggleSetting {
+    49→  key: string;
+    50→  label: string;
+    51→  description: string;
+    52→  icon: React.ReactNode;
+    53→  defaultOn: boolean;
+    54→}
+    55→
+    56→/* ------------------------------------------------------------------ */
+    57→/*  Setting Card wrapper                                               */
+    58→/* ------------------------------------------------------------------ */
+    59→function SettingCard({
+    60→  title,
+    61→  icon,
+    62→  badge,
+    63→  children,
+    64→}: {
+    65→  title: string;
+    66→  icon: React.ReactNode;
+    67→  badge?: string;
+    68→  children: React.ReactNode;
+    69→}) {
+    70→  return (
+    71→    <div
+    72→      className="rounded-xl overflow-hidden transition-all duration-300 hover:-translate-y-0.5"
+    73→      style={{
+    74→        backgroundColor: '#1A1A24',
+    75→        border: '1px solid rgba(255,255,255,0.06)',
+    76→      }}
+    77→      onMouseEnter={(e) => {
+    78→        e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.3), 0 0 0 1px rgba(212,165,116,0.12)';
+    79→        e.currentTarget.style.borderColor = 'rgba(212,165,116,0.15)';
+    80→      }}
+    81→      onMouseLeave={(e) => {
+    82→        e.currentTarget.style.boxShadow = 'none';
+    83→        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
+    84→      }}
+    85→    >
+    86→      {/* Card Header */}
+    87→      <div
+    88→        className="flex items-center justify-between gap-3 px-5 py-3.5"
+    89→        style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+    90→      >
+    91→        <div className="flex items-center gap-3">
+    92→          <div className="flex shrink-0 items-center justify-center h-9 w-9 rounded-xl bg-[#D4A574]/10 text-[#D4A574]">
+    93→            {icon}
+    94→          </div>
+    95→          <div>
+    96→            <h3 className="text-base font-semibold text-white">{title}</h3>
+    97→          </div>
+    98→        </div>
+    99→        {badge && (
+   100→          <Badge className="bg-[#D4A574]/10 text-[#D4A574] border-[#D4A574]/20 text-[11px] px-2 py-0.5 rounded-full">
+   101→            {badge}
+   102→          </Badge>
+   103→        )}
+   104→      </div>
+   105→
+   106→      {/* Card Body */}
+   107→      <div className="p-5">
+   108→        {children}
+   109→      </div>
+   110→    </div>
+   111→  );
+   112→}
+   113→
+   114→/* ------------------------------------------------------------------ */
+   115→/*  Toggle item component                                              */
+   116→/* ------------------------------------------------------------------ */
+   117→function ToggleRow({
+   118→  setting,
+   119→  checked,
+   120→  onCheckedChange,
+   121→}: {
+   122→  setting: ToggleSetting;
+   123→  checked: boolean;
+   124→  onCheckedChange: (key: string, value: boolean) => void;
+   125→}) {
+   126→  return (
+   127→    <div
+   128→      className="flex items-center justify-between gap-4 rounded-xl p-4 transition-all duration-200"
+   129→      style={{
+   130→        backgroundColor: 'rgba(255,255,255,0.02)',
+   131→        border: '1px solid rgba(255,255,255,0.04)',
+   132→      }}
+   133→      onMouseEnter={(e) => {
+   134→        e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.04)';
+   135→        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+   136→      }}
+   137→      onMouseLeave={(e) => {
+   138→        e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.02)';
+   139→        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)';
+   140→      }}
+   141→    >
+   142→      <div className="flex items-center gap-3 min-w-0">
+   143→        <div className="flex shrink-0 items-center justify-center h-9 w-9 rounded-lg bg-[#D4A574]/10 text-[#D4A574]">
+   144→          {setting.icon}
+   145→        </div>
+   146→        <div className="min-w-0">
+   147→          <Label
+   148→            htmlFor={`toggle-${setting.key}`}
+   149→            className="cursor-pointer text-sm font-medium text-slate-200 block"
+   150→          >
+   151→            {setting.label}
+   152→          </Label>
+   153→          <p className="text-xs text-slate-500 mt-0.5">{setting.description}</p>
+   154→        </div>
+   155→      </div>
+   156→      <Switch
+   157→        id={`toggle-${setting.key}`}
+   158→        checked={checked}
+   159→        onCheckedChange={(v) => onCheckedChange(setting.key, v)}
+   160→        className="data-[state=checked]:bg-[#D4A574] data-[state=unchecked]:bg-slate-600 shrink-0"
+   161→      />
+   162→    </div>
+   163→  );
+   164→}
+   165→
+   166→/* ------------------------------------------------------------------ */
+   167→/*  Read-only display field                                            */
+   168→/* ------------------------------------------------------------------ */
+   169→function DisplayField({
+   170→  icon,
+   171→  label,
+   172→  value,
+   173→}: {
+   174→  icon: React.ReactNode;
+   175→  label: string;
+   176→  value: string;
+   177→}) {
+   178→  return (
+   179→    <div
+   180→      className="flex items-center gap-4 rounded-xl p-4"
+   181→      style={{
+   182→        backgroundColor: 'rgba(255,255,255,0.02)',
+   183→        border: '1px solid rgba(255,255,255,0.04)',
+   184→      }}
+   185→    >
+   186→      <div className="flex shrink-0 items-center justify-center h-9 w-9 rounded-lg bg-[#D4A574]/10 text-[#D4A574]">
+   187→        {icon}
+   188→      </div>
+   189→      <div className="min-w-0 flex-1">
+   190→        <p className="text-xs text-slate-500 mb-0.5">{label}</p>
+   191→        <p className="text-sm font-medium text-slate-200 truncate">{value}</p>
+   192→      </div>
+   193→      <Badge className="bg-white/[0.04] text-slate-500 border-white/[0.06] text-[10px] px-2 py-0.5 rounded-full shrink-0">
+   194→        للقراءة فقط
+   195→      </Badge>
+   196→    </div>
+   197→  );
+   198→}
+   199→
+   200→/* ------------------------------------------------------------------ */
+   201→/*  Accent Color Swatch                                                */
+   202→/* ------------------------------------------------------------------ */
+   203→const ACCENT_COLORS = [
+   204→  { value: '#D4A574', label: 'عنبري' },
+   205→  { value: '#34D399', label: 'زمردي' },
+   206→  { value: '#F472B6', label: 'وردي' },
+   207→  { value: '#38BDF8', label: 'سماوي' },
+   208→  { value: '#A78BFA', label: 'بنفسجي' },
+   209→  { value: '#FB923C', label: 'برتقالي' },
+   210→] as const;
+   211→
+   212→/* ------------------------------------------------------------------ */
+   213→/*  Theme Customizer — Live Preview Card                               */
+   214→/* ------------------------------------------------------------------ */
+   215→function LivePreviewCard({
+   216→  accentColor,
+   217→  borderRadius,
+   218→  backgroundStyle,
+   219→  uiDensity,
+   220→}: {
+   221→  accentColor: string;
+   222→  borderRadius: number;
+   223→  backgroundStyle: 'solid' | 'gradient' | 'dots';
+   224→  uiDensity: 'compact' | 'default' | 'comfortable';
+   225→}) {
+   226→  const densityPadding = uiDensity === 'compact' ? 'p-2' : uiDensity === 'comfortable' ? 'p-4' : 'p-3';
+   227→  const densityGap = uiDensity === 'compact' ? 'gap-1' : uiDensity === 'comfortable' ? 'gap-3' : 'gap-2';
+   228→
+   229→  const bgStyle: React.CSSProperties =
+   230→    backgroundStyle === 'dots'
+   231→      ? {
+   232→          backgroundColor: '#121218',
+   233→          backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px)',
+   234→          backgroundSize: '12px 12px',
+   235→        }
+   236→      : backgroundStyle === 'gradient'
+   237→        ? {
+   238→            background: 'linear-gradient(135deg, #121218 0%, #1A1A2E 50%, #1E1E30 100%)',
+   239→          }
+   240→        : {
+   241→            backgroundColor: '#121218',
+   242→          };
+   243→
+   244→  return (
+   245→    <div
+   246→      className={cn('w-full min-h-[140px] transition-all duration-300', densityPadding, densityGap)}
+   247→      style={{
+   248→        ...bgStyle,
+   249→        borderRadius: `${borderRadius}px`,
+   250→        border: `1px solid ${accentColor}20`,
+   251→      }}
+   252→    >
+   253→      {/* Preview header */}
+   254→      <div
+   255→        className={cn('flex items-center justify-between', uiDensity === 'compact' ? 'mb-1' : uiDensity === 'comfortable' ? 'mb-3' : 'mb-2')}
+   256→      >
+   257→        <div className={cn('flex items-center', densityGap)}>
+   258→          <div
+   259→            className="rounded-md"
+   260→            style={{
+   261→              width: uiDensity === 'compact' ? 18 : uiDensity === 'comfortable' ? 26 : 22,
+   262→              height: uiDensity === 'compact' ? 18 : uiDensity === 'comfortable' ? 26 : 22,
+   263→              backgroundColor: `${accentColor}18`,
+   264→            }}
+   265→          />
+   266→          <div
+   267→            className="rounded-sm"
+   268→            style={{
+   269→              width: uiDensity === 'compact' ? 40 : 55,
+   270→              height: uiDensity === 'compact' ? 6 : 8,
+   271→              backgroundColor: 'rgba(255,255,255,0.12)',
+   272→            }}
+   273→          />
+   274→        </div>
+   275→        <div className="flex gap-1.5">
+   276→          <div
+   277→            className="rounded-full"
+   278→            style={{ width: 6, height: 6, backgroundColor: `${accentColor}40` }}
+   279→          />
+   280→          <div
+   281→            className="rounded-full"
+   282→            style={{ width: 6, height: 6, backgroundColor: 'rgba(255,255,255,0.08)' }}
+   283→          />
+   284→          <div
+   285→            className="rounded-full"
+   286→            style={{ width: 6, height: 6, backgroundColor: 'rgba(255,255,255,0.08)' }}
+   287→          />
+   288→        </div>
+   289→      </div>
+   290→
+   291→      {/* Preview content cards */}
+   292→      <div className={cn('grid grid-cols-2', densityGap)}>
+   293→        {[0, 1, 2, 3].map((i) => (
+   294→          <div
+   295→            key={i}
+   296→            className="transition-all duration-300"
+   297→            style={{
+   298→              backgroundColor: '#1A1A24',
+   299→              borderRadius: `${Math.max(borderRadius - 4, 2)}px`,
+   300→              border: `1px solid rgba(255,255,255,0.04)`,
+   301→              padding: uiDensity === 'compact' ? '6px' : uiDensity === 'comfortable' ? '12px' : '8px',
+   302→            }}
+   303→          >
+   304→            <div
+   305→              className="rounded-sm mb-1"
+   306→              style={{
+   307→                width: `${50 + i * 10}%`,
+   308→                height: uiDensity === 'compact' ? 4 : 6,
+   309→                backgroundColor: `${accentColor}30`,
+   310→              }}
+   311→            />
+   312→            <div
+   313→              className="rounded-sm"
+   314→              style={{
+   315→                width: `${30 + i * 5}%`,
+   316→                height: uiDensity === 'compact' ? 3 : 4,
+   317→                backgroundColor: 'rgba(255,255,255,0.06)',
+   318→              }}
+   319→            />
+   320→          </div>
+   321→        ))}
+   322→      </div>
+   323→
+   324→      {/* Preview button */}
+   325→      <div className={cn('flex items-center', densityGap, uiDensity === 'compact' ? 'mt-1' : uiDensity === 'comfortable' ? 'mt-3' : 'mt-2')}>
+   326→        <div
+   327→          className="rounded-md"
+   328→          style={{
+   329→            backgroundColor: accentColor,
+   330→            color: '#121218',
+   331→            padding: uiDensity === 'compact' ? '3px 10px' : uiDensity === 'comfortable' ? '6px 18px' : '4px 14px',
+   332→            fontSize: uiDensity === 'compact' ? '9px' : uiDensity === 'comfortable' ? '12px' : '10px',
+   333→            fontWeight: 600,
+   334→            width: 'fit-content',
+   335→            borderRadius: `${Math.max(borderRadius - 4, 2)}px`,
+   336→          }}
+   337→        >
+   338→          زر
+   339→        </div>
+   340→        <div
+   341→          className="rounded-md"
+   342→          style={{
+   343→            border: `1px solid ${accentColor}40`,
+   344→            color: accentColor,
+   345→            padding: uiDensity === 'compact' ? '3px 10px' : uiDensity === 'comfortable' ? '6px 18px' : '4px 14px',
+   346→            fontSize: uiDensity === 'compact' ? '9px' : uiDensity === 'comfortable' ? '12px' : '10px',
+   347→            fontWeight: 600,
+   348→            width: 'fit-content',
+   349→            borderRadius: `${Math.max(borderRadius - 4, 2)}px`,
+   350→          }}
+   351→        >
+   352→          زر ثانٍ
+   353→        </div>
+   354→      </div>
+   355→    </div>
+   356→  );
+   357→}
+   358→
+   359→/* ------------------------------------------------------------------ */
+   360→/*  Theme Customizer Card                                              */
+   361→/* ------------------------------------------------------------------ */
+   362→function ThemeCustomizerCard() {
+   363→  const {
+   364→    accentColor,
+   365→    setAccentColor,
+   366→    uiDensity,
+   367→    setUiDensity,
+   368→    borderRadius,
+   369→    setBorderRadius,
+   370→    backgroundStyle,
+   371→    setBackgroundStyle,
+   372→  } = useAppStore();
+   373→
+   374→  const [localAccent, setLocalAccent] = useState(accentColor);
+   375→  const [localDensity, setLocalDensity] = useState(uiDensity);
+   376→  const [localRadius, setLocalRadius] = useState(borderRadius);
+   377→  const [localBgStyle, setLocalBgStyle] = useState(backgroundStyle);
+   378→
+   379→  const handleSaveTheme = () => {
+   380→    setAccentColor(localAccent);
+   381→    setUiDensity(localDensity);
+   382→    setBorderRadius(localRadius);
+   383→    setBackgroundStyle(localBgStyle);
+   384→    toast.success('تم حفظ إعدادات المظهر بنجاح');
+   385→  };
+   386→
+   387→  const handleResetTheme = () => {
+   388→    setLocalAccent('#D4A574');
+   389→    setLocalDensity('default');
+   390→    setLocalRadius(8);
+   391→    setLocalBgStyle('dots');
+   392→    setAccentColor('#D4A574');
+   393→    setUiDensity('default');
+   394→    setBorderRadius(8);
+   395→    setBackgroundStyle('dots');
+   396→    toast.success('تم إعادة تعيين إعدادات المظهر');
+   397→  };
+   398→
+   399→  const hasChanges =
+   400→    localAccent !== accentColor ||
+   401→    localDensity !== uiDensity ||
+   402→    localRadius !== borderRadius ||
+   403→    localBgStyle !== backgroundStyle;
+   404→
+   405→  const densityOptions: { value: 'compact' | 'default' | 'comfortable'; label: string; desc: string }[] = [
+   406→    { value: 'compact', label: 'مضغوط', desc: 'مسافات صغيرة' },
+   407→    { value: 'default', label: 'افتراضي', desc: 'مسافات متوسطة' },
+   408→    { value: 'comfortable', label: 'مريح', desc: 'مسافات واسعة' },
+   409→  ];
+   410→
+   411→  const bgStyleOptions: { value: 'solid' | 'gradient' | 'dots'; label: string }[] = [
+   412→    { value: 'solid', label: 'صلب' },
+   413→    { value: 'gradient', label: 'متدرج' },
+   414→    { value: 'dots', label: 'نقاط' },
+   415→  ];
+   416→
+   417→  return (
+   418→    <SettingCard
+   419→      title="تخصيص المظهر"
+   420→      icon={<Palette className="h-5 w-5" />}
+   421→      badge="مخصص"
+   422→    >
+   423→      <div className="flex flex-col gap-5">
+   424→        {/* ── Accent Color Picker ── */}
+   425→        <div>
+   426→          <div className="flex items-center gap-2 mb-3">
+   427→            <Sparkles className="h-4 w-4 text-[#D4A574]" />
+   428→            <span className="text-sm font-semibold text-slate-300">اللون المميز</span>
+   429→          </div>
+   430→          <div className="flex flex-col sm:flex-row gap-4">
+   431→            <div className="flex flex-wrap gap-3">
+   432→              {ACCENT_COLORS.map((c) => (
+   433→                <button
+   434→                  key={c.value}
+   435→                  onClick={() => setLocalAccent(c.value)}
+   436→                  className="group relative flex flex-col items-center gap-1.5 transition-transform duration-200 hover:scale-110 active:scale-95"
+   437→                  title={c.label}
+   438→                >
+   439→                  <div
+   440→                    className={cn(
+   441→                      'h-9 w-9 rounded-full transition-all duration-200',
+   442→                      localAccent === c.value && 'ring-2 ring-offset-2 ring-offset-[#1A1A24]',
+   443→                    )}
+   444→                    style={{
+   445→                      backgroundColor: c.value,
+   446→                      '--tw-ring-color': localAccent === c.value ? c.value : 'transparent',
+   447→                      boxShadow: localAccent === c.value ? `0 0 12px ${c.value}50` : 'none',
+   448→                    } as React.CSSProperties}
+   449→                  >
+   450→                    {localAccent === c.value && (
+   451→                      <CheckCircle2
+   452→                        className="h-5 w-5 text-white mx-auto mt-[6px] drop-shadow-md"
+   453→                        strokeWidth={3}
+   454→                      />
+   455→                    )}
+   456→                  </div>
+   457→                  <span className="text-[10px] text-slate-500 group-hover:text-slate-300 transition-colors">
+   458→                    {c.label}
+   459→                  </span>
+   460→                </button>
+   461→              ))}
+   462→            </div>
+   463→            {/* Live Preview */}
+   464→            <div className="flex-1 min-w-[200px] max-w-[300px] mx-auto">
+   465→              <LivePreviewCard
+   466→                accentColor={localAccent}
+   467→                borderRadius={localRadius}
+   468→                backgroundStyle={localBgStyle}
+   469→                uiDensity={localDensity}
+   470→              />
+   471→            </div>
+   472→          </div>
+   473→        </div>
+   474→
+   475→        {/* ── UI Density Selector ── */}
+   476→        <div
+   477→          className="p-4 rounded-xl"
+   478→          style={{
+   479→            backgroundColor: 'rgba(255,255,255,0.02)',
+   480→            border: '1px solid rgba(255,255,255,0.04)',
+   481→          }}
+   482→        >
+   483→          <div className="flex items-center gap-2 mb-3">
+   484→            <Layers className="h-4 w-4 text-[#D4A574]" />
+   485→            <span className="text-sm font-semibold text-slate-300">كثافة الواجهة</span>
+   486→          </div>
+   487→          <div className="grid grid-cols-3 gap-2">
+   488→            {densityOptions.map((opt) => (
+   489→              <button
+   490→                key={opt.value}
+   491→                onClick={() => setLocalDensity(opt.value)}
+   492→                className={cn(
+   493→                  'flex flex-col items-center gap-1 rounded-xl p-3 transition-all duration-200',
+   494→                  localDensity === opt.value
+   495→                    ? 'border'
+   496→                    : 'border border-transparent hover:bg-white/[0.03]',
+   497→                )}
+   498→                style={
+   499→                  localDensity === opt.value
+   500→                    ? {
+   501→                        backgroundColor: `${localAccent}10`,
+   502→                        borderColor: `${localAccent}30`,
+   503→                      }
+   504→                    : undefined
+   505→                }
+   506→              >
+   507→                <div
+   508→                  className={cn(
+   509→                    'flex items-center justify-center h-5 w-5 rounded-full border-2 transition-all duration-200',
+   510→                    localDensity === opt.value && 'border-transparent',
+   511→                  )}
+   512→                  style={{
+   513→                    borderColor: localDensity === opt.value ? 'transparent' : 'rgba(255,255,255,0.15)',
+   514→                    backgroundColor: localDensity === opt.value ? localAccent : 'transparent',
+   515→                  }}
+   516→                >
+   517→                  {localDensity === opt.value && (
+   518→                    <Check className="h-3 w-3 text-[#121218]" strokeWidth={3} />
+   519→                  )}
+   520→                </div>
+   521→                <span
+   522→                  className={cn(
+   523→                    'text-xs font-medium transition-colors',
+   524→                    localDensity === opt.value ? 'text-slate-200' : 'text-slate-500',
+   525→                  )}
+   526→                >
+   527→                  {opt.label}
+   528→                </span>
+   529→                <span className="text-[10px] text-slate-600">{opt.desc}</span>
+   530→              </button>
+   531→            ))}
+   532→          </div>
+   533→        </div>
+   534→
+   535→        {/* ── Border Radius Slider ── */}
+   536→        <div
+   537→          className="p-4 rounded-xl"
+   538→          style={{
+   539→            backgroundColor: 'rgba(255,255,255,0.02)',
+   540→            border: '1px solid rgba(255,255,255,0.04)',
+   541→          }}
+   542→        >
+   543→          <div className="flex items-center justify-between mb-3">
+   544→            <div className="flex items-center gap-2">
+   545→              <div
+   546→                className="h-5 w-5 transition-all duration-300"
+   547→                style={{
+   548→                  borderRadius: `${localRadius}px`,
+   549→                  border: `2px solid ${localAccent}`,
+   550→                  backgroundColor: `${localAccent}20`,
+   551→                }}
+   552→              />
+   553→              <span className="text-sm font-semibold text-slate-300">حواف مستديرة</span>
+   554→            </div>
+   555→            <Badge
+   556→              className="text-[11px] px-2.5 py-0.5 rounded-full font-mono"
+   557→              style={{
+   558→                backgroundColor: `${localAccent}15`,
+   559→                color: localAccent,
+   560→                border: `1px solid ${localAccent}25`,
+   561→              }}
+   562→            >
+   563→              {localRadius}px
+   564→            </Badge>
+   565→          </div>
+   566→          <Slider
+   567→            value={[localRadius]}
+   568→            onValueChange={(v) => setLocalRadius(v[0])}
+   569→            min={0}
+   570→            max={24}
+   571→            step={1}
+   572→            className="w-full [&_[data-slot=slider-track]]:h-2 [&_[data-slot=slider-range]]:bg-[var(--preview-accent,#D4A574)] [&_[data-slot=slider-thumb]]:bg-[var(--preview-accent,#D4A574)] [&_[data-slot=slider-thumb]]:border-0 [&_[data-slot=slider-thumb]]:h-5 [&_[data-slot=slider-thumb]]:w-5 [&_[data-slot=slider-thumb]]:shadow-md"
+   573→            style={{ '--preview-accent': localAccent } as React.CSSProperties}
+   574→          />
+   575→          <div className="flex justify-between mt-2 text-[10px] text-slate-600 px-0.5">
+   576→            <span>0px — مربع</span>
+   577→            <span>12px — متوسط</span>
+   578→            <span>24px — دائري</span>
+   579→          </div>
+   580→        </div>
+   581→
+   582→        {/* ── Background Style Toggle ── */}
+   583→        <div
+   584→          className="p-4 rounded-xl"
+   585→          style={{
+   586→            backgroundColor: 'rgba(255,255,255,0.02)',
+   587→            border: '1px solid rgba(255,255,255,0.04)',
+   588→          }}
+   589→        >
+   590→          <div className="flex items-center gap-2 mb-3">
+   591→            <Monitor className="h-4 w-4 text-[#D4A574]" />
+   592→            <span className="text-sm font-semibold text-slate-300">نمط الخلفية</span>
+   593→          </div>
+   594→          <div className="grid grid-cols-3 gap-2">
+   595→            {bgStyleOptions.map((opt) => (
+   596→              <button
+   597→                key={opt.value}
+   598→                onClick={() => setLocalBgStyle(opt.value)}
+   599→                className={cn(
+   600→                  'relative flex flex-col items-center gap-2 rounded-xl p-3 transition-all duration-200 overflow-hidden',
+   601→                  localBgStyle === opt.value ? 'border' : 'border border-transparent hover:bg-white/[0.03]',
+   602→                )}
+   603→                style={
+   604→                  localBgStyle === opt.value
+   605→                    ? {
+   606→                        backgroundColor: `${localAccent}10`,
+   607→                        borderColor: `${localAccent}30`,
+   608→                      }
+   609→                    : undefined
+   610→                }
+   611→              >
+   612→                {/* Mini background preview */}
+   613→                <div
+   614→                  className="h-10 w-full rounded-md overflow-hidden"
+   615→                  style={
+   616→                    opt.value === 'dots'
+   617→                      ? {
+   618→                          backgroundColor: '#121218',
+   619→                          backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px)',
+   620→                          backgroundSize: '6px 6px',
+   621→                        }
+   622→                      : opt.value === 'gradient'
+   623→                        ? {
+   624→                            background: 'linear-gradient(135deg, #121218 0%, #1A1A2E 50%, #1E1E30 100%)',
+   625→                          }
+   626→                        : {
+   627→                            backgroundColor: '#121218',
+   628→                          }
+   629→                  }
+   630→                />
+   631→                <div
+   632→                  className={cn(
+   633→                    'text-xs font-medium transition-colors',
+   634→                    localBgStyle === opt.value ? 'text-slate-200' : 'text-slate-500',
+   635→                  )}
+   636→                >
+   637→                  {opt.label}
+   638→                </div>
+   639→                {localBgStyle === opt.value && (
+   640→                  <div
+   641→                    className="absolute top-2 left-2"
+   642→                    style={{ color: localAccent }}
+   643→                  >
+   644→                    <Check className="h-3.5 w-3.5" strokeWidth={3} />
+   645→                  </div>
+   646→                )}
+   647→              </button>
+   648→            ))}
+   649→          </div>
+   650→        </div>
+   651→
+   652→        {/* ── Action Buttons ── */}
+   653→        <div className="flex items-center justify-between gap-3 pt-2">
+   654→          <Button
+   655→            onClick={handleResetTheme}
+   656→            variant="outline"
+   657→            className="gap-2 text-slate-400 border-white/[0.08] hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-colors rounded-lg text-xs h-8"
+   658→          >
+   659→            <RotateCcw className="h-3.5 w-3.5" />
+   660→            إعادة تعيين
+   661→          </Button>
+   662→          <Button
+   663→            onClick={handleSaveTheme}
+   664→            disabled={!hasChanges}
+   665→            className={cn(
+   666→              'gap-2 font-semibold rounded-lg px-5 h-8 text-xs transition-all duration-300',
+   667→              hasChanges
+   668→                ? 'btn-shine'
+   669→                : 'opacity-40 cursor-not-allowed',
+   670→            )}
+   671→            style={
+   672→              hasChanges
+   673→                ? { backgroundColor: localAccent, color: '#121218' }
+   674→                : { backgroundColor: localAccent, color: '#121218' }
+   675→            }
+   676→          >
+   677→            <Save className="h-3.5 w-3.5" />
+   678→            حفظ التخصيص
+   679→          </Button>
+   680→        </div>
+   681→      </div>
+   682→    </SettingCard>
+   683→  );
+   684→}
+   685→
+   686→/* ------------------------------------------------------------------ */
+   687→/*  Main component                                                     */
+   688→/* ------------------------------------------------------------------ */
+   689→export default function SettingsSection() {
+   690→  /* ── notification toggles ── */
+   691→  const notificationDefaults: ToggleSetting[] = [
+   692→    { key: 'system', label: 'إشعارات النظام', description: 'تحديثات النظام وصيانة الخوادم', icon: <Bell className="h-4 w-4" />, defaultOn: true },
+   693→    { key: 'sound', label: 'إشعارات الصوت', description: 'تنبيهات صوتية عند الإشعارات الجديدة', icon: <Volume2 className="h-4 w-4" />, defaultOn: true },
+   694→    { key: 'email', label: 'إشعارات البريد الإلكتروني', description: 'إرسال ملخص يومي للبريد', icon: <Mail className="h-4 w-4" />, defaultOn: false },
+   695→    { key: 'messages', label: 'إشعارات الرسائل', description: 'تنبيهات الرسائل الجديدة والدردشات', icon: <Smartphone className="h-4 w-4" />, defaultOn: true },
+   696→  ];
+   697→
+   698→  /* ── appearance toggles ── */
+   699→  const appearanceDefaults: ToggleSetting[] = [
+   700→    { key: 'darkMode', label: 'الوضع الداكن', description: 'تفعيل المظهر الداكن (موصى به)', icon: <Moon className="h-4 w-4" />, defaultOn: true },
+   701→    { key: 'sidebarDefault', label: 'الشريط الجانبي مفتوح', description: 'عرض الشريط الجانبي افتراضياً عند فتح الصفحة', icon: <Monitor className="h-4 w-4" />, defaultOn: true },
+   702→  ];
+   703→
+   704→  /* ── analytics toggles ── */
+   705→  const analyticsDefaults: ToggleSetting[] = [
+   706→    { key: 'analyticsNotif', label: 'إشعارات التحليلات', description: 'تنبيهات التغييرات في التحليلات', icon: <BarChart3 className="h-4 w-4" />, defaultOn: true },
+   707→    { key: 'activityTracking', label: 'تتبع الأنشطة', description: 'تتبع نشاط الطلاب والمعلمين', icon: <Activity className="h-4 w-4" />, defaultOn: true },
+   708→    { key: 'assessmentTracking', label: 'تتبع التقييمات', description: 'إشعارات نتائج التقييمات والاختبارات', icon: <Target className="h-4 w-4" />, defaultOn: false },
+   709→    { key: 'sessionTracking', label: 'تتبع الجلسات', description: 'تتبع إحصائيات الجلسات التعليمية', icon: <Clock className="h-4 w-4" />, defaultOn: true },
+   710→  ];
+   711→
+   712→  const allDefaults = [...notificationDefaults, ...appearanceDefaults, ...analyticsDefaults];
+   713→
+   714→  const buildDefaultMap = () =>
+   715→    Object.fromEntries(allDefaults.map((s) => [s.key, s.defaultOn]));
+   716→
+   717→  const [toggles, setToggles] = useState<Record<string, boolean>>(buildDefaultMap);
+   718→  const [language, setLanguage] = useState('ar');
+   719→  const [schoolName, setSchoolName] = useState('AuraLab Academy');
+   720→  const [academicYear, setAcademicYear] = useState('2024-2025');
+   721→  const [saved, setSaved] = useState(false);
+   722→
+   723→  const handleToggle = (key: string, value: boolean) => {
+   724→    setToggles((prev) => ({ ...prev, [key]: value }));
+   725→    setSaved(false);
+   726→  };
+   727→
+   728→  const resetAll = () => {
+   729→    setToggles(buildDefaultMap());
+   730→    setLanguage('ar');
+   731→    setSchoolName('AuraLab Academy');
+   732→    setAcademicYear('2024-2025');
+   733→    setSaved(false);
+   734→    toast.success('تم إعادة تعيين جميع الإعدادات');
+   735→  };
+   736→
+   737→  const handleSave = () => {
+   738→    setSaved(true);
+   739→    toast.success('تم حفظ إعدادات النظام بنجاح');
+   740→    setTimeout(() => setSaved(false), 3000);
+   741→  };
+   742→
+   743→  return (
+   744→    <div className="flex flex-col gap-6" dir="rtl">
+   745→      {/* ── Page header ── */}
+   746→      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+   747→        <div className="flex items-center gap-3">
+   748→          <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-[#D4A574]/10">
+   749→            <Settings className="h-5 w-5 text-[#D4A574]" />
+   750→          </div>
+   751→          <div>
+   752→            <h1 className="text-2xl font-bold text-white tracking-tight sm:text-3xl">
+   753→              إعدادات النظام
+   754→            </h1>
+   755→            <p className="mt-0.5 text-sm text-muted-foreground">
+   756→              تخصيص إعدادات النظام والملف الشخصي والإشعارات
+   757→            </p>
+   758→          </div>
+   759→        </div>
+   760→        <Button
+   761→          onClick={resetAll}
+   762→          variant="outline"
+   763→          className="gap-2 text-slate-300 border-white/[0.08] hover:bg-[#D4A574]/10 hover:text-[#D4A574] hover:border-[#D4A574]/40 transition-colors rounded-lg"
+   764→        >
+   765→          <RotateCcw className="h-4 w-4" />
+   766→          إعادة تعيين
+   767→        </Button>
+   768→      </div>
+   769→
+   770→      {/* ============================================================ */}
+   771→      {/* Section 1 – الملف الشخصي                                     */}
+   772→      {/* ============================================================ */}
+   773→      <SettingCard
+   774→        title="الملف الشخصي"
+   775→        icon={<User className="h-5 w-5" />}
+   776→        badge="معلومات الحساب"
+   777→      >
+   778→        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+   779→          <DisplayField
+   780→            icon={<User className="h-4 w-4" />}
+   781→            label="الاسم الكامل"
+   782→            value="مدير النظام"
+   783→          />
+   784→          <DisplayField
+   785→            icon={<Mail className="h-4 w-4" />}
+   786→            label="البريد الإلكتروني"
+   787→            value="admin@auralab.edu.sa"
+   788→          />
+   789→          <DisplayField
+   790→            icon={<Smartphone className="h-4 w-4" />}
+   791→            label="رقم الهاتف"
+   792→            value="+966 5x xxx xxxx"
+   793→          />
+   794→          <DisplayField
+   795→            icon={<Shield className="h-4 w-4" />}
+   796→            label="الدور"
+   797→            value="مدير النظام (صلاحيات كاملة)"
+   798→          />
+   799→        </div>
+   800→      </SettingCard>
+   801→
+   802→      {/* ============================================================ */}
+   803→      {/* Section 2 – المظهر                                           */}
+   804→      {/* ============================================================ */}
+   805→      <SettingCard
+   806→        title="المظهر"
+   807→        icon={<Monitor className="h-5 w-5" />}
+   808→        badge="تخصيص العرض"
+   809→      >
+   810→        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+   811→          {appearanceDefaults.map((s) => (
+   812→            <ToggleRow
+   813→              key={s.key}
+   814→              setting={s}
+   815→              checked={toggles[s.key]}
+   816→              onCheckedChange={handleToggle}
+   817→            />
+   818→          ))}
+   819→        </div>
+   820→      </SettingCard>
+   821→
+   822→      {/* ============================================================ */}
+   823→      {/* Section 3 – تخصيص المظهر (Theme Customizer)                  */}
+   824→      {/* ============================================================ */}
+   825→      <ThemeCustomizerCard />
+   826→
+   827→      {/* ============================================================ */}
+   828→      {/* Section 4 – الإشعارات                                        */}
+   829→      {/* ============================================================ */}
+   830→      <SettingCard
+   831→        title="الإشعارات"
+   832→        icon={<Bell className="h-5 w-5" />}
+   833→        badge="إدارة التنبيهات"
+   834→      >
+   835→        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+   836→          {notificationDefaults.map((s) => (
+   837→            <ToggleRow
+   838→              key={s.key}
+   839→              setting={s}
+   840→              checked={toggles[s.key]}
+   841→              onCheckedChange={handleToggle}
+   842→            />
+   843→          ))}
+   844→        </div>
+   845→
+   846→        {/* Analytics subsection */}
+   847→        <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+   848→          <div className="flex items-center gap-2 mb-3">
+   849→            <BarChart3 className="h-4 w-4 text-[#D4A574]" />
+   850→            <span className="text-sm font-semibold text-slate-300">تحليلات وإحصائيات</span>
+   851→          </div>
+   852→          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+   853→            {analyticsDefaults.map((s) => (
+   854→              <ToggleRow
+   855→                key={s.key}
+   856→                setting={s}
+   857→                checked={toggles[s.key]}
+   858→                onCheckedChange={handleToggle}
+   859→              />
+   860→            ))}
+   861→          </div>
+   862→        </div>
+   863→      </SettingCard>
+   864→
+   865→      {/* ============================================================ */}
+   866→      {/* Section 5 – النظام                                           */}
+   867→      {/* ============================================================ */}
+   868→      <SettingCard
+   869→        title="النظام"
+   870→        icon={<Globe className="h-5 w-5" />}
+   871→        badge="إعدادات عامة"
+   872→      >
+   873→        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+   874→          {/* School name */}
+   875→          <div className="flex flex-col gap-2">
+   876→            <Label className="text-sm text-slate-300 font-medium flex items-center gap-2">
+   877→              <School className="h-4 w-4 text-[#D4A574]" />
+   878→              اسم المدرسة
+   879→            </Label>
+   880→            <input
+   881→              type="text"
+   882→              value={schoolName}
+   883→              onChange={(e) => { setSchoolName(e.target.value); setSaved(false); }}
+   884→              className="w-full rounded-lg bg-white/[0.03] border border-white/[0.08] px-3.5 py-2.5 text-sm text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 outline-none transition-colors"
+   885→            />
+   886→          </div>
+   887→
+   888→          {/* Academic year */}
+   889→          <div className="flex flex-col gap-2">
+   890→            <Label className="text-sm text-slate-300 font-medium flex items-center gap-2">
+   891→              <CalendarDays className="h-4 w-4 text-[#D4A574]" />
+   892→              العام الدراسي
+   893→            </Label>
+   894→            <Select value={academicYear} onValueChange={(v) => { setAcademicYear(v); setSaved(false); }}>
+   895→              <SelectTrigger className="w-full bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20">
+   896→                <SelectValue />
+   897→              </SelectTrigger>
+   898→              <SelectContent className="bg-[#1A1A24] border-white/[0.08] text-slate-200">
+   899→                <SelectItem value="2024-2025" className="focus:bg-white/[0.05] focus:text-white">2024 - 2025</SelectItem>
+   900→                <SelectItem value="2025-2026" className="focus:bg-white/[0.05] focus:text-white">2025 - 2026</SelectItem>
+   901→                <SelectItem value="2023-2024" className="focus:bg-white/[0.05] focus:text-white">2023 - 2024</SelectItem>
+   902→              </SelectContent>
+   903→            </Select>
+   904→          </div>
+   905→
+   906→          {/* Language */}
+   907→          <div className="flex flex-col gap-2">
+   908→            <Label className="text-sm text-slate-300 font-medium flex items-center gap-2">
+   909→              <Globe className="h-4 w-4 text-[#D4A574]" />
+   910→              اللغة
+   911→            </Label>
+   912→            <Select value={language} onValueChange={(v) => { setLanguage(v); setSaved(false); }}>
+   913→              <SelectTrigger className="w-full bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20">
+   914→                <SelectValue />
+   915→              </SelectTrigger>
+   916→              <SelectContent className="bg-[#1A1A24] border-white/[0.08] text-slate-200">
+   917→                <SelectItem value="ar" className="focus:bg-white/[0.05] focus:text-white">العربية</SelectItem>
+   918→                <SelectItem value="en" className="focus:bg-white/[0.05] focus:text-white">English</SelectItem>
+   919→              </SelectContent>
+   920→            </Select>
+   921→          </div>
+   922→        </div>
+   923→      </SettingCard>
+   924→
+   925→      {/* ============================================================ */}
+   926→      {/* Save Button                                                   */}
+   927→      {/* ============================================================ */}
+   928→      <div
+   929→        className="flex items-center justify-between rounded-xl p-4"
+   930→        style={{
+   931→          backgroundColor: '#1A1A24',
+   932→          border: '1px solid rgba(255,255,255,0.06)',
+   933→        }}
+   934→      >
+   935→        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+   936→          {saved ? (
+   937→            <span className="flex items-center gap-2 text-emerald-400">
+   938→              <Check className="h-4 w-4" />
+   939→              تم حفظ التغييرات بنجاح
+   940→            </span>
+   941→          ) : (
+   942→            'تأكد من مراجعة التغييرات قبل الحفظ'
+   943→          )}
+   944→        </div>
+   945→        <Button
+   946→          onClick={handleSave}
+   947→          className={cn(
+   948→            'gap-2 font-semibold rounded-lg px-6 h-10 transition-all duration-300',
+   949→            saved
+   950→              ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+   951→              : 'bg-amber-500 hover:bg-amber-600 text-slate-900',
+   952→          )}
+   953→        >
+   954→          {saved ? (
+   955→            <>
+   956→              <Check className="h-4 w-4" />
+   957→              تم الحفظ
+   958→            </>
+   959→          ) : (
+   960→            <>
+   961→              <Save className="h-4 w-4" />
+   962→              حفظ التغييرات
+   963→            </>
+   964→          )}
+   965→        </Button>
+   966→      </div>
+   967→    </div>
+   968→  );
+   969→}
+   970→

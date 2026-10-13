@@ -285,7 +285,7 @@ export default function SessionTimer() {
 
       {/* Pulsing glow animation (only when running) */}
       {sessionRunning && (
-        <style jsx>{`
+        <style dangerouslySetInnerHTML={{ __html: `
           @keyframes timer-glow {
             0%, 100% { box-shadow: 0 0 20px rgba(212, 165, 116, 0.1), 0 0 60px rgba(212, 165, 116, 0.05); }
             50% { box-shadow: 0 0 35px rgba(212, 165, 116, 0.22), 0 0 90px rgba(212, 165, 116, 0.1); }
@@ -293,7 +293,7 @@ export default function SessionTimer() {
           .animate-timer-glow {
             animation: timer-glow 2.5s ease-in-out infinite;
           }
-        `}</style>
+        `}} />
       )}
     </div>
   );

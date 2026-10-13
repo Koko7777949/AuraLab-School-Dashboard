@@ -501,18 +501,23 @@ export default function NotificationsSection() {
     const interval = setInterval(() => {
       const sim = simNotifs[idx % simNotifs.length];
       idx++;
-      addNotification({
+      const newNotif: AppNotification = {
         id: `sim-${Date.now()}`,
         title: sim.title,
         message: sim.message,
         type: sim.type,
         isRead: false,
         createdAt: new Date().toISOString(),
+      };
+      // Cap at 50 notifications: remove oldest if exceeding
+      setNotifications((prev) => {
+        const next = [newNotif, ...prev];
+        return next.length > 50 ? next.slice(0, 50) : next;
       });
     }, 45000);
 
     return () => clearInterval(interval);
-  }, [addNotification]);
+  }, [setNotifications]);
 
   const filterLabel = filter !== 'all'
     ? FILTER_OPTIONS.find((o) => o.value === filter)?.label ?? null

@@ -823,15 +823,25 @@ function DeleteBehaviorDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { deleteBehavior } = useAppStore();
+  const { deleteBehavior, addToTrash } = useAppStore();
 
   const handleDelete = useCallback(() => {
     if (record) {
+      addToTrash({
+        id: `trash-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        itemType: 'behavior',
+        itemId: record.id,
+        itemName: record.studentName ?? 'سلوك',
+        deletedBy: 'المدير',
+        dataJson: JSON.stringify(record),
+        restoredAt: null,
+        createdAt: new Date().toISOString(),
+      });
       deleteBehavior(record.id);
       toast.success('تم حذف سجل السلوك بنجاح');
       onOpenChange(false);
     }
-  }, [record, deleteBehavior, onOpenChange]);
+  }, [record, deleteBehavior, addToTrash, onOpenChange]);
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>

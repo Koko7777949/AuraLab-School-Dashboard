@@ -502,10 +502,20 @@ function DeleteClassDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { deleteClass } = useAppStore();
+  const { deleteClass, addToTrash } = useAppStore();
 
   const handleDelete = () => {
     if (cls) {
+      addToTrash({
+        id: `trash-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        itemType: 'class',
+        itemId: cls.id,
+        itemName: cls.name,
+        deletedBy: 'المدير',
+        dataJson: JSON.stringify(cls),
+        restoredAt: null,
+        createdAt: new Date().toISOString(),
+      });
       deleteClass(cls.id);
       toast.success('تم حذف الصف');
       onOpenChange(false);

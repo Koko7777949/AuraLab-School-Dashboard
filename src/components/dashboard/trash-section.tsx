@@ -12,6 +12,11 @@ import {
   FileText,
   Clock,
   Delete,
+  Award,
+  MessageSquare,
+  Heart,
+  CalendarClock,
+  BookOpen,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import type { TrashItem } from '@/lib/types';
@@ -73,6 +78,41 @@ const TYPE_CONFIG: Record<
     badgeClass: 'bg-amber-500/15 text-amber-400 border-amber-500/20',
     iconBg: 'bg-amber-500/10',
     color: '#f59e0b',
+  },
+  grade: {
+    label: 'درجة',
+    icon: Award,
+    badgeClass: 'bg-orange-500/15 text-orange-400 border-orange-500/20',
+    iconBg: 'bg-orange-500/10',
+    color: '#f97316',
+  },
+  message: {
+    label: 'رسالة',
+    icon: MessageSquare,
+    badgeClass: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/20',
+    iconBg: 'bg-cyan-500/10',
+    color: '#06b6d4',
+  },
+  behavior: {
+    label: 'سلوك',
+    icon: Heart,
+    badgeClass: 'bg-pink-500/15 text-pink-400 border-pink-500/20',
+    iconBg: 'bg-pink-500/10',
+    color: '#ec4899',
+  },
+  schedule: {
+    label: 'جدول',
+    icon: CalendarClock,
+    badgeClass: 'bg-teal-500/15 text-teal-400 border-teal-500/20',
+    iconBg: 'bg-teal-500/10',
+    color: '#14b8a6',
+  },
+  'library-book': {
+    label: 'كتاب',
+    icon: BookOpen,
+    badgeClass: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/20',
+    iconBg: 'bg-indigo-500/10',
+    color: '#6366f1',
   },
 };
 
@@ -520,10 +560,8 @@ export default function TrashSection() {
   };
 
   const confirmEmptyTrash = () => {
-    // Remove all items
-    for (const item of trashItems) {
-      removeFromTrash(item.id);
-    }
+    // Clear all trash items in a single operation
+    setTrashItems([]);
     toast.success('تم إفراغ سلة المحذوفات');
     setEmptyTrashOpen(false);
   };

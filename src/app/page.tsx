@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import Sidebar from '@/components/dashboard/sidebar';
 import Header from '@/components/dashboard/header';
@@ -26,6 +27,8 @@ import LibrarySection from '@/components/dashboard/library-section';
 import FeesSection from '@/components/dashboard/fees-section';
 import KeyboardShortcuts from '@/components/dashboard/keyboard-shortcuts';
 import CommandPalette from '@/components/dashboard/command-palette';
+import FabActions from '@/components/dashboard/fab-actions';
+import BreadcrumbNav from '@/components/dashboard/breadcrumb-nav';
 import type { ActiveSection } from '@/lib/types';
 
 function SectionRenderer({ section }: { section: ActiveSection }) {
@@ -128,13 +131,13 @@ function LoadingOverlay() {
 }
 
 const footerQuickLinks = [
-  { label: 'سياسة الخصوصية', disabled: true },
-  { label: 'الشروط والأحكام', disabled: true },
-  { label: 'المساعدة', disabled: true },
+  { label: 'سياسة الخصوصية', section: 'settings' as const },
+  { label: 'الشروط والأحكام', section: 'settings' as const },
+  { label: 'المساعدة', section: 'ai-assistant' as const },
 ] as const;
 
 export default function Home() {
-  const { activeSection, sidebarOpen, setSidebarOpen, students } = useAppStore();
+  const { activeSection, sidebarOpen, setSidebarOpen, students, setActiveSection } = useAppStore();
   const [isStoreReady, setIsStoreReady] = useState(false);
 
   // Mark store as ready once initial data has been hydrated
@@ -181,10 +184,21 @@ export default function Home() {
 
           {/* Page Content */}
           <main className="flex-1 p-4 md:p-6 lg:p-8 pt-20">
-            {/* Section transition: key triggers re-mount + animation */}
-            <div key={activeSection} className="animate-section-fade-in-up">
-              <SectionRenderer section={activeSection} />
-            </div>
+            {/* Breadcrumb */}
+            <BreadcrumbNav />
+
+            {/* Section transition with Framer Motion */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeSection}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.25, ease: 'easeInOut' }}
+              >
+                <SectionRenderer section={activeSection} />
+              </motion.div>
+            </AnimatePresence>
           </main>
 
           {/* Footer */}
@@ -215,19 +229,12 @@ export default function Home() {
                   {footerQuickLinks.map((link) => (
                     <button
                       key={link.label}
-                      disabled={link.disabled}
+                      onClick={() => setActiveSection(link.section)}
                       className="px-3 py-1.5 text-xs text-muted-foreground/60 rounded-md
                                  transition-colors duration-200
-                                 hover:text-muted-foreground hover:bg-white/[0.03]
-                                 disabled:cursor-not-allowed disabled:opacity-50"
-                      title={link.disabled ? 'قريباً' : undefined}
+                                 hover:text-muted-foreground hover:bg-white/[0.03]"
                     >
                       {link.label}
-                      {link.disabled && (
-                        <span className="mr-1 text-[10px] text-amber-accent/50">
-                          (قريباً)
-                        </span>
-                      )}
                     </button>
                   ))}
                 </nav>
@@ -252,11 +259,10 @@ export default function Home() {
                   {footerQuickLinks.map((link) => (
                     <button
                       key={link.label}
-                      disabled={link.disabled}
+                      onClick={() => setActiveSection(link.section)}
                       className="px-2 py-1 text-xs text-muted-foreground/50 rounded
                                  transition-colors duration-200
-                                 hover:text-muted-foreground
-                                 disabled:cursor-not-allowed disabled:opacity-40"
+                                 hover:text-muted-foreground"
                     >
                       {link.label}
                     </button>
@@ -275,6 +281,9 @@ export default function Home() {
 
       {/* Command Palette (Cmd+K) */}
       <CommandPalette />
+
+      {/* FAB Quick Actions */}
+      <FabActions />
     </>
   );
 }

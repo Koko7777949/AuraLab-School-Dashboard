@@ -942,15 +942,25 @@ function DeleteBookDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { deleteLibraryBook } = useAppStore();
+  const { deleteLibraryBook, addToTrash } = useAppStore();
 
   const handleDelete = useCallback(() => {
     if (book) {
+      addToTrash({
+        id: `trash-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        itemType: 'library-book',
+        itemId: book.id,
+        itemName: book.title,
+        deletedBy: 'المدير',
+        dataJson: JSON.stringify(book),
+        restoredAt: null,
+        createdAt: new Date().toISOString(),
+      });
       deleteLibraryBook(book.id);
       toast.success('تم حذف الكتاب بنجاح');
       onOpenChange(false);
     }
-  }, [book, deleteLibraryBook, onOpenChange]);
+  }, [book, deleteLibraryBook, addToTrash, onOpenChange]);
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
