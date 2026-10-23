@@ -1,0 +1,1365 @@
+     1→'use client';
+     2→
+     3→import { useState, useRef } from 'react';
+     4→import { Switch } from '@/components/ui/switch';
+     5→import { Label } from '@/components/ui/label';
+     6→import { Button } from '@/components/ui/button';
+     7→import { Badge } from '@/components/ui/badge';
+     8→import { Slider } from '@/components/ui/slider';
+     9→import { Input } from '@/components/ui/input';
+    10→import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+    11→import { cn } from '@/lib/utils';
+    12→import { useAppStore } from '@/lib/store';
+    13→import { t } from '@/lib/i18n';
+    14→import { toast } from 'sonner';
+    15→import { useTheme } from 'next-themes';
+    16→import {
+    17→  Select,
+    18→  SelectContent,
+    19→  SelectItem,
+    20→  SelectTrigger,
+    21→  SelectValue,
+    22→} from '@/components/ui/select';
+    23→import {
+    24→  Settings,
+    25→  Bell,
+    26→  Volume2,
+    27→  Mail,
+    28→  Smartphone,
+    29→  BarChart3,
+    30→  Activity,
+    31→  Target,
+    32→  Clock,
+    33→  Globe,
+    34→  Shield,
+    35→  RotateCcw,
+    36→  User,
+    37→  Moon,
+    38→  Monitor,
+    39→  School,
+    40→  CalendarDays,
+    41→  Check,
+    42→  Save,
+    43→  Palette,
+    44→  Layers,
+    45→  Sparkles,
+    46→  CheckCircle2,
+    47→  Camera,
+    48→  Lock,
+    49→  Eye,
+    50→  EyeOff,
+    51→} from 'lucide-react';
+    52→
+    53→/* ------------------------------------------------------------------ */
+    54→/*  Types                                                              */
+    55→/* ------------------------------------------------------------------ */
+    56→interface ToggleSetting {
+    57→  key: string;
+    58→  label: string;
+    59→  description: string;
+    60→  icon: React.ReactNode;
+    61→  defaultOn: boolean;
+    62→}
+    63→
+    64→/* ------------------------------------------------------------------ */
+    65→/*  Setting Card wrapper                                               */
+    66→/* ------------------------------------------------------------------ */
+    67→function SettingCard({
+    68→  title,
+    69→  icon,
+    70→  badge,
+    71→  children,
+    72→}: {
+    73→  title: string;
+    74→  icon: React.ReactNode;
+    75→  badge?: string;
+    76→  children: React.ReactNode;
+    77→}) {
+    78→  return (
+    79→    <div
+    80→      className="rounded-xl overflow-hidden transition-all duration-300 hover:-translate-y-0.5"
+    81→      style={{
+    82→        backgroundColor: '#1A1A24',
+    83→        border: '1px solid rgba(255,255,255,0.06)',
+    84→      }}
+    85→      onMouseEnter={(e) => {
+    86→        e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.3), 0 0 0 1px rgba(212,165,116,0.12)';
+    87→        e.currentTarget.style.borderColor = 'rgba(212,165,116,0.15)';
+    88→      }}
+    89→      onMouseLeave={(e) => {
+    90→        e.currentTarget.style.boxShadow = 'none';
+    91→        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
+    92→      }}
+    93→    >
+    94→      {/* Card Header */}
+    95→      <div
+    96→        className="flex items-center justify-between gap-3 px-5 py-3.5"
+    97→        style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+    98→      >
+    99→        <div className="flex items-center gap-3">
+   100→          <div className="flex shrink-0 items-center justify-center h-9 w-9 rounded-xl bg-[#D4A574]/10 text-[#D4A574]">
+   101→            {icon}
+   102→          </div>
+   103→          <div>
+   104→            <h3 className="text-base font-semibold text-white">{title}</h3>
+   105→          </div>
+   106→        </div>
+   107→        {badge && (
+   108→          <Badge className="bg-[#D4A574]/10 text-[#D4A574] border-[#D4A574]/20 text-[11px] px-2 py-0.5 rounded-full">
+   109→            {badge}
+   110→          </Badge>
+   111→        )}
+   112→      </div>
+   113→
+   114→      {/* Card Body */}
+   115→      <div className="p-5">
+   116→        {children}
+   117→      </div>
+   118→    </div>
+   119→  );
+   120→}
+   121→
+   122→/* ------------------------------------------------------------------ */
+   123→/*  Toggle item component                                              */
+   124→/* ------------------------------------------------------------------ */
+   125→function ToggleRow({
+   126→  setting,
+   127→  checked,
+   128→  onCheckedChange,
+   129→}: {
+   130→  setting: ToggleSetting;
+   131→  checked: boolean;
+   132→  onCheckedChange: (key: string, value: boolean) => void;
+   133→}) {
+   134→  return (
+   135→    <div
+   136→      className="flex items-center justify-between gap-4 rounded-xl p-4 transition-all duration-200"
+   137→      style={{
+   138→        backgroundColor: 'rgba(255,255,255,0.02)',
+   139→        border: '1px solid rgba(255,255,255,0.04)',
+   140→      }}
+   141→      onMouseEnter={(e) => {
+   142→        e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.04)';
+   143→        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+   144→      }}
+   145→      onMouseLeave={(e) => {
+   146→        e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.02)';
+   147→        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)';
+   148→      }}
+   149→    >
+   150→      <div className="flex items-center gap-3 min-w-0">
+   151→        <div className="flex shrink-0 items-center justify-center h-9 w-9 rounded-lg bg-[#D4A574]/10 text-[#D4A574]">
+   152→          {setting.icon}
+   153→        </div>
+   154→        <div className="min-w-0">
+   155→          <Label
+   156→            htmlFor={`toggle-${setting.key}`}
+   157→            className="cursor-pointer text-sm font-medium text-slate-200 block"
+   158→          >
+   159→            {setting.label}
+   160→          </Label>
+   161→          <p className="text-xs text-slate-500 mt-0.5">{setting.description}</p>
+   162→        </div>
+   163→      </div>
+   164→      <Switch
+   165→        id={`toggle-${setting.key}`}
+   166→        checked={checked}
+   167→        onCheckedChange={(v) => onCheckedChange(setting.key, v)}
+   168→        className="data-[state=checked]:bg-[#D4A574] data-[state=unchecked]:bg-slate-600 shrink-0"
+   169→      />
+   170→    </div>
+   171→  );
+   172→}
+   173→
+   174→/* ------------------------------------------------------------------ */
+   175→/*  Read-only display field                                            */
+   176→/* ------------------------------------------------------------------ */
+   177→function DisplayField({
+   178→  icon,
+   179→  label,
+   180→  value,
+   181→}: {
+   182→  icon: React.ReactNode;
+   183→  label: string;
+   184→  value: string;
+   185→}) {
+   186→  return (
+   187→    <div
+   188→      className="flex items-center gap-4 rounded-xl p-4"
+   189→      style={{
+   190→        backgroundColor: 'rgba(255,255,255,0.02)',
+   191→        border: '1px solid rgba(255,255,255,0.04)',
+   192→      }}
+   193→    >
+   194→      <div className="flex shrink-0 items-center justify-center h-9 w-9 rounded-lg bg-[#D4A574]/10 text-[#D4A574]">
+   195→        {icon}
+   196→      </div>
+   197→      <div className="min-w-0 flex-1">
+   198→        <p className="text-xs text-slate-500 mb-0.5">{label}</p>
+   199→        <p className="text-sm font-medium text-slate-200 truncate">{value}</p>
+   200→      </div>
+   201→      <Badge className="bg-white/[0.04] text-slate-500 border-white/[0.06] text-[10px] px-2 py-0.5 rounded-full shrink-0">
+   202→        للقراءة فقط
+   203→      </Badge>
+   204→    </div>
+   205→  );
+   206→}
+   207→
+   208→/* ------------------------------------------------------------------ */
+   209→/*  Accent Color Swatch                                                */
+   210→/* ------------------------------------------------------------------ */
+   211→const ACCENT_COLORS = [
+   212→  { value: '#D4A574', label: 'عنبري' },
+   213→  { value: '#34D399', label: 'زمردي' },
+   214→  { value: '#F472B6', label: 'وردي' },
+   215→  { value: '#38BDF8', label: 'سماوي' },
+   216→  { value: '#A78BFA', label: 'بنفسجي' },
+   217→  { value: '#FB923C', label: 'برتقالي' },
+   218→] as const;
+   219→
+   220→/* ------------------------------------------------------------------ */
+   221→/*  Theme Customizer — Live Preview Card                               */
+   222→/* ------------------------------------------------------------------ */
+   223→function LivePreviewCard({
+   224→  accentColor,
+   225→  borderRadius,
+   226→  backgroundStyle,
+   227→  uiDensity,
+   228→}: {
+   229→  accentColor: string;
+   230→  borderRadius: number;
+   231→  backgroundStyle: 'solid' | 'gradient' | 'dots';
+   232→  uiDensity: 'compact' | 'default' | 'comfortable';
+   233→}) {
+   234→  const densityPadding = uiDensity === 'compact' ? 'p-2' : uiDensity === 'comfortable' ? 'p-4' : 'p-3';
+   235→  const densityGap = uiDensity === 'compact' ? 'gap-1' : uiDensity === 'comfortable' ? 'gap-3' : 'gap-2';
+   236→
+   237→  const bgStyle: React.CSSProperties =
+   238→    backgroundStyle === 'dots'
+   239→      ? {
+   240→          backgroundColor: '#121218',
+   241→          backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px)',
+   242→          backgroundSize: '12px 12px',
+   243→        }
+   244→      : backgroundStyle === 'gradient'
+   245→        ? {
+   246→            background: 'linear-gradient(135deg, #121218 0%, #1A1A2E 50%, #1E1E30 100%)',
+   247→          }
+   248→        : {
+   249→            backgroundColor: '#121218',
+   250→          };
+   251→
+   252→  return (
+   253→    <div
+   254→      className={cn('w-full min-h-[140px] transition-all duration-300', densityPadding, densityGap)}
+   255→      style={{
+   256→        ...bgStyle,
+   257→        borderRadius: `${borderRadius}px`,
+   258→        border: `1px solid ${accentColor}20`,
+   259→      }}
+   260→    >
+   261→      {/* Preview header */}
+   262→      <div
+   263→        className={cn('flex items-center justify-between', uiDensity === 'compact' ? 'mb-1' : uiDensity === 'comfortable' ? 'mb-3' : 'mb-2')}
+   264→      >
+   265→        <div className={cn('flex items-center', densityGap)}>
+   266→          <div
+   267→            className="rounded-md"
+   268→            style={{
+   269→              width: uiDensity === 'compact' ? 18 : uiDensity === 'comfortable' ? 26 : 22,
+   270→              height: uiDensity === 'compact' ? 18 : uiDensity === 'comfortable' ? 26 : 22,
+   271→              backgroundColor: `${accentColor}18`,
+   272→            }}
+   273→          />
+   274→          <div
+   275→            className="rounded-sm"
+   276→            style={{
+   277→              width: uiDensity === 'compact' ? 40 : 55,
+   278→              height: uiDensity === 'compact' ? 6 : 8,
+   279→              backgroundColor: 'rgba(255,255,255,0.12)',
+   280→            }}
+   281→          />
+   282→        </div>
+   283→        <div className="flex gap-1.5">
+   284→          <div
+   285→            className="rounded-full"
+   286→            style={{ width: 6, height: 6, backgroundColor: `${accentColor}40` }}
+   287→          />
+   288→          <div
+   289→            className="rounded-full"
+   290→            style={{ width: 6, height: 6, backgroundColor: 'rgba(255,255,255,0.08)' }}
+   291→          />
+   292→          <div
+   293→            className="rounded-full"
+   294→            style={{ width: 6, height: 6, backgroundColor: 'rgba(255,255,255,0.08)' }}
+   295→          />
+   296→        </div>
+   297→      </div>
+   298→
+   299→      {/* Preview content cards */}
+   300→      <div className={cn('grid grid-cols-2', densityGap)}>
+   301→        {[0, 1, 2, 3].map((i) => (
+   302→          <div
+   303→            key={i}
+   304→            className="transition-all duration-300"
+   305→            style={{
+   306→              backgroundColor: '#1A1A24',
+   307→              borderRadius: `${Math.max(borderRadius - 4, 2)}px`,
+   308→              border: `1px solid rgba(255,255,255,0.04)`,
+   309→              padding: uiDensity === 'compact' ? '6px' : uiDensity === 'comfortable' ? '12px' : '8px',
+   310→            }}
+   311→          >
+   312→            <div
+   313→              className="rounded-sm mb-1"
+   314→              style={{
+   315→                width: `${50 + i * 10}%`,
+   316→                height: uiDensity === 'compact' ? 4 : 6,
+   317→                backgroundColor: `${accentColor}30`,
+   318→              }}
+   319→            />
+   320→            <div
+   321→              className="rounded-sm"
+   322→              style={{
+   323→                width: `${30 + i * 5}%`,
+   324→                height: uiDensity === 'compact' ? 3 : 4,
+   325→                backgroundColor: 'rgba(255,255,255,0.06)',
+   326→              }}
+   327→            />
+   328→          </div>
+   329→        ))}
+   330→      </div>
+   331→
+   332→      {/* Preview button */}
+   333→      <div className={cn('flex items-center', densityGap, uiDensity === 'compact' ? 'mt-1' : uiDensity === 'comfortable' ? 'mt-3' : 'mt-2')}>
+   334→        <div
+   335→          className="rounded-md"
+   336→          style={{
+   337→            backgroundColor: accentColor,
+   338→            color: '#121218',
+   339→            padding: uiDensity === 'compact' ? '3px 10px' : uiDensity === 'comfortable' ? '6px 18px' : '4px 14px',
+   340→            fontSize: uiDensity === 'compact' ? '9px' : uiDensity === 'comfortable' ? '12px' : '10px',
+   341→            fontWeight: 600,
+   342→            width: 'fit-content',
+   343→            borderRadius: `${Math.max(borderRadius - 4, 2)}px`,
+   344→          }}
+   345→        >
+   346→          زر
+   347→        </div>
+   348→        <div
+   349→          className="rounded-md"
+   350→          style={{
+   351→            border: `1px solid ${accentColor}40`,
+   352→            color: accentColor,
+   353→            padding: uiDensity === 'compact' ? '3px 10px' : uiDensity === 'comfortable' ? '6px 18px' : '4px 14px',
+   354→            fontSize: uiDensity === 'compact' ? '9px' : uiDensity === 'comfortable' ? '12px' : '10px',
+   355→            fontWeight: 600,
+   356→            width: 'fit-content',
+   357→            borderRadius: `${Math.max(borderRadius - 4, 2)}px`,
+   358→          }}
+   359→        >
+   360→          زر ثانٍ
+   361→        </div>
+   362→      </div>
+   363→    </div>
+   364→  );
+   365→}
+   366→
+   367→/* ------------------------------------------------------------------ */
+   368→/*  Theme Customizer Card                                              */
+   369→/* ------------------------------------------------------------------ */
+   370→function ThemeCustomizerCard() {
+   371→  const {
+   372→    accentColor,
+   373→    setAccentColor,
+   374→    uiDensity,
+   375→    setUiDensity,
+   376→    borderRadius,
+   377→    setBorderRadius,
+   378→    backgroundStyle,
+   379→    setBackgroundStyle,
+   380→  } = useAppStore();
+   381→
+   382→  const [localAccent, setLocalAccent] = useState(accentColor);
+   383→  const [localDensity, setLocalDensity] = useState(uiDensity);
+   384→  const [localRadius, setLocalRadius] = useState(borderRadius);
+   385→  const [localBgStyle, setLocalBgStyle] = useState(backgroundStyle);
+   386→
+   387→  const handleSaveTheme = () => {
+   388→    setAccentColor(localAccent);
+   389→    setUiDensity(localDensity);
+   390→    setBorderRadius(localRadius);
+   391→    setBackgroundStyle(localBgStyle);
+   392→    toast.success('تم حفظ إعدادات المظهر بنجاح');
+   393→  };
+   394→
+   395→  const handleResetTheme = () => {
+   396→    setLocalAccent('#D4A574');
+   397→    setLocalDensity('default');
+   398→    setLocalRadius(8);
+   399→    setLocalBgStyle('dots');
+   400→    setAccentColor('#D4A574');
+   401→    setUiDensity('default');
+   402→    setBorderRadius(8);
+   403→    setBackgroundStyle('dots');
+   404→    toast.success('تم إعادة تعيين إعدادات المظهر');
+   405→  };
+   406→
+   407→  const hasChanges =
+   408→    localAccent !== accentColor ||
+   409→    localDensity !== uiDensity ||
+   410→    localRadius !== borderRadius ||
+   411→    localBgStyle !== backgroundStyle;
+   412→
+   413→  const densityOptions: { value: 'compact' | 'default' | 'comfortable'; label: string; desc: string }[] = [
+   414→    { value: 'compact', label: 'مضغوط', desc: 'مسافات صغيرة' },
+   415→    { value: 'default', label: 'افتراضي', desc: 'مسافات متوسطة' },
+   416→    { value: 'comfortable', label: 'مريح', desc: 'مسافات واسعة' },
+   417→  ];
+   418→
+   419→  const bgStyleOptions: { value: 'solid' | 'gradient' | 'dots'; label: string }[] = [
+   420→    { value: 'solid', label: 'صلب' },
+   421→    { value: 'gradient', label: 'متدرج' },
+   422→    { value: 'dots', label: 'نقاط' },
+   423→  ];
+   424→
+   425→  return (
+   426→    <SettingCard
+   427→      title="تخصيص المظهر"
+   428→      icon={<Palette className="h-5 w-5" />}
+   429→      badge="مخصص"
+   430→    >
+   431→      <div className="flex flex-col gap-5">
+   432→        {/* ── Accent Color Picker ── */}
+   433→        <div>
+   434→          <div className="flex items-center gap-2 mb-3">
+   435→            <Sparkles className="h-4 w-4 text-[#D4A574]" />
+   436→            <span className="text-sm font-semibold text-slate-300">اللون المميز</span>
+   437→          </div>
+   438→          <div className="flex flex-col sm:flex-row gap-4">
+   439→            <div className="flex flex-wrap gap-3">
+   440→              {ACCENT_COLORS.map((c) => (
+   441→                <button
+   442→                  key={c.value}
+   443→                  onClick={() => setLocalAccent(c.value)}
+   444→                  className="group relative flex flex-col items-center gap-1.5 transition-transform duration-200 hover:scale-110 active:scale-95"
+   445→                  title={c.label}
+   446→                >
+   447→                  <div
+   448→                    className={cn(
+   449→                      'h-9 w-9 rounded-full transition-all duration-200',
+   450→                      localAccent === c.value && 'ring-2 ring-offset-2 ring-offset-[#1A1A24]',
+   451→                    )}
+   452→                    style={{
+   453→                      backgroundColor: c.value,
+   454→                      '--tw-ring-color': localAccent === c.value ? c.value : 'transparent',
+   455→                      boxShadow: localAccent === c.value ? `0 0 12px ${c.value}50` : 'none',
+   456→                    } as React.CSSProperties}
+   457→                  >
+   458→                    {localAccent === c.value && (
+   459→                      <CheckCircle2
+   460→                        className="h-5 w-5 text-white mx-auto mt-[6px] drop-shadow-md"
+   461→                        strokeWidth={3}
+   462→                      />
+   463→                    )}
+   464→                  </div>
+   465→                  <span className="text-[10px] text-slate-500 group-hover:text-slate-300 transition-colors">
+   466→                    {c.label}
+   467→                  </span>
+   468→                </button>
+   469→              ))}
+   470→            </div>
+   471→            {/* Live Preview */}
+   472→            <div className="flex-1 min-w-[200px] max-w-[300px] mx-auto">
+   473→              <LivePreviewCard
+   474→                accentColor={localAccent}
+   475→                borderRadius={localRadius}
+   476→                backgroundStyle={localBgStyle}
+   477→                uiDensity={localDensity}
+   478→              />
+   479→            </div>
+   480→          </div>
+   481→        </div>
+   482→
+   483→        {/* ── UI Density Selector ── */}
+   484→        <div
+   485→          className="p-4 rounded-xl"
+   486→          style={{
+   487→            backgroundColor: 'rgba(255,255,255,0.02)',
+   488→            border: '1px solid rgba(255,255,255,0.04)',
+   489→          }}
+   490→        >
+   491→          <div className="flex items-center gap-2 mb-3">
+   492→            <Layers className="h-4 w-4 text-[#D4A574]" />
+   493→            <span className="text-sm font-semibold text-slate-300">كثافة الواجهة</span>
+   494→          </div>
+   495→          <div className="grid grid-cols-3 gap-2">
+   496→            {densityOptions.map((opt) => (
+   497→              <button
+   498→                key={opt.value}
+   499→                onClick={() => setLocalDensity(opt.value)}
+   500→                className={cn(
+   501→                  'flex flex-col items-center gap-1 rounded-xl p-3 transition-all duration-200',
+   502→                  localDensity === opt.value
+   503→                    ? 'border'
+   504→                    : 'border border-transparent hover:bg-white/[0.03]',
+   505→                )}
+   506→                style={
+   507→                  localDensity === opt.value
+   508→                    ? {
+   509→                        backgroundColor: `${localAccent}10`,
+   510→                        borderColor: `${localAccent}30`,
+   511→                      }
+   512→                    : undefined
+   513→                }
+   514→              >
+   515→                <div
+   516→                  className={cn(
+   517→                    'flex items-center justify-center h-5 w-5 rounded-full border-2 transition-all duration-200',
+   518→                    localDensity === opt.value && 'border-transparent',
+   519→                  )}
+   520→                  style={{
+   521→                    borderColor: localDensity === opt.value ? 'transparent' : 'rgba(255,255,255,0.15)',
+   522→                    backgroundColor: localDensity === opt.value ? localAccent : 'transparent',
+   523→                  }}
+   524→                >
+   525→                  {localDensity === opt.value && (
+   526→                    <Check className="h-3 w-3 text-[#121218]" strokeWidth={3} />
+   527→                  )}
+   528→                </div>
+   529→                <span
+   530→                  className={cn(
+   531→                    'text-xs font-medium transition-colors',
+   532→                    localDensity === opt.value ? 'text-slate-200' : 'text-slate-500',
+   533→                  )}
+   534→                >
+   535→                  {opt.label}
+   536→                </span>
+   537→                <span className="text-[10px] text-slate-600">{opt.desc}</span>
+   538→              </button>
+   539→            ))}
+   540→          </div>
+   541→        </div>
+   542→
+   543→        {/* ── Border Radius Slider ── */}
+   544→        <div
+   545→          className="p-4 rounded-xl"
+   546→          style={{
+   547→            backgroundColor: 'rgba(255,255,255,0.02)',
+   548→            border: '1px solid rgba(255,255,255,0.04)',
+   549→          }}
+   550→        >
+   551→          <div className="flex items-center justify-between mb-3">
+   552→            <div className="flex items-center gap-2">
+   553→              <div
+   554→                className="h-5 w-5 transition-all duration-300"
+   555→                style={{
+   556→                  borderRadius: `${localRadius}px`,
+   557→                  border: `2px solid ${localAccent}`,
+   558→                  backgroundColor: `${localAccent}20`,
+   559→                }}
+   560→              />
+   561→              <span className="text-sm font-semibold text-slate-300">حواف مستديرة</span>
+   562→            </div>
+   563→            <Badge
+   564→              className="text-[11px] px-2.5 py-0.5 rounded-full font-mono"
+   565→              style={{
+   566→                backgroundColor: `${localAccent}15`,
+   567→                color: localAccent,
+   568→                border: `1px solid ${localAccent}25`,
+   569→              }}
+   570→            >
+   571→              {localRadius}px
+   572→            </Badge>
+   573→          </div>
+   574→          <Slider
+   575→            value={[localRadius]}
+   576→            onValueChange={(v) => setLocalRadius(v[0])}
+   577→            min={0}
+   578→            max={24}
+   579→            step={1}
+   580→            className="w-full [&_[data-slot=slider-track]]:h-2 [&_[data-slot=slider-range]]:bg-[var(--preview-accent,#D4A574)] [&_[data-slot=slider-thumb]]:bg-[var(--preview-accent,#D4A574)] [&_[data-slot=slider-thumb]]:border-0 [&_[data-slot=slider-thumb]]:h-5 [&_[data-slot=slider-thumb]]:w-5 [&_[data-slot=slider-thumb]]:shadow-md"
+   581→            style={{ '--preview-accent': localAccent } as React.CSSProperties}
+   582→          />
+   583→          <div className="flex justify-between mt-2 text-[10px] text-slate-600 px-0.5">
+   584→            <span>0px — مربع</span>
+   585→            <span>12px — متوسط</span>
+   586→            <span>24px — دائري</span>
+   587→          </div>
+   588→        </div>
+   589→
+   590→        {/* ── Background Style Toggle ── */}
+   591→        <div
+   592→          className="p-4 rounded-xl"
+   593→          style={{
+   594→            backgroundColor: 'rgba(255,255,255,0.02)',
+   595→            border: '1px solid rgba(255,255,255,0.04)',
+   596→          }}
+   597→        >
+   598→          <div className="flex items-center gap-2 mb-3">
+   599→            <Monitor className="h-4 w-4 text-[#D4A574]" />
+   600→            <span className="text-sm font-semibold text-slate-300">نمط الخلفية</span>
+   601→          </div>
+   602→          <div className="grid grid-cols-3 gap-2">
+   603→            {bgStyleOptions.map((opt) => (
+   604→              <button
+   605→                key={opt.value}
+   606→                onClick={() => setLocalBgStyle(opt.value)}
+   607→                className={cn(
+   608→                  'relative flex flex-col items-center gap-2 rounded-xl p-3 transition-all duration-200 overflow-hidden',
+   609→                  localBgStyle === opt.value ? 'border' : 'border border-transparent hover:bg-white/[0.03]',
+   610→                )}
+   611→                style={
+   612→                  localBgStyle === opt.value
+   613→                    ? {
+   614→                        backgroundColor: `${localAccent}10`,
+   615→                        borderColor: `${localAccent}30`,
+   616→                      }
+   617→                    : undefined
+   618→                }
+   619→              >
+   620→                {/* Mini background preview */}
+   621→                <div
+   622→                  className="h-10 w-full rounded-md overflow-hidden"
+   623→                  style={
+   624→                    opt.value === 'dots'
+   625→                      ? {
+   626→                          backgroundColor: '#121218',
+   627→                          backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px)',
+   628→                          backgroundSize: '6px 6px',
+   629→                        }
+   630→                      : opt.value === 'gradient'
+   631→                        ? {
+   632→                            background: 'linear-gradient(135deg, #121218 0%, #1A1A2E 50%, #1E1E30 100%)',
+   633→                          }
+   634→                        : {
+   635→                            backgroundColor: '#121218',
+   636→                          }
+   637→                  }
+   638→                />
+   639→                <div
+   640→                  className={cn(
+   641→                    'text-xs font-medium transition-colors',
+   642→                    localBgStyle === opt.value ? 'text-slate-200' : 'text-slate-500',
+   643→                  )}
+   644→                >
+   645→                  {opt.label}
+   646→                </div>
+   647→                {localBgStyle === opt.value && (
+   648→                  <div
+   649→                    className="absolute top-2 left-2"
+   650→                    style={{ color: localAccent }}
+   651→                  >
+   652→                    <Check className="h-3.5 w-3.5" strokeWidth={3} />
+   653→                  </div>
+   654→                )}
+   655→              </button>
+   656→            ))}
+   657→          </div>
+   658→        </div>
+   659→
+   660→        {/* ── Action Buttons ── */}
+   661→        <div className="flex items-center justify-between gap-3 pt-2">
+   662→          <Button
+   663→            onClick={handleResetTheme}
+   664→            variant="outline"
+   665→            className="gap-2 text-slate-400 border-white/[0.08] hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-colors rounded-lg text-xs h-8"
+   666→          >
+   667→            <RotateCcw className="h-3.5 w-3.5" />
+   668→            إعادة تعيين
+   669→          </Button>
+   670→          <Button
+   671→            onClick={handleSaveTheme}
+   672→            disabled={!hasChanges}
+   673→            className={cn(
+   674→              'gap-2 font-semibold rounded-lg px-5 h-8 text-xs transition-all duration-300',
+   675→              hasChanges
+   676→                ? 'btn-shine'
+   677→                : 'opacity-40 cursor-not-allowed',
+   678→            )}
+   679→            style={
+   680→              hasChanges
+   681→                ? { backgroundColor: localAccent, color: '#121218' }
+   682→                : { backgroundColor: localAccent, color: '#121218' }
+   683→            }
+   684→          >
+   685→            <Save className="h-3.5 w-3.5" />
+   686→            حفظ التخصيص
+   687→          </Button>
+   688→        </div>
+   689→      </div>
+   690→    </SettingCard>
+   691→  );
+   692→}
+   693→
+   694→/* ------------------------------------------------------------------ */
+   695→/*  Admin Profile Card (Editable)                                      */
+   696→/* ------------------------------------------------------------------ */
+   697→function AdminProfileCard() {
+   698→  const { adminProfile, updateAdminProfile } = useAppStore();
+   699→  const avatarInputRef = useRef<HTMLInputElement | null>(null);
+   700→
+   701→  const [name, setName] = useState(adminProfile.name);
+   702→  const [email, setEmail] = useState(adminProfile.email);
+   703→  const [phone, setPhone] = useState(adminProfile.phone);
+   704→  const [role, setRole] = useState(adminProfile.role);
+   705→  const [avatar, setAvatar] = useState(adminProfile.avatar);
+   706→  const [profileSaved, setProfileSaved] = useState(false);
+   707→
+   708→  // Password change state
+   709→  const [currentPassword, setCurrentPassword] = useState('');
+   710→  const [newPassword, setNewPassword] = useState('');
+   711→  const [confirmPassword, setConfirmPassword] = useState('');
+   712→  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+   713→  const [showNewPassword, setShowNewPassword] = useState(false);
+   714→  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+   715→  const [passwordSaved, setPasswordSaved] = useState(false);
+   716→
+   717→  const hasProfileChanges =
+   718→    name !== adminProfile.name ||
+   719→    email !== adminProfile.email ||
+   720→    phone !== adminProfile.phone ||
+   721→    role !== adminProfile.role ||
+   722→    avatar !== adminProfile.avatar;
+   723→
+   724→  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+   725→    const file = e.target.files?.[0];
+   726→    if (!file) return;
+   727→
+   728→    if (!file.type.startsWith('image/')) {
+   729→      toast.error('يرجى اختيار ملف صورة');
+   730→      return;
+   731→    }
+   732→
+   733→    const reader = new FileReader();
+   734→    reader.onloadend = () => {
+   735→      const dataUrl = reader.result as string;
+   736→      setAvatar(dataUrl);
+   737→    };
+   738→    reader.readAsDataURL(file);
+   739→  };
+   740→
+   741→  const handleSaveProfile = () => {
+   742→    updateAdminProfile({ name, email, phone, role, avatar });
+   743→    setProfileSaved(true);
+   744→    toast.success(t('adminProfile.saved'));
+   745→    setTimeout(() => setProfileSaved(false), 3000);
+   746→  };
+   747→
+   748→  const handlePasswordChange = () => {
+   749→    if (!currentPassword || !newPassword || !confirmPassword) {
+   750→      toast.error('يرجى ملء جميع حقول كلمة المرور');
+   751→      return;
+   752→    }
+   753→    if (newPassword !== confirmPassword) {
+   754→      toast.error(t('adminProfile.passwordMismatch'));
+   755→      return;
+   756→    }
+   757→    if (newPassword.length < 6) {
+   758→      toast.error('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+   759→      return;
+   760→    }
+   761→
+   762→    // In a real app, this would call an API. For now, just show success.
+   763→    setCurrentPassword('');
+   764→    setNewPassword('');
+   765→    setConfirmPassword('');
+   766→    setPasswordSaved(true);
+   767→    toast.success(t('adminProfile.passwordChanged'));
+   768→    setTimeout(() => setPasswordSaved(false), 3000);
+   769→  };
+   770→
+   771→  return (
+   772→    <>
+   773→      {/* Profile Info Card */}
+   774→      <SettingCard
+   775→        title={t('adminProfile.title')}
+   776→        icon={<User className="h-5 w-5" />}
+   777→        badge={t('adminProfile.badge')}
+   778→      >
+   779→        <div className="flex flex-col gap-5">
+   780→          {/* Avatar Section */}
+   781→          <div className="flex items-center gap-4">
+   782→            <div className="relative group">
+   783→              <Avatar className="h-20 w-20 border-2 border-[#D4A574]/30">
+   784→                {avatar ? (
+   785→                  <AvatarImage src={avatar} alt={name} />
+   786→                ) : null}
+   787→                <AvatarFallback className="bg-amber-500/20 text-amber-400 text-2xl font-bold">
+   788→                  {name.charAt(0) || 'أ'}
+   789→                </AvatarFallback>
+   790→              </Avatar>
+   791→              <button
+   792→                type="button"
+   793→                onClick={() => avatarInputRef.current?.click()}
+   794→                className="absolute inset-0 flex items-center justify-center rounded-full
+   795→                  bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity"
+   796→                aria-label={t('adminProfile.avatarChange')}
+   797→              >
+   798→                <Camera className="h-5 w-5 text-white" />
+   799→              </button>
+   800→              <input
+   801→                ref={avatarInputRef}
+   802→                type="file"
+   803→                accept="image/*"
+   804→                onChange={handleAvatarChange}
+   805→                className="hidden"
+   806→              />
+   807→            </div>
+   808→            <div className="flex-1">
+   809→              <p className="text-sm font-semibold text-slate-200">{name || 'مدير النظام'}</p>
+   810→              <p className="text-xs text-slate-500">{role || 'مدير النظام'}</p>
+   811→              <button
+   812→                type="button"
+   813→                onClick={() => avatarInputRef.current?.click()}
+   814→                className="mt-1 text-[11px] text-[#D4A574] hover:underline"
+   815→              >
+   816→                {t('adminProfile.avatarChange')}
+   817→              </button>
+   818→            </div>
+   819→          </div>
+   820→
+   821→          {/* Editable Fields */}
+   822→          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+   823→            {/* Name */}
+   824→            <div className="flex flex-col gap-2">
+   825→              <Label className="text-sm text-slate-300 font-medium flex items-center gap-2">
+   826→                <User className="h-4 w-4 text-[#D4A574]" />
+   827→                {t('adminProfile.name')}
+   828→              </Label>
+   829→              <Input
+   830→                type="text"
+   831→                value={name}
+   832→                onChange={(e) => setName(e.target.value)}
+   833→                placeholder={t('adminProfile.namePlaceholder')}
+   834→                dir="rtl"
+   835→                className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   836→              />
+   837→            </div>
+   838→
+   839→            {/* Email */}
+   840→            <div className="flex flex-col gap-2">
+   841→              <Label className="text-sm text-slate-300 font-medium flex items-center gap-2">
+   842→                <Mail className="h-4 w-4 text-[#D4A574]" />
+   843→                {t('adminProfile.email')}
+   844→              </Label>
+   845→              <Input
+   846→                type="email"
+   847→                value={email}
+   848→                onChange={(e) => setEmail(e.target.value)}
+   849→                placeholder={t('adminProfile.emailPlaceholder')}
+   850→                dir="ltr"
+   851→                className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   852→              />
+   853→            </div>
+   854→
+   855→            {/* Phone */}
+   856→            <div className="flex flex-col gap-2">
+   857→              <Label className="text-sm text-slate-300 font-medium flex items-center gap-2">
+   858→                <Smartphone className="h-4 w-4 text-[#D4A574]" />
+   859→                {t('adminProfile.phone')}
+   860→              </Label>
+   861→              <Input
+   862→                type="tel"
+   863→                value={phone}
+   864→                onChange={(e) => setPhone(e.target.value)}
+   865→                placeholder={t('adminProfile.phonePlaceholder')}
+   866→                dir="ltr"
+   867→                className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   868→              />
+   869→            </div>
+   870→
+   871→            {/* Role */}
+   872→            <div className="flex flex-col gap-2">
+   873→              <Label className="text-sm text-slate-300 font-medium flex items-center gap-2">
+   874→                <Shield className="h-4 w-4 text-[#D4A574]" />
+   875→                {t('adminProfile.role')}
+   876→              </Label>
+   877→              <Input
+   878→                type="text"
+   879→                value={role}
+   880→                onChange={(e) => setRole(e.target.value)}
+   881→                placeholder={t('adminProfile.rolePlaceholder')}
+   882→                dir="rtl"
+   883→                className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   884→              />
+   885→            </div>
+   886→          </div>
+   887→
+   888→          {/* Save Profile Button */}
+   889→          <div className="flex items-center justify-end gap-3 pt-1">
+   890→            <Button
+   891→              onClick={handleSaveProfile}
+   892→              disabled={!hasProfileChanges}
+   893→              className={cn(
+   894→                'gap-2 font-semibold rounded-lg px-5 h-9 text-xs transition-all duration-300',
+   895→                hasProfileChanges
+   896→                  ? 'btn-shine'
+   897→                  : 'opacity-40 cursor-not-allowed',
+   898→              )}
+   899→              style={
+   900→                hasProfileChanges
+   901→                  ? { backgroundColor: '#D4A574', color: '#121218' }
+   902→                  : { backgroundColor: '#D4A574', color: '#121218' }
+   903→              }
+   904→            >
+   905→              {profileSaved ? (
+   906→                <>
+   907→                  <Check className="h-3.5 w-3.5" />
+   908→                  {t('general.saved', 'ar') === 'تم الحفظ' ? 'تم الحفظ' : 'Saved'}
+   909→                </>
+   910→              ) : (
+   911→                <>
+   912→                  <Save className="h-3.5 w-3.5" />
+   913→                  {t('adminProfile.save')}
+   914→                </>
+   915→              )}
+   916→            </Button>
+   917→          </div>
+   918→        </div>
+   919→      </SettingCard>
+   920→
+   921→      {/* Password Change Card */}
+   922→      <SettingCard
+   923→        title={t('adminProfile.passwordTitle')}
+   924→        icon={<Lock className="h-5 w-5" />}
+   925→        badge="أمان"
+   926→      >
+   927→        <div className="flex flex-col gap-4">
+   928→          {/* Current Password */}
+   929→          <div className="flex flex-col gap-2">
+   930→            <Label className="text-sm text-slate-300 font-medium flex items-center gap-2">
+   931→              <Lock className="h-4 w-4 text-[#D4A574]" />
+   932→              {t('adminProfile.currentPassword')}
+   933→            </Label>
+   934→            <div className="relative">
+   935→              <Input
+   936→                type={showCurrentPassword ? 'text' : 'password'}
+   937→                value={currentPassword}
+   938→                onChange={(e) => setCurrentPassword(e.target.value)}
+   939→                placeholder="••••••••"
+   940→                dir="ltr"
+   941→                className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 pr-10"
+   942→              />
+   943→              <button
+   944→                type="button"
+   945→                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+   946→                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+   947→              >
+   948→                {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+   949→              </button>
+   950→            </div>
+   951→          </div>
+   952→
+   953→          {/* New Password */}
+   954→          <div className="flex flex-col gap-2">
+   955→            <Label className="text-sm text-slate-300 font-medium flex items-center gap-2">
+   956→              <Lock className="h-4 w-4 text-[#D4A574]" />
+   957→              {t('adminProfile.newPassword')}
+   958→            </Label>
+   959→            <div className="relative">
+   960→              <Input
+   961→                type={showNewPassword ? 'text' : 'password'}
+   962→                value={newPassword}
+   963→                onChange={(e) => setNewPassword(e.target.value)}
+   964→                placeholder="••••••••"
+   965→                dir="ltr"
+   966→                className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 pr-10"
+   967→              />
+   968→              <button
+   969→                type="button"
+   970→                onClick={() => setShowNewPassword(!showNewPassword)}
+   971→                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+   972→              >
+   973→                {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+   974→              </button>
+   975→            </div>
+   976→          </div>
+   977→
+   978→          {/* Confirm Password */}
+   979→          <div className="flex flex-col gap-2">
+   980→            <Label className="text-sm text-slate-300 font-medium flex items-center gap-2">
+   981→              <Lock className="h-4 w-4 text-[#D4A574]" />
+   982→              {t('adminProfile.confirmPassword')}
+   983→            </Label>
+   984→            <div className="relative">
+   985→              <Input
+   986→                type={showConfirmPassword ? 'text' : 'password'}
+   987→                value={confirmPassword}
+   988→                onChange={(e) => setConfirmPassword(e.target.value)}
+   989→                placeholder="••••••••"
+   990→                dir="ltr"
+   991→                className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 pr-10"
+   992→              />
+   993→              <button
+   994→                type="button"
+   995→                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+   996→                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+   997→              >
+   998→                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+   999→              </button>
+  1000→            </div>
+  1001→          </div>
+  1002→
+  1003→          {/* Password Mismatch Warning */}
+  1004→          {confirmPassword && newPassword !== confirmPassword && (
+  1005→            <p className="text-xs text-red-400 flex items-center gap-1">
+  1006→              <Shield className="h-3 w-3" />
+  1007→              {t('adminProfile.passwordMismatch')}
+  1008→            </p>
+  1009→          )}
+  1010→
+  1011→          {/* Change Password Button */}
+  1012→          <div className="flex items-center justify-end gap-3 pt-1">
+  1013→            <Button
+  1014→              onClick={handlePasswordChange}
+  1015→              disabled={!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword}
+  1016→              className={cn(
+  1017→                'gap-2 font-semibold rounded-lg px-5 h-9 text-xs transition-all duration-300',
+  1018→                currentPassword && newPassword && confirmPassword && newPassword === confirmPassword
+  1019→                  ? 'btn-shine'
+  1020→                  : 'opacity-40 cursor-not-allowed',
+  1021→              )}
+  1022→              style={{ backgroundColor: '#D4A574', color: '#121218' }}
+  1023→            >
+  1024→              {passwordSaved ? (
+  1025→                <>
+  1026→                  <Check className="h-3.5 w-3.5" />
+  1027→                  تم التغيير
+  1028→                </>
+  1029→              ) : (
+  1030→                <>
+  1031→                  <Lock className="h-3.5 w-3.5" />
+  1032→                  {t('adminProfile.passwordChange')}
+  1033→                </>
+  1034→              )}
+  1035→            </Button>
+  1036→          </div>
+  1037→        </div>
+  1038→      </SettingCard>
+  1039→    </>
+  1040→  );
+  1041→}
+  1042→
+  1043→/* ------------------------------------------------------------------ */
+  1044→/*  Main component                                                     */
+  1045→/* ------------------------------------------------------------------ */
+  1046→export default function SettingsSection() {
+  1047→  /* ── notification toggles ── */
+  1048→  const notificationDefaults: ToggleSetting[] = [
+  1049→    { key: 'system', label: 'إشعارات النظام', description: 'تحديثات النظام وصيانة الخوادم', icon: <Bell className="h-4 w-4" />, defaultOn: true },
+  1050→    { key: 'sound', label: 'إشعارات الصوت', description: 'تنبيهات صوتية عند الإشعارات الجديدة', icon: <Volume2 className="h-4 w-4" />, defaultOn: true },
+  1051→    { key: 'email', label: 'إشعارات البريد الإلكتروني', description: 'إرسال ملخص يومي للبريد', icon: <Mail className="h-4 w-4" />, defaultOn: false },
+  1052→    { key: 'messages', label: 'إشعارات الرسائل', description: 'تنبيهات الرسائل الجديدة والدردشات', icon: <Smartphone className="h-4 w-4" />, defaultOn: true },
+  1053→  ];
+  1054→
+  1055→  /* ── appearance toggles ── */
+  1056→  const { theme, setTheme } = useTheme();
+  1057→  const isDark = theme === 'dark';
+  1058→
+  1059→  const handleThemeToggle = (checked: boolean) => {
+  1060→    setTheme(checked ? 'dark' : 'light');
+  1061→    setSaved(false);
+  1062→  };
+  1063→
+  1064→  const appearanceDefaults: ToggleSetting[] = [
+  1065→    { key: 'darkMode', label: 'الوضع الداكن', description: 'تفعيل المظهر الداكن (موصى به)', icon: <Moon className="h-4 w-4" />, defaultOn: true },
+  1066→    { key: 'sidebarDefault', label: 'الشريط الجانبي مفتوح', description: 'عرض الشريط الجانبي افتراضياً عند فتح الصفحة', icon: <Monitor className="h-4 w-4" />, defaultOn: true },
+  1067→  ];
+  1068→
+  1069→  /* ── analytics toggles ── */
+  1070→  const analyticsDefaults: ToggleSetting[] = [
+  1071→    { key: 'analyticsNotif', label: 'إشعارات التحليلات', description: 'تنبيهات التغييرات في التحليلات', icon: <BarChart3 className="h-4 w-4" />, defaultOn: true },
+  1072→    { key: 'activityTracking', label: 'تتبع الأنشطة', description: 'تتبع نشاط الطلاب والمعلمين', icon: <Activity className="h-4 w-4" />, defaultOn: true },
+  1073→    { key: 'assessmentTracking', label: 'تتبع التقييمات', description: 'إشعارات نتائج التقييمات والاختبارات', icon: <Target className="h-4 w-4" />, defaultOn: false },
+  1074→    { key: 'sessionTracking', label: 'تتبع الجلسات', description: 'تتبع إحصائيات الجلسات التعليمية', icon: <Clock className="h-4 w-4" />, defaultOn: true },
+  1075→  ];
+  1076→
+  1077→  const allDefaults = [...notificationDefaults, ...appearanceDefaults, ...analyticsDefaults];
+  1078→
+  1079→  const buildDefaultMap = () =>
+  1080→    Object.fromEntries(allDefaults.map((s) => [s.key, s.defaultOn]));
+  1081→
+  1082→  const [toggles, setToggles] = useState<Record<string, boolean>>(buildDefaultMap);
+  1083→  const [language, setLanguage] = useState('ar');
+  1084→  const [schoolName, setSchoolName] = useState('AuraLab Academy');
+  1085→  const [academicYear, setAcademicYear] = useState('2024-2025');
+  1086→  const [saved, setSaved] = useState(false);
+  1087→
+  1088→  const handleToggle = (key: string, value: boolean) => {
+  1089→    setToggles((prev) => ({ ...prev, [key]: value }));
+  1090→    setSaved(false);
+  1091→  };
+  1092→
+  1093→  const resetAll = () => {
+  1094→    setToggles(buildDefaultMap());
+  1095→    setLanguage('ar');
+  1096→    setSchoolName('AuraLab Academy');
+  1097→    setAcademicYear('2024-2025');
+  1098→    setSaved(false);
+  1099→    toast.success('تم إعادة تعيين جميع الإعدادات');
+  1100→  };
+  1101→
+  1102→  const handleSave = () => {
+  1103→    setSaved(true);
+  1104→    toast.success('تم حفظ إعدادات النظام بنجاح');
+  1105→    setTimeout(() => setSaved(false), 3000);
+  1106→  };
+  1107→
+  1108→  return (
+  1109→    <div className="flex flex-col gap-6" dir="rtl">
+  1110→      {/* ── Page header ── */}
+  1111→      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+  1112→        <div className="flex items-center gap-3">
+  1113→          <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-[#D4A574]/10">
+  1114→            <Settings className="h-5 w-5 text-[#D4A574]" />
+  1115→          </div>
+  1116→          <div>
+  1117→            <h1 className="text-2xl font-bold text-white tracking-tight sm:text-3xl">
+  1118→              إعدادات النظام
+  1119→            </h1>
+  1120→            <p className="mt-0.5 text-sm text-muted-foreground">
+  1121→              تخصيص إعدادات النظام والملف الشخصي والإشعارات
+  1122→            </p>
+  1123→          </div>
+  1124→        </div>
+  1125→        <Button
+  1126→          onClick={resetAll}
+  1127→          variant="outline"
+  1128→          className="gap-2 text-slate-300 border-white/[0.08] hover:bg-[#D4A574]/10 hover:text-[#D4A574] hover:border-[#D4A574]/40 transition-colors rounded-lg"
+  1129→        >
+  1130→          <RotateCcw className="h-4 w-4" />
+  1131→          إعادة تعيين
+  1132→        </Button>
+  1133→      </div>
+  1134→
+  1135→      {/* ============================================================ */}
+  1136→      {/* Section 1 – Admin Profile (Editable)                          */}
+  1137→      {/* ============================================================ */}
+  1138→      <AdminProfileCard />
+  1139→
+  1140→      {/* ============================================================ */}
+  1141→      {/* Section 2 – المظهر (with working theme toggle)               */}
+  1142→      {/* ============================================================ */}
+  1143→      <SettingCard
+  1144→        title="المظهر"
+  1145→        icon={<Monitor className="h-5 w-5" />}
+  1146→        badge="تخصيص العرض"
+  1147→      >
+  1148→        <div className="flex flex-col gap-3">
+  1149→          {/* Working Theme Toggle */}
+  1150→          <div
+  1151→            className="flex items-center justify-between gap-4 rounded-xl p-4 transition-all duration-200"
+  1152→            style={{
+  1153→              backgroundColor: 'rgba(255,255,255,0.02)',
+  1154→              border: '1px solid rgba(255,255,255,0.04)',
+  1155→            }}
+  1156→          >
+  1157→            <div className="flex items-center gap-3 min-w-0">
+  1158→              <div className="flex shrink-0 items-center justify-center h-9 w-9 rounded-lg bg-[#D4A574]/10 text-[#D4A574]">
+  1159→                <Moon className="h-4 w-4" />
+  1160→              </div>
+  1161→              <div className="min-w-0">
+  1162→                <Label className="cursor-pointer text-sm font-medium text-slate-200 block">
+  1163→                  الوضع الداكن
+  1164→                </Label>
+  1165→                <p className="text-xs text-slate-500 mt-0.5">تفعيل المظهر الداكن (موصى به) — التبديل فوري</p>
+  1166→              </div>
+  1167→            </div>
+  1168→            <Switch
+  1169→              id="theme-dark-toggle"
+  1170→              checked={isDark}
+  1171→              onCheckedChange={handleThemeToggle}
+  1172→              className="data-[state=checked]:bg-[#D4A574] data-[state=unchecked]:bg-slate-600 shrink-0"
+  1173→            />
+  1174→          </div>
+  1175→
+  1176→          {/* Theme preview */}
+  1177→          <div className="flex items-center gap-3 rounded-xl p-4" style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+  1178→            <div className="flex gap-2">
+  1179→              <button
+  1180→                onClick={() => { setTheme('dark'); setSaved(false); }}
+  1181→                className={cn(
+  1182→                  'flex flex-col items-center gap-2 rounded-xl p-3 transition-all duration-200 border',
+  1183→                  isDark ? 'border-[#D4A574]/30 bg-[#D4A574]/10' : 'border-white/[0.06] hover:bg-white/[0.03]'
+  1184→                )}
+  1185→              >
+  1186→                <div className="h-8 w-12 rounded-md" style={{ background: 'linear-gradient(135deg, #121218, #1A1A24)' }} />
+  1187→                <span className={cn('text-xs font-medium', isDark ? 'text-[#D4A574]' : 'text-slate-500')}>داكن</span>
+  1188→              </button>
+  1189→              <button
+  1190→                onClick={() => { setTheme('light'); setSaved(false); }}
+  1191→                className={cn(
+  1192→                  'flex flex-col items-center gap-2 rounded-xl p-3 transition-all duration-200 border',
+  1193→                  !isDark ? 'border-[#D4A574]/30 bg-[#D4A574]/10' : 'border-white/[0.06] hover:bg-white/[0.03]'
+  1194→                )}
+  1195→              >
+  1196→                <div className="h-8 w-12 rounded-md" style={{ background: 'linear-gradient(135deg, #F8F6F3, #FFFFFF)' }} />
+  1197→                <span className={cn('text-xs font-medium', !isDark ? 'text-[#D4A574]' : 'text-slate-500')}>فاتح</span>
+  1198→              </button>
+  1199→            </div>
+  1200→            <div className="flex-1 min-w-0">
+  1201→              <p className="text-sm font-medium text-slate-200">النظام الحالي: <span className="text-[#D4A574]">{isDark ? 'داكن' : 'فاتح'}</span></p>
+  1202→              <p className="text-xs text-slate-500">يتم حفظ التفضيل تلقائياً</p>
+  1203→            </div>
+  1204→          </div>
+  1205→
+  1206→          {appearanceDefaults.filter(s => s.key !== 'darkMode').map((s) => (
+  1207→            <ToggleRow
+  1208→              key={s.key}
+  1209→              setting={s}
+  1210→              checked={toggles[s.key]}
+  1211→              onCheckedChange={handleToggle}
+  1212→            />
+  1213→          ))}
+  1214→        </div>
+  1215→      </SettingCard>
+  1216→
+  1217→      {/* ============================================================ */}
+  1218→      {/* Section 3 – تخصيص المظهر (Theme Customizer)                  */}
+  1219→      {/* ============================================================ */}
+  1220→      <ThemeCustomizerCard />
+  1221→
+  1222→      {/* ============================================================ */}
+  1223→      {/* Section 4 – الإشعارات                                        */}
+  1224→      {/* ============================================================ */}
+  1225→      <SettingCard
+  1226→        title="الإشعارات"
+  1227→        icon={<Bell className="h-5 w-5" />}
+  1228→        badge="إدارة التنبيهات"
+  1229→      >
+  1230→        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+  1231→          {notificationDefaults.map((s) => (
+  1232→            <ToggleRow
+  1233→              key={s.key}
+  1234→              setting={s}
+  1235→              checked={toggles[s.key]}
+  1236→              onCheckedChange={handleToggle}
+  1237→            />
+  1238→          ))}
+  1239→        </div>
+  1240→
+  1241→        {/* Analytics subsection */}
+  1242→        <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+  1243→          <div className="flex items-center gap-2 mb-3">
+  1244→            <BarChart3 className="h-4 w-4 text-[#D4A574]" />
+  1245→            <span className="text-sm font-semibold text-slate-300">تحليلات وإحصائيات</span>
+  1246→          </div>
+  1247→          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+  1248→            {analyticsDefaults.map((s) => (
+  1249→              <ToggleRow
+  1250→                key={s.key}
+  1251→                setting={s}
+  1252→                checked={toggles[s.key]}
+  1253→                onCheckedChange={handleToggle}
+  1254→              />
+  1255→            ))}
+  1256→          </div>
+  1257→        </div>
+  1258→      </SettingCard>
+  1259→
+  1260→      {/* ============================================================ */}
+  1261→      {/* Section 5 – النظام                                           */}
+  1262→      {/* ============================================================ */}
+  1263→      <SettingCard
+  1264→        title="النظام"
+  1265→        icon={<Globe className="h-5 w-5" />}
+  1266→        badge="إعدادات عامة"
+  1267→      >
+  1268→        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  1269→          {/* School name */}
+  1270→          <div className="flex flex-col gap-2">
+  1271→            <Label className="text-sm text-slate-300 font-medium flex items-center gap-2">
+  1272→              <School className="h-4 w-4 text-[#D4A574]" />
+  1273→              اسم المدرسة
+  1274→            </Label>
+  1275→            <input
+  1276→              type="text"
+  1277→              value={schoolName}
+  1278→              onChange={(e) => { setSchoolName(e.target.value); setSaved(false); }}
+  1279→              className="w-full rounded-lg bg-white/[0.03] border border-white/[0.08] px-3.5 py-2.5 text-sm text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 outline-none transition-colors"
+  1280→            />
+  1281→          </div>
+  1282→
+  1283→          {/* Academic year */}
+  1284→          <div className="flex flex-col gap-2">
+  1285→            <Label className="text-sm text-slate-300 font-medium flex items-center gap-2">
+  1286→              <CalendarDays className="h-4 w-4 text-[#D4A574]" />
+  1287→              العام الدراسي
+  1288→            </Label>
+  1289→            <Select value={academicYear} onValueChange={(v) => { setAcademicYear(v); setSaved(false); }}>
+  1290→              <SelectTrigger className="w-full bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20">
+  1291→                <SelectValue />
+  1292→              </SelectTrigger>
+  1293→              <SelectContent className="bg-[#1A1A24] border-white/[0.08] text-slate-200">
+  1294→                <SelectItem value="2024-2025" className="focus:bg-white/[0.05] focus:text-white">2024 - 2025</SelectItem>
+  1295→                <SelectItem value="2025-2026" className="focus:bg-white/[0.05] focus:text-white">2025 - 2026</SelectItem>
+  1296→                <SelectItem value="2023-2024" className="focus:bg-white/[0.05] focus:text-white">2023 - 2024</SelectItem>
+  1297→              </SelectContent>
+  1298→            </Select>
+  1299→          </div>
+  1300→
+  1301→          {/* Language */}
+  1302→          <div className="flex flex-col gap-2">
+  1303→            <Label className="text-sm text-slate-300 font-medium flex items-center gap-2">
+  1304→              <Globe className="h-4 w-4 text-[#D4A574]" />
+  1305→              اللغة
+  1306→            </Label>
+  1307→            <Select value={language} onValueChange={(v) => { setLanguage(v); setSaved(false); }}>
+  1308→              <SelectTrigger className="w-full bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20">
+  1309→                <SelectValue />
+  1310→              </SelectTrigger>
+  1311→              <SelectContent className="bg-[#1A1A24] border-white/[0.08] text-slate-200">
+  1312→                <SelectItem value="ar" className="focus:bg-white/[0.05] focus:text-white">العربية</SelectItem>
+  1313→                <SelectItem value="en" className="focus:bg-white/[0.05] focus:text-white">English</SelectItem>
+  1314→              </SelectContent>
+  1315→            </Select>
+  1316→          </div>
+  1317→        </div>
+  1318→      </SettingCard>
+  1319→
+  1320→      {/* ============================================================ */}
+  1321→      {/* Save Button                                                   */}
+  1322→      {/* ============================================================ */}
+  1323→      <div
+  1324→        className="flex items-center justify-between rounded-xl p-4"
+  1325→        style={{
+  1326→          backgroundColor: '#1A1A24',
+  1327→          border: '1px solid rgba(255,255,255,0.06)',
+  1328→        }}
+  1329→      >
+  1330→        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+  1331→          {saved ? (
+  1332→            <span className="flex items-center gap-2 text-emerald-400">
+  1333→              <Check className="h-4 w-4" />
+  1334→              تم حفظ التغييرات بنجاح
+  1335→            </span>
+  1336→          ) : (
+  1337→            'تأكد من مراجعة التغييرات قبل الحفظ'
+  1338→          )}
+  1339→        </div>
+  1340→        <Button
+  1341→          onClick={handleSave}
+  1342→          className={cn(
+  1343→            'gap-2 font-semibold rounded-lg px-6 h-10 transition-all duration-300',
+  1344→            saved
+  1345→              ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+  1346→              : 'bg-amber-500 hover:bg-amber-600 text-slate-900',
+  1347→          )}
+  1348→        >
+  1349→          {saved ? (
+  1350→            <>
+  1351→              <Check className="h-4 w-4" />
+  1352→              تم الحفظ
+  1353→            </>
+  1354→          ) : (
+  1355→            <>
+  1356→              <Save className="h-4 w-4" />
+  1357→              حفظ التغييرات
+  1358→            </>
+  1359→          )}
+  1360→        </Button>
+  1361→      </div>
+  1362→    </div>
+  1363→  );
+  1364→}
+  1365→

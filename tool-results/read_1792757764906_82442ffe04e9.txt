@@ -1,0 +1,1600 @@
+     1→'use client';
+     2→
+     3→import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+     4→import {
+     5→  BookOpen,
+     6→  Plus,
+     7→  Search,
+     8→  Eye,
+     9→  Pencil,
+    10→  Trash2,
+    11→  LayoutGrid,
+    12→  List,
+    13→  Filter,
+    14→  ChevronLeft,
+    15→  ChevronRight,
+    16→  Save,
+    17→  BookCopy,
+    18→  ArrowRightLeft,
+    19→  Library,
+    20→  MapPin,
+    21→  Calendar,
+    22→  Hash,
+    23→  Building2,
+    24→  User,
+    25→  CircleDot,
+    26→} from 'lucide-react';
+    27→import { useAppStore } from '@/lib/store';
+    28→import { cn } from '@/lib/utils';
+    29→import { toast } from 'sonner';
+    30→import type { LibraryBook } from '@/lib/types';
+    31→
+    32→// shadcn/ui
+    33→import { Button } from '@/components/ui/button';
+    34→import { Input } from '@/components/ui/input';
+    35→import { Label } from '@/components/ui/label';
+    36→import { Badge } from '@/components/ui/badge';
+    37→import { Textarea } from '@/components/ui/textarea';
+    38→import {
+    39→  Dialog,
+    40→  DialogContent,
+    41→  DialogDescription,
+    42→  DialogFooter,
+    43→  DialogHeader,
+    44→  DialogTitle,
+    45→} from '@/components/ui/dialog';
+    46→import {
+    47→  AlertDialog,
+    48→  AlertDialogAction,
+    49→  AlertDialogCancel,
+    50→  AlertDialogContent,
+    51→  AlertDialogDescription,
+    52→  AlertDialogFooter,
+    53→  AlertDialogHeader,
+    54→  AlertDialogTitle,
+    55→} from '@/components/ui/alert-dialog';
+    56→import {
+    57→  Select,
+    58→  SelectContent,
+    59→  SelectItem,
+    60→  SelectTrigger,
+    61→  SelectValue,
+    62→} from '@/components/ui/select';
+    63→
+    64→// ---------------------------------------------------------------------------
+    65→// Constants
+    66→// ---------------------------------------------------------------------------
+    67→
+    68→const ITEMS_PER_PAGE = 12;
+    69→
+    70→const CATEGORIES = [
+    71→  'أدب',
+    72→  'علوم',
+    73→  'رياضيات',
+    74→  'تاريخ',
+    75→  'جغرافيا',
+    76→  'لغة عربية',
+    77→  'لغة إنجليزية',
+    78→  'دين',
+    79→  'فن',
+    80→  'تقنية',
+    81→] as const;
+    82→
+    83→const COVER_COLORS = [
+    84→  '#D4A574',
+    85→  '#E07A5F',
+    86→  '#81B29A',
+    87→  '#3D85C6',
+    88→  '#9B59B6',
+    89→  '#F39C12',
+    90→  '#E74C3C',
+    91→  '#1ABC9C',
+    92→] as const;
+    93→
+    94→type ViewMode = 'grid' | 'list';
+    95→type AvailabilityFilter = 'all' | 'available' | 'borrowed';
+    96→
+    97→// ---------------------------------------------------------------------------
+    98→// Mock Data
+    99→// ---------------------------------------------------------------------------
+   100→
+   101→function generateMockBooks(): LibraryBook[] {
+   102→  const books: Omit<LibraryBook, 'id' | 'createdAt'>[] = [
+   103→    {
+   104→      title: 'ألف ليلة وليلة',
+   105→      author: 'مجهول',
+   106→      isbn: '978-977-01-1001-1',
+   107→      category: 'أدب',
+   108→      publisher: 'دار المعارف',
+   109→      year: 2005,
+   110→      totalCopies: 5,
+   111→      availableCopies: 3,
+   112→      location: 'الرف A-1',
+   113→      coverColor: '#D4A574',
+   114→      description: 'مجموعة من القصص الشعبية العربية التي تروي حكايات شهرزاد الساحرة عبر ألف ليلة.',
+   115→      addedBy: 'المدير: أحمد محمد',
+   116→    },
+   117→    {
+   118→      title: 'الفيزياء المسلية',
+   119→      author: 'ياكوف بيرلمان',
+   120→      isbn: '978-977-01-1002-8',
+   121→      category: 'علوم',
+   122→      publisher: 'دار الهلال',
+   123→      year: 2012,
+   124→      totalCopies: 4,
+   125→      availableCopies: 2,
+   126→      location: 'الرف B-3',
+   127→      coverColor: '#81B29A',
+   128→      description: 'كتاب يشرح مبادئ الفيزياء بطريقة مبسطة ومسلية مع أمثلة من الحياة اليومية.',
+   129→      addedBy: 'المدير: أحمد محمد',
+   130→    },
+   131→    {
+   132→      title: 'الرياضيات للمرحلة الثانوية',
+   133→      author: 'د. فهد العتيبي',
+   134→      isbn: '978-977-01-1003-5',
+   135→      category: 'رياضيات',
+   136→      publisher: 'وزارة التعليم',
+   137→      year: 2023,
+   138→      totalCopies: 30,
+   139→      availableCopies: 18,
+   140→      location: 'الرف C-1',
+   141→      coverColor: '#3D85C6',
+   142→      description: 'كتاب منهجي شامل للرياضيات للصف الثالث الثانوي يشمل الجبر والهندسة والتحليل.',
+   143→      addedBy: 'المعلم: خالد العمري',
+   144→    },
+   145→    {
+   146→      title: 'تاريخ الحضارة الإسلامية',
+   147→      author: 'د. حسن إبراهيم حسن',
+   148→      isbn: '978-977-01-1004-2',
+   149→      category: 'تاريخ',
+   150→      publisher: 'دار الفكر العربي',
+   151→      year: 2018,
+   152→      totalCopies: 6,
+   153→      availableCopies: 6,
+   154→      location: 'الرف D-2',
+   155→      coverColor: '#E07A5F',
+   156→      description: 'دراسة شاملة لتاريخ الحضارة الإسلامية من نشأتها حتى العصر الحديث.',
+   157→      addedBy: 'المدير: أحمد محمد',
+   158→    },
+   159→    {
+   160→      title: 'جغرافيا العالم',
+   161→      author: 'د. سارة القحطاني',
+   162→      isbn: '978-977-01-1005-9',
+   163→      category: 'جغرافيا',
+   164→      publisher: 'دار العلم',
+   165→      year: 2020,
+   166→      totalCopies: 8,
+   167→      availableCopies: 5,
+   168→      location: 'الرف D-4',
+   169→      coverColor: '#1ABC9C',
+   170→      description: 'استكشاف شامل للجغرافيا الطبيعية والبشرية لقارات العالم المختلفة.',
+   171→      addedBy: 'المعلم: خالد العمري',
+   172→    },
+   173→    {
+   174→      title: 'النحو الواضح',
+   175→      author: 'علي الجارم',
+   176→      isbn: '978-977-01-1006-6',
+   177→      category: 'لغة عربية',
+   178→      publisher: 'دار المعارف',
+   179→      year: 2015,
+   180→      totalCopies: 20,
+   181→      availableCopies: 12,
+   182→      location: 'الرف A-3',
+   183→      coverColor: '#F39C12',
+   184→      description: 'كتاب في قواعد النحو العربي يشرح القواعد بطريقة واضحة وسهلة الفهم.',
+   185→      addedBy: 'المعلم: خالد العمري',
+   186→    },
+   187→    {
+   188→      title: 'English Grammar in Use',
+   189→      author: 'Raymond Murphy',
+   190→      isbn: '978-1-107-61404-5',
+   191→      category: 'لغة إنجليزية',
+   192→      publisher: 'Cambridge University Press',
+   193→      year: 2019,
+   194→      totalCopies: 15,
+   195→      availableCopies: 0,
+   196→      location: 'الرف E-1',
+   197→      coverColor: '#9B59B6',
+   198→      description: 'A self-study reference and practice book for intermediate learners of English.',
+   199→      addedBy: 'المدير: أحمد محمد',
+   200→    },
+   201→    {
+   202→      title: 'تفسير ابن كثير',
+   203→      author: 'الإمام ابن كثير',
+   204→      isbn: '978-977-01-1007-3',
+   205→      category: 'دين',
+   206→      publisher: 'دار الفكر',
+   207→      year: 2010,
+   208→      totalCopies: 10,
+   209→      availableCopies: 7,
+   210→      location: 'الرف F-1',
+   211→      coverColor: '#E74C3C',
+   212→      description: 'تفسير شامل للقرآن الكريم مع الأحاديث والآثار المرتبطة بالآيات.',
+   213→      addedBy: 'المدير: أحمد محمد',
+   214→    },
+   215→    {
+   216→      title: 'فن الخط العربي',
+   217→      author: 'د. محمد عبد القادر',
+   218→      isbn: '978-977-01-1008-0',
+   219→      category: 'فن',
+   220→      publisher: 'دار الفنون',
+   221→      year: 2017,
+   222→      totalCopies: 4,
+   223→      availableCopies: 4,
+   224→      location: 'الرف G-1',
+   225→      coverColor: '#D4A574',
+   226→      description: 'دليل شامل لتعلم فنون الخط العربي بأنواعها المختلفة من النسخ إلى الديواني.',
+   227→      addedBy: 'المعلم: خالد العمري',
+   228→    },
+   229→    {
+   230→      title: 'مقدمة في البرمجة',
+   231→      author: 'د. نورة الشمري',
+   232→      isbn: '978-977-01-1009-7',
+   233→      category: 'تقنية',
+   234→      publisher: 'دار التقنية',
+   235→      year: 2024,
+   236→      totalCopies: 12,
+   237→      availableCopies: 8,
+   238→      location: 'الرف H-1',
+   239→      coverColor: '#3D85C6',
+   240→      description: 'مقدمة في أساسيات البرمجة باستخدام لغة بايثون مع مشاريع عملية تطبيقية.',
+   241→      addedBy: 'المعلم: خالد العمري',
+   242→    },
+   243→    {
+   244→      title: 'أسرار الكون',
+   245→      author: 'ستيفن هوكينج',
+   246→      isbn: '978-977-01-1010-3',
+   247→      category: 'علوم',
+   248→      publisher: 'دار الشروق',
+   249→      year: 2016,
+   250→      totalCopies: 3,
+   251→      availableCopies: 1,
+   252→      location: 'الرف B-1',
+   253→      coverColor: '#81B29A',
+   254→      description: 'رحلة مذهلة عبر الكون من الثقوب السوداء إلى النسبية العامة بطريقة مبسطة.',
+   255→      addedBy: 'المدير: أحمد محمد',
+   256→    },
+   257→    {
+   258→      title: 'ألف باء الإعراب',
+   259→      author: 'محيي الدين بن عبد الظاهر',
+   260→      isbn: '978-977-01-1011-0',
+   261→      category: 'لغة عربية',
+   262→      publisher: 'دار الكتب العلمية',
+   263→      year: 2008,
+   264→      totalCopies: 7,
+   265→      availableCopies: 5,
+   266→      location: 'الرف A-2',
+   267→      coverColor: '#E07A5F',
+   268→      description: 'كتاب مصغر في علم النحو والصرف يقدم القواعد الأساسية بطريقة مختصرة.',
+   269→      addedBy: 'المعلم: خالد العمري',
+   270→    },
+   271→    {
+   272→      title: 'قصص الأنبياء',
+   273→      author: 'ابن كثير',
+   274→      isbn: '978-977-01-1012-7',
+   275→      category: 'دين',
+   276→      publisher: 'دار المعرفة',
+   277→      year: 2013,
+   278→      totalCopies: 9,
+   279→      availableCopies: 9,
+   280→      location: 'الرف F-2',
+   281→      coverColor: '#F39C12',
+   282→      description: 'مجموعة من قصص الأنبياء والمرسلين مستندة إلى المصادر الأصلية.',
+   283→      addedBy: 'المدير: أحمد محمد',
+   284→    },
+   285→    {
+   286→      title: 'الطريق إلى التفوق',
+   287→      author: 'د. عبدالله العنزي',
+   288→      isbn: '978-977-01-1013-4',
+   289→      category: 'أدب',
+   290→      publisher: 'دار الإبداع',
+   291→      year: 2021,
+   292→      totalCopies: 5,
+   293→      availableCopies: 3,
+   294→      location: 'الرف A-4',
+   295→      coverColor: '#9B59B6',
+   296→      description: 'كتاب تحفيزي يقدم استراتيجيات وطرق للتفوق الدراسي والشخصي.',
+   297→      addedBy: 'المعلم: خالد العمري',
+   298→    },
+   299→    {
+   300→      title: 'أساسيات التصميم الجرافيكي',
+   301→      author: 'د. ليلى الحربي',
+   302→      isbn: '978-977-01-1014-1',
+   303→      category: 'تقنية',
+   304→      publisher: 'دار الإبداع الرقمي',
+   305→      year: 2022,
+   306→      totalCopies: 6,
+   307→      availableCopies: 2,
+   308→      location: 'الرف H-2',
+   309→      coverColor: '#E74C3C',
+   310→      description: 'مقدمة شاملة في مبادئ التصميم الجرافيكي وأدواته الحديثة.',
+   311→      addedBy: 'المعلم: خالد العمري',
+   312→    },
+   313→    {
+   314→      title: 'الهندسة الفراغية',
+   315→      author: 'د. سلطان المطيري',
+   316→      isbn: '978-977-01-1015-8',
+   317→      category: 'رياضيات',
+   318→      publisher: 'دار العلوم',
+   319→      year: 2023,
+   320→      totalCopies: 10,
+   321→      availableCopies: 6,
+   322→      location: 'الرف C-3',
+   323→      coverColor: '#1ABC9C',
+   324→      description: 'كتاب في الهندسة الفراغية يشمل الأشكال ثلاثية الأبعاد والمجسمات والتحويلات.',
+   325→      addedBy: 'المدير: أحمد محمد',
+   326→    },
+   327→  ];
+   328→
+   329→  return books.map((book, i) => ({
+   330→    ...book,
+   331→    id: `book-${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${i}`,
+   332→    createdAt: new Date(2024, 0, 1 + i).toISOString(),
+   333→  }));
+   334→}
+   335→
+   336→// ---------------------------------------------------------------------------
+   337→// Helpers
+   338→// ---------------------------------------------------------------------------
+   339→
+   340→function formatDate(dateStr: string): string {
+   341→  return new Date(dateStr).toLocaleDateString('ar-SA', {
+   342→    year: 'numeric',
+   343→    month: 'short',
+   344→    day: 'numeric',
+   345→  });
+   346→}
+   347→
+   348→// ---------------------------------------------------------------------------
+   349→// Stat Card
+   350→// ---------------------------------------------------------------------------
+   351→
+   352→function StatCard({
+   353→  icon: Icon,
+   354→  label,
+   355→  value,
+   356→  colorClass,
+   357→  bgColor,
+   358→}: {
+   359→  icon: typeof BookOpen;
+   360→  label: string;
+   361→  value: string | number;
+   362→  colorClass: string;
+   363→  bgColor: string;
+   364→}) {
+   365→  return (
+   366→    <div
+   367→      className="rounded-xl p-4 transition-all duration-300 hover:scale-[1.02]"
+   368→      style={{
+   369→        backgroundColor: 'rgba(255,255,255,0.02)',
+   370→        border: '1px solid rgba(255,255,255,0.06)',
+   371→      }}
+   372→    >
+   373→      <div className="flex items-center gap-3">
+   374→        <div className={cn('flex items-center justify-center h-10 w-10 rounded-xl', bgColor)}>
+   375→          <Icon className={cn('h-5 w-5', colorClass)} />
+   376→        </div>
+   377→        <div>
+   378→          <p className="text-2xl font-bold text-white tabular-nums">{value}</p>
+   379→          <p className="text-xs text-muted-foreground">{label}</p>
+   380→        </div>
+   381→      </div>
+   382→    </div>
+   383→  );
+   384→}
+   385→
+   386→// ---------------------------------------------------------------------------
+   387→// View Dialog
+   388→// ---------------------------------------------------------------------------
+   389→
+   390→function ViewBookDialog({
+   391→  book,
+   392→  open,
+   393→  onOpenChange,
+   394→}: {
+   395→  book: LibraryBook | null;
+   396→  open: boolean;
+   397→  onOpenChange: (open: boolean) => void;
+   398→}) {
+   399→  const { updateLibraryBook } = useAppStore();
+   400→
+   401→  const handleBorrow = useCallback(() => {
+   402→    if (!book) return;
+   403→    if (book.availableCopies <= 0) {
+   404→      toast.error('لا توجد نسخ متاحة للاستعارة');
+   405→      return;
+   406→    }
+   407→    updateLibraryBook(book.id, { availableCopies: book.availableCopies - 1 });
+   408→    toast.success(`تم استعارة كتاب "${book.title}" بنجاح`);
+   409→  }, [book, updateLibraryBook]);
+   410→
+   411→  const handleReturn = useCallback(() => {
+   412→    if (!book) return;
+   413→    if (book.availableCopies >= book.totalCopies) {
+   414→      toast.error('جميع النسخ موجودة في المكتبة بالفعل');
+   415→      return;
+   416→    }
+   417→    updateLibraryBook(book.id, { availableCopies: book.availableCopies + 1 });
+   418→    toast.success(`تم إرجاع كتاب "${book.title}" بنجاح`);
+   419→  }, [book, updateLibraryBook]);
+   420→
+   421→  if (!book) return null;
+   422→
+   423→  const borrowed = book.totalCopies - book.availableCopies;
+   424→  const isAvailable = book.availableCopies > 0;
+   425→  const isAllReturned = book.availableCopies >= book.totalCopies;
+   426→
+   427→  return (
+   428→    <Dialog open={open} onOpenChange={onOpenChange}>
+   429→      <DialogContent
+   430→        className="sm:max-w-lg"
+   431→        dir="rtl"
+   432→        style={{
+   433→          backgroundColor: '#1A1A24',
+   434→          border: '1px solid rgba(255,255,255,0.06)',
+   435→        }}
+   436→      >
+   437→        <DialogHeader>
+   438→          <DialogTitle className="text-white text-xl flex items-center gap-2">
+   439→            <Eye className="h-5 w-5 text-[#D4A574]" />
+   440→            تفاصيل الكتاب
+   441→          </DialogTitle>
+   442→          <DialogDescription className="text-muted-foreground">
+   443→            عرض تفاصيل الكتاب والمعلومات الكاملة
+   444→          </DialogDescription>
+   445→        </DialogHeader>
+   446→
+   447→        {/* Cover strip */}
+   448→        <div
+   449→          className="h-2 rounded-full w-full"
+   450→          style={{ backgroundColor: book.coverColor }}
+   451→        />
+   452→
+   453→        <div className="flex flex-col gap-4 mt-2">
+   454→          <div
+   455→            className="rounded-xl p-4"
+   456→            style={{
+   457→              backgroundColor: 'rgba(255,255,255,0.02)',
+   458→              border: '1px solid rgba(255,255,255,0.04)',
+   459→            }}
+   460→          >
+   461→            {/* Title & Author */}
+   462→            <div className="mb-4">
+   463→              <h3 className="text-lg font-bold text-white mb-1">{book.title}</h3>
+   464→              <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+   465→                <User className="h-3.5 w-3.5" />
+   466→                {book.author}
+   467→              </p>
+   468→            </div>
+   469→
+   470→            <div className="grid grid-cols-1 gap-3">
+   471→              <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04]">
+   472→                <div className="flex items-center gap-3">
+   473→                  <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#D4A574]/10">
+   474→                    <Hash className="h-4 w-4 text-[#D4A574]" />
+   475→                  </div>
+   476→                  <span className="text-sm text-muted-foreground">ISBN</span>
+   477→                </div>
+   478→                <span className="text-sm font-medium text-slate-200 font-mono" dir="ltr">{book.isbn}</span>
+   479→              </div>
+   480→
+   481→              <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04]">
+   482→                <div className="flex items-center gap-3">
+   483→                  <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#D4A574]/10">
+   484→                    <BookOpen className="h-4 w-4 text-[#D4A574]" />
+   485→                  </div>
+   486→                  <span className="text-sm text-muted-foreground">التصنيف</span>
+   487→                </div>
+   488→                <Badge
+   489→                  variant="outline"
+   490→                  className="text-xs px-2.5 py-0.5 rounded-full bg-[#D4A574]/10 text-[#D4A574] border-[#D4A574]/20"
+   491→                >
+   492→                  {book.category}
+   493→                </Badge>
+   494→              </div>
+   495→
+   496→              <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04]">
+   497→                <div className="flex items-center gap-3">
+   498→                  <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#D4A574]/10">
+   499→                    <Building2 className="h-4 w-4 text-[#D4A574]" />
+   500→                  </div>
+   501→                  <span className="text-sm text-muted-foreground">دار النشر</span>
+   502→                </div>
+   503→                <span className="text-sm font-medium text-slate-200">{book.publisher}</span>
+   504→              </div>
+   505→
+   506→              <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04]">
+   507→                <div className="flex items-center gap-3">
+   508→                  <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#D4A574]/10">
+   509→                    <Calendar className="h-4 w-4 text-[#D4A574]" />
+   510→                  </div>
+   511→                  <span className="text-sm text-muted-foreground">سنة النشر</span>
+   512→                </div>
+   513→                <span className="text-sm font-medium text-slate-200">{book.year}</span>
+   514→              </div>
+   515→
+   516→              <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04]">
+   517→                <div className="flex items-center gap-3">
+   518→                  <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#D4A574]/10">
+   519→                    <MapPin className="h-4 w-4 text-[#D4A574]" />
+   520→                  </div>
+   521→                  <span className="text-sm text-muted-foreground">الموقع</span>
+   522→                </div>
+   523→                <span className="text-sm font-medium text-slate-200">{book.location}</span>
+   524→              </div>
+   525→
+   526→              <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04]">
+   527→                <div className="flex items-center gap-3">
+   528→                  <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#D4A574]/10">
+   529→                    <BookCopy className="h-4 w-4 text-[#D4A574]" />
+   530→                  </div>
+   531→                  <span className="text-sm text-muted-foreground">النسخ</span>
+   532→                </div>
+   533→                <span className="text-sm font-medium text-slate-200">
+   534→                  {book.availableCopies}/{book.totalCopies}
+   535→                  <span className="text-xs text-muted-foreground mr-2">
+   536→                    (متاح / إجمالي)
+   537→                  </span>
+   538→                </span>
+   539→              </div>
+   540→
+   541→              <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04]">
+   542→                <div className="flex items-center gap-3">
+   543→                  <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#D4A574]/10">
+   544→                    <ArrowRightLeft className="h-4 w-4 text-[#D4A574]" />
+   545→                  </div>
+   546→                  <span className="text-sm text-muted-foreground">مستعار</span>
+   547→                </div>
+   548→                <span className="text-sm font-medium text-slate-200">{borrowed} نسخة</span>
+   549→              </div>
+   550→
+   551→              <div className="flex items-center justify-between gap-3 py-2">
+   552→                <div className="flex items-center gap-3">
+   553→                  <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#D4A574]/10">
+   554→                    <CircleDot className="h-4 w-4 text-[#D4A574]" />
+   555→                  </div>
+   556→                  <span className="text-sm text-muted-foreground">الحالة</span>
+   557→                </div>
+   558→                <div className="flex items-center gap-2">
+   559→                  <div
+   560→                    className={cn(
+   561→                      'h-2.5 w-2.5 rounded-full',
+   562→                      isAvailable ? 'bg-emerald-500' : 'bg-red-500',
+   563→                    )}
+   564→                  />
+   565→                  <span className={cn('text-sm font-medium', isAvailable ? 'text-emerald-400' : 'text-red-400')}>
+   566→                    {isAvailable ? 'متاح' : 'غير متاح'}
+   567→                  </span>
+   568→                </div>
+   569→              </div>
+   570→            </div>
+   571→          </div>
+   572→
+   573→          {/* Description */}
+   574→          <div
+   575→            className="rounded-xl p-4"
+   576→            style={{
+   577→              backgroundColor: 'rgba(255,255,255,0.02)',
+   578→              border: '1px solid rgba(255,255,255,0.04)',
+   579→            }}
+   580→          >
+   581→            <h4 className="text-sm font-semibold text-slate-300 mb-2">الوصف</h4>
+   582→            <p className="text-sm text-muted-foreground leading-relaxed">{book.description}</p>
+   583→          </div>
+   584→
+   585→          {/* Borrow / Return buttons */}
+   586→          <div className="flex gap-3">
+   587→            <Button
+   588→              onClick={handleBorrow}
+   589→              disabled={!isAvailable}
+   590→              className={cn(
+   591→                'flex-1 font-semibold rounded-lg gap-2',
+   592→                isAvailable
+   593→                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+   594→                  : 'bg-white/[0.03] text-muted-foreground cursor-not-allowed',
+   595→              )}
+   596→            >
+   597→              <BookCopy className="h-4 w-4" />
+   598→              استعارة
+   599→            </Button>
+   600→            <Button
+   601→              onClick={handleReturn}
+   602→              disabled={isAllReturned}
+   603→              className={cn(
+   604→                'flex-1 font-semibold rounded-lg gap-2',
+   605→                !isAllReturned
+   606→                  ? 'bg-[#D4A574] hover:bg-[#B8895A] text-slate-900'
+   607→                  : 'bg-white/[0.03] text-muted-foreground cursor-not-allowed',
+   608→              )}
+   609→            >
+   610→              <ArrowRightLeft className="h-4 w-4" />
+   611→              إرجاع
+   612→            </Button>
+   613→          </div>
+   614→        </div>
+   615→      </DialogContent>
+   616→    </Dialog>
+   617→  );
+   618→}
+   619→
+   620→// ---------------------------------------------------------------------------
+   621→// Add / Edit Dialog
+   622→// ---------------------------------------------------------------------------
+   623→
+   624→interface BookFormData {
+   625→  title: string;
+   626→  author: string;
+   627→  isbn: string;
+   628→  category: string;
+   629→  publisher: string;
+   630→  year: string;
+   631→  totalCopies: string;
+   632→  location: string;
+   633→  coverColor: string;
+   634→  description: string;
+   635→}
+   636→
+   637→function getDefaultFormData(): BookFormData {
+   638→  return {
+   639→    title: '',
+   640→    author: '',
+   641→    isbn: '',
+   642→    category: '',
+   643→    publisher: '',
+   644→    year: new Date().getFullYear().toString(),
+   645→    totalCopies: '1',
+   646→    location: '',
+   647→    coverColor: COVER_COLORS[0],
+   648→    description: '',
+   649→  };
+   650→}
+   651→
+   652→function BookFormDialog({
+   653→  book,
+   654→  open,
+   655→  onOpenChange,
+   656→}: {
+   657→  book: LibraryBook | null;
+   658→  open: boolean;
+   659→  onOpenChange: (open: boolean) => void;
+   660→}) {
+   661→  const { addLibraryBook, updateLibraryBook } = useAppStore();
+   662→  const isEdit = !!book;
+   663→
+   664→  const [form, setForm] = useState<BookFormData>(getDefaultFormData);
+   665→
+   666→  const prevOpenRef = useRef(false);
+   667→  useEffect(() => {
+   668→    if (open && !prevOpenRef.current) {
+   669→      requestAnimationFrame(() => {
+   670→        if (book) {
+   671→          setForm({
+   672→            title: book.title,
+   673→            author: book.author,
+   674→            isbn: book.isbn,
+   675→            category: book.category,
+   676→            publisher: book.publisher,
+   677→            year: book.year.toString(),
+   678→            totalCopies: book.totalCopies.toString(),
+   679→            location: book.location,
+   680→            coverColor: book.coverColor,
+   681→            description: book.description,
+   682→          });
+   683→        } else {
+   684→          setForm(getDefaultFormData());
+   685→        }
+   686→      });
+   687→    }
+   688→    prevOpenRef.current = open;
+   689→  }, [open, book]);
+   690→
+   691→  const updateField = useCallback(<K extends keyof BookFormData>(key: K, value: BookFormData[K]) => {
+   692→    setForm((prev) => ({ ...prev, [key]: value }));
+   693→  }, []);
+   694→
+   695→  const handleSubmit = useCallback(() => {
+   696→    if (!form.title.trim()) {
+   697→      toast.error('يرجى إدخال عنوان الكتاب');
+   698→      return;
+   699→    }
+   700→    if (!form.author.trim()) {
+   701→      toast.error('يرجى إدخال اسم المؤلف');
+   702→      return;
+   703→    }
+   704→    if (!form.category) {
+   705→      toast.error('يرجى اختيار التصنيف');
+   706→      return;
+   707→    }
+   708→    if (!form.isbn.trim()) {
+   709→      toast.error('يرجى إدخال رقم ISBN');
+   710→      return;
+   711→    }
+   712→
+   713→    const totalCopies = parseInt(form.totalCopies, 10) || 1;
+   714→    const year = parseInt(form.year, 10) || new Date().getFullYear();
+   715→    const now = new Date().toISOString();
+   716→
+   717→    if (isEdit && book) {
+   718→      updateLibraryBook(book.id, {
+   719→        title: form.title.trim(),
+   720→        author: form.author.trim(),
+   721→        isbn: form.isbn.trim(),
+   722→        category: form.category,
+   723→        publisher: form.publisher.trim(),
+   724→        year,
+   725→        totalCopies,
+   726→        location: form.location.trim(),
+   727→        coverColor: form.coverColor,
+   728→        description: form.description.trim(),
+   729→      });
+   730→      toast.success('تم تحديث الكتاب بنجاح');
+   731→    } else {
+   732→      addLibraryBook({
+   733→        id: `book-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+   734→        title: form.title.trim(),
+   735→        author: form.author.trim(),
+   736→        isbn: form.isbn.trim(),
+   737→        category: form.category,
+   738→        publisher: form.publisher.trim(),
+   739→        year,
+   740→        totalCopies,
+   741→        availableCopies: totalCopies,
+   742→        location: form.location.trim(),
+   743→        coverColor: form.coverColor,
+   744→        description: form.description.trim(),
+   745→        addedBy: 'المدير: أحمد محمد',
+   746→        createdAt: now,
+   747→      });
+   748→      toast.success('تم إضافة الكتاب بنجاح');
+   749→    }
+   750→    onOpenChange(false);
+   751→  }, [form, isEdit, book, addLibraryBook, updateLibraryBook, onOpenChange]);
+   752→
+   753→  return (
+   754→    <Dialog open={open} onOpenChange={onOpenChange}>
+   755→      <DialogContent
+   756→        className="sm:max-w-lg max-h-[85vh] overflow-hidden flex flex-col"
+   757→        dir="rtl"
+   758→        style={{
+   759→          backgroundColor: '#1A1A24',
+   760→          border: '1px solid rgba(255,255,255,0.06)',
+   761→        }}
+   762→      >
+   763→        <DialogHeader>
+   764→          <DialogTitle className="text-white text-xl flex items-center gap-2">
+   765→            <Plus className="h-5 w-5 text-[#D4A574]" />
+   766→            {isEdit ? 'تعديل الكتاب' : 'إضافة كتاب جديد'}
+   767→          </DialogTitle>
+   768→          <DialogDescription className="text-muted-foreground">
+   769→            {isEdit ? `تعديل بيانات كتاب: ${book?.title}` : 'أضف كتاباً جديداً إلى المكتبة'}
+   770→          </DialogDescription>
+   771→        </DialogHeader>
+   772→
+   773→        <div className="flex-1 overflow-y-auto -mx-1 px-1 flex flex-col gap-4 mt-2">
+   774→          {/* Title */}
+   775→          <div className="flex flex-col gap-2">
+   776→            <Label className="text-slate-300 text-sm">عنوان الكتاب *</Label>
+   777→            <Input
+   778→              value={form.title}
+   779→              onChange={(e) => updateField('title', e.target.value)}
+   780→              placeholder="أدخل عنوان الكتاب..."
+   781→              className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   782→            />
+   783→          </div>
+   784→
+   785→          {/* Author */}
+   786→          <div className="flex flex-col gap-2">
+   787→            <Label className="text-slate-300 text-sm">المؤلف *</Label>
+   788→            <Input
+   789→              value={form.author}
+   790→              onChange={(e) => updateField('author', e.target.value)}
+   791→              placeholder="اسم المؤلف..."
+   792→              className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   793→            />
+   794→          </div>
+   795→
+   796→          {/* ISBN */}
+   797→          <div className="flex flex-col gap-2">
+   798→            <Label className="text-slate-300 text-sm">رقم ISBN *</Label>
+   799→            <Input
+   800→              value={form.isbn}
+   801→              onChange={(e) => updateField('isbn', e.target.value)}
+   802→              placeholder="978-..."
+   803→              dir="ltr"
+   804→              className="text-right bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   805→            />
+   806→          </div>
+   807→
+   808→          {/* Category & Publisher */}
+   809→          <div className="grid grid-cols-2 gap-3">
+   810→            <div className="flex flex-col gap-2">
+   811→              <Label className="text-slate-300 text-sm">التصنيف *</Label>
+   812→              <Select
+   813→                value={form.category}
+   814→                onValueChange={(v) => updateField('category', v)}
+   815→              >
+   816→                <SelectTrigger className="bg-white/[0.03] border-white/[0.08] text-slate-200">
+   817→                  <SelectValue placeholder="اختر التصنيف..." />
+   818→                </SelectTrigger>
+   819→                <SelectContent>
+   820→                  {CATEGORIES.map((c) => (
+   821→                    <SelectItem key={c} value={c}>{c}</SelectItem>
+   822→                  ))}
+   823→                </SelectContent>
+   824→              </Select>
+   825→            </div>
+   826→
+   827→            <div className="flex flex-col gap-2">
+   828→              <Label className="text-slate-300 text-sm">دار النشر</Label>
+   829→              <Input
+   830→                value={form.publisher}
+   831→                onChange={(e) => updateField('publisher', e.target.value)}
+   832→                placeholder="دار النشر..."
+   833→                className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   834→              />
+   835→            </div>
+   836→          </div>
+   837→
+   838→          {/* Year & Total Copies */}
+   839→          <div className="grid grid-cols-2 gap-3">
+   840→            <div className="flex flex-col gap-2">
+   841→              <Label className="text-slate-300 text-sm">سنة النشر</Label>
+   842→              <Input
+   843→                type="number"
+   844→                value={form.year}
+   845→                onChange={(e) => updateField('year', e.target.value)}
+   846→                placeholder="2024"
+   847→                dir="ltr"
+   848→                className="text-right bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   849→              />
+   850→            </div>
+   851→
+   852→            <div className="flex flex-col gap-2">
+   853→              <Label className="text-slate-300 text-sm">عدد النسخ الإجمالي</Label>
+   854→              <Input
+   855→                type="number"
+   856→                min={1}
+   857→                value={form.totalCopies}
+   858→                onChange={(e) => updateField('totalCopies', e.target.value)}
+   859→                placeholder="1"
+   860→                dir="ltr"
+   861→                className="text-right bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   862→              />
+   863→            </div>
+   864→          </div>
+   865→
+   866→          {/* Location */}
+   867→          <div className="flex flex-col gap-2">
+   868→            <Label className="text-slate-300 text-sm">الموقع / الرف</Label>
+   869→            <Input
+   870→              value={form.location}
+   871→              onChange={(e) => updateField('location', e.target.value)}
+   872→              placeholder="مثال: الرف A-1"
+   873→              className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   874→            />
+   875→          </div>
+   876→
+   877→          {/* Cover Color */}
+   878→          <div className="flex flex-col gap-2">
+   879→            <Label className="text-slate-300 text-sm">لون الغلاف</Label>
+   880→            <div className="flex items-center gap-2 flex-wrap">
+   881→              {COVER_COLORS.map((color) => (
+   882→                <button
+   883→                  key={color}
+   884→                  type="button"
+   885→                  onClick={() => updateField('coverColor', color)}
+   886→                  className={cn(
+   887→                    'h-8 w-8 rounded-full transition-all duration-200 border-2',
+   888→                    form.coverColor === color
+   889→                      ? 'scale-110 border-white shadow-lg'
+   890→                      : 'border-transparent hover:scale-105',
+   891→                  )}
+   892→                  style={{ backgroundColor: color }}
+   893→                />
+   894→              ))}
+   895→            </div>
+   896→          </div>
+   897→
+   898→          {/* Description */}
+   899→          <div className="flex flex-col gap-2">
+   900→            <Label className="text-slate-300 text-sm">الوصف</Label>
+   901→            <Textarea
+   902→              value={form.description}
+   903→              onChange={(e) => updateField('description', e.target.value)}
+   904→              placeholder="اكتب وصفاً مختصراً للكتاب..."
+   905→              className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 min-h-[80px] resize-none"
+   906→            />
+   907→          </div>
+   908→        </div>
+   909→
+   910→        <DialogFooter className="flex-row gap-3 sm:justify-start pt-3 border-t border-white/[0.06] mt-2">
+   911→          <Button
+   912→            onClick={handleSubmit}
+   913→            className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold rounded-lg px-6 gap-2"
+   914→          >
+   915→            <Save className="h-4 w-4" />
+   916→            {isEdit ? 'حفظ التغييرات' : 'إضافة'}
+   917→          </Button>
+   918→          <Button
+   919→            type="button"
+   920→            variant="outline"
+   921→            onClick={() => onOpenChange(false)}
+   922→            className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-6"
+   923→          >
+   924→            إلغاء
+   925→          </Button>
+   926→        </DialogFooter>
+   927→      </DialogContent>
+   928→    </Dialog>
+   929→  );
+   930→}
+   931→
+   932→// ---------------------------------------------------------------------------
+   933→// Delete Dialog
+   934→// ---------------------------------------------------------------------------
+   935→
+   936→function DeleteBookDialog({
+   937→  book,
+   938→  open,
+   939→  onOpenChange,
+   940→}: {
+   941→  book: LibraryBook | null;
+   942→  open: boolean;
+   943→  onOpenChange: (open: boolean) => void;
+   944→}) {
+   945→  const { deleteLibraryBook, addToTrash } = useAppStore();
+   946→
+   947→  const handleDelete = useCallback(() => {
+   948→    if (book) {
+   949→      addToTrash({
+   950→        id: `trash-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+   951→        itemType: 'library-book',
+   952→        itemId: book.id,
+   953→        itemName: book.title,
+   954→        deletedBy: 'المدير',
+   955→        dataJson: JSON.stringify(book),
+   956→        restoredAt: null,
+   957→        createdAt: new Date().toISOString(),
+   958→      });
+   959→      deleteLibraryBook(book.id);
+   960→      toast.success('تم حذف الكتاب بنجاح');
+   961→      onOpenChange(false);
+   962→    }
+   963→  }, [book, deleteLibraryBook, addToTrash, onOpenChange]);
+   964→
+   965→  return (
+   966→    <AlertDialog open={open} onOpenChange={onOpenChange}>
+   967→      <AlertDialogContent
+   968→        dir="rtl"
+   969→        style={{
+   970→          backgroundColor: '#1A1A24',
+   971→          border: '1px solid rgba(255,255,255,0.06)',
+   972→        }}
+   973→      >
+   974→        <AlertDialogHeader>
+   975→          <AlertDialogTitle className="text-white text-lg">تأكيد حذف الكتاب</AlertDialogTitle>
+   976→          <AlertDialogDescription className="text-muted-foreground leading-relaxed">
+   977→            هل أنت متأكد من حذف كتاب{' '}
+   978→            <span className="font-semibold text-slate-200">{book?.title}</span>
+   979→            {' '}لـ <span className="font-semibold text-slate-200">{book?.author}</span>؟
+   980→            <br />
+   981→            لا يمكن التراجع عن هذا الإجراء.
+   982→          </AlertDialogDescription>
+   983→        </AlertDialogHeader>
+   984→        <AlertDialogFooter className="flex-row gap-3 sm:justify-start mt-2">
+   985→          <AlertDialogCancel className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-6 mt-0">
+   986→            إلغاء
+   987→          </AlertDialogCancel>
+   988→          <AlertDialogAction
+   989→            onClick={handleDelete}
+   990→            className="bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-lg px-6 gap-2"
+   991→          >
+   992→            <Trash2 className="h-4 w-4" />
+   993→            نعم، احذف
+   994→          </AlertDialogAction>
+   995→        </AlertDialogFooter>
+   996→      </AlertDialogContent>
+   997→    </AlertDialog>
+   998→  );
+   999→}
+  1000→
+  1001→// ---------------------------------------------------------------------------
+  1002→// Book Card (Grid view)
+  1003→// ---------------------------------------------------------------------------
+  1004→
+  1005→function BookCard({
+  1006→  book,
+  1007→  onView,
+  1008→  onEdit,
+  1009→}: {
+  1010→  book: LibraryBook;
+  1011→  onView: () => void;
+  1012→  onEdit: () => void;
+  1013→}) {
+  1014→  const isAvailable = book.availableCopies > 0;
+  1015→
+  1016→  return (
+  1017→    <div
+  1018→      className="group relative rounded-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/20 cursor-pointer"
+  1019→      style={{
+  1020→        backgroundColor: 'rgba(255,255,255,0.02)',
+  1021→        border: '1px solid rgba(255,255,255,0.06)',
+  1022→      }}
+  1023→    >
+  1024→      {/* Cover color strip */}
+  1025→      <div
+  1026→        className="h-2 rounded-t-xl w-full"
+  1027→        style={{ backgroundColor: book.coverColor }}
+  1028→      />
+  1029→
+  1030→      <div className="p-4">
+  1031→        {/* Availability dot */}
+  1032→        <div className="flex items-center justify-between mb-3">
+  1033→          <Badge
+  1034→            variant="outline"
+  1035→            className="text-xs px-2 py-0.5 rounded-full bg-[#D4A574]/10 text-[#D4A574] border-[#D4A574]/20"
+  1036→          >
+  1037→            {book.category}
+  1038→          </Badge>
+  1039→          <div className="flex items-center gap-1.5">
+  1040→            <div
+  1041→              className={cn(
+  1042→                'h-2 w-2 rounded-full transition-all',
+  1043→                isAvailable ? 'bg-emerald-500' : 'bg-red-500',
+  1044→              )}
+  1045→            />
+  1046→            <span className={cn('text-xs', isAvailable ? 'text-emerald-400' : 'text-red-400')}>
+  1047→              {isAvailable ? 'متاح' : 'مستعار بالكامل'}
+  1048→            </span>
+  1049→          </div>
+  1050→        </div>
+  1051→
+  1052→        {/* Title & Author */}
+  1053→        <h3 className="text-sm font-semibold text-white mb-1 line-clamp-2 leading-relaxed">
+  1054→          {book.title}
+  1055→        </h3>
+  1056→        <p className="text-xs text-muted-foreground mb-3 truncate">{book.author}</p>
+  1057→
+  1058→        {/* Copies count */}
+  1059→        <div className="flex items-center justify-between">
+  1060→          <span className="text-xs text-muted-foreground flex items-center gap-1">
+  1061→            <BookCopy className="h-3 w-3" />
+  1062→            {book.availableCopies}/{book.totalCopies}
+  1063→          </span>
+  1064→          <span className="text-xs text-muted-foreground flex items-center gap-1">
+  1065→            <MapPin className="h-3 w-3" />
+  1066→            {book.location}
+  1067→          </span>
+  1068→        </div>
+  1069→
+  1070→        {/* Action buttons on hover */}
+  1071→        <div className="absolute bottom-0 left-0 right-0 p-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-b-xl"
+  1072→          style={{ backgroundColor: 'rgba(26,26,36,0.95)' }}
+  1073→        >
+  1074→          <Button
+  1075→            onClick={(e) => { e.stopPropagation(); onView(); }}
+  1076→            size="sm"
+  1077→            className="flex-1 bg-[#D4A574]/20 hover:bg-[#D4A574]/30 text-[#D4A574] text-xs rounded-lg gap-1 h-8"
+  1078→          >
+  1079→            <Eye className="h-3 w-3" />
+  1080→            عرض
+  1081→          </Button>
+  1082→          <Button
+  1083→            onClick={(e) => { e.stopPropagation(); onEdit(); }}
+  1084→            size="sm"
+  1085→            className="flex-1 bg-white/[0.05] hover:bg-white/[0.1] text-slate-300 text-xs rounded-lg gap-1 h-8"
+  1086→          >
+  1087→            <Pencil className="h-3 w-3" />
+  1088→            تعديل
+  1089→          </Button>
+  1090→        </div>
+  1091→      </div>
+  1092→    </div>
+  1093→  );
+  1094→}
+  1095→
+  1096→// ---------------------------------------------------------------------------
+  1097→// Book Row (List view)
+  1098→// ---------------------------------------------------------------------------
+  1099→
+  1100→function BookRow({
+  1101→  book,
+  1102→  onView,
+  1103→  onEdit,
+  1104→  onDelete,
+  1105→}: {
+  1106→  book: LibraryBook;
+  1107→  onView: () => void;
+  1108→  onEdit: () => void;
+  1109→  onDelete: () => void;
+  1110→}) {
+  1111→  const isAvailable = book.availableCopies > 0;
+  1112→
+  1113→  return (
+  1114→    <tr
+  1115→      className="border-b border-white/[0.04] transition-colors duration-200 hover:bg-white/[0.02] cursor-pointer"
+  1116→      onClick={onView}
+  1117→    >
+  1118→      <td className="py-3 px-4">
+  1119→        <div className="flex items-center gap-3">
+  1120→          <div className="h-2 w-8 rounded-full shrink-0" style={{ backgroundColor: book.coverColor }} />
+  1121→          <span className="text-sm font-medium text-white truncate max-w-[200px]">{book.title}</span>
+  1122→        </div>
+  1123→      </td>
+  1124→      <td className="py-3 px-4 text-sm text-slate-300">{book.author}</td>
+  1125→      <td className="py-3 px-4">
+  1126→        <Badge variant="outline" className="text-xs px-2 py-0.5 rounded-full bg-[#D4A574]/10 text-[#D4A574] border-[#D4A574]/20">
+  1127→          {book.category}
+  1128→        </Badge>
+  1129→      </td>
+  1130→      <td className="py-3 px-4 text-sm text-slate-300 font-mono" dir="ltr">{book.isbn}</td>
+  1131→      <td className="py-3 px-4 text-sm text-slate-300">{book.year}</td>
+  1132→      <td className="py-3 px-4 text-sm text-slate-300">{book.location}</td>
+  1133→      <td className="py-3 px-4">
+  1134→        <div className="flex items-center gap-2">
+  1135→          <div className={cn('h-2 w-2 rounded-full', isAvailable ? 'bg-emerald-500' : 'bg-red-500')} />
+  1136→          <span className="text-sm text-slate-300 tabular-nums">{book.availableCopies}/{book.totalCopies}</span>
+  1137→        </div>
+  1138→      </td>
+  1139→      <td className="py-3 px-4">
+  1140→        <div className="flex items-center gap-1">
+  1141→          <Button
+  1142→            onClick={(e) => { e.stopPropagation(); onView(); }}
+  1143→            size="icon"
+  1144→            variant="ghost"
+  1145→            className="h-7 w-7 text-muted-foreground hover:text-[#D4A574] hover:bg-[#D4A574]/10"
+  1146→          >
+  1147→            <Eye className="h-3.5 w-3.5" />
+  1148→          </Button>
+  1149→          <Button
+  1150→            onClick={(e) => { e.stopPropagation(); onEdit(); }}
+  1151→            size="icon"
+  1152→            variant="ghost"
+  1153→            className="h-7 w-7 text-muted-foreground hover:text-amber-400 hover:bg-amber-400/10"
+  1154→          >
+  1155→            <Pencil className="h-3.5 w-3.5" />
+  1156→          </Button>
+  1157→          <Button
+  1158→            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+  1159→            size="icon"
+  1160→            variant="ghost"
+  1161→            className="h-7 w-7 text-muted-foreground hover:text-rose-400 hover:bg-rose-400/10"
+  1162→          >
+  1163→            <Trash2 className="h-3.5 w-3.5" />
+  1164→          </Button>
+  1165→        </div>
+  1166→      </td>
+  1167→    </tr>
+  1168→  );
+  1169→}
+  1170→
+  1171→// ---------------------------------------------------------------------------
+  1172→// Empty State
+  1173→// ---------------------------------------------------------------------------
+  1174→
+  1175→function EmptyState() {
+  1176→  return (
+  1177→    <div className="flex flex-col items-center justify-center py-20 gap-4">
+  1178→      <div className="flex items-center justify-center h-20 w-20 rounded-2xl bg-[#D4A574]/10">
+  1179→        <Library className="h-10 w-10 text-[#D4A574]/60" />
+  1180→      </div>
+  1181→      <div className="text-center">
+  1182→        <h3 className="text-lg font-semibold text-slate-300 mb-1">المكتبة فارغة</h3>
+  1183→        <p className="text-sm text-muted-foreground">لم تتم إضافة أي كتب بعد. ابدأ بإضافة كتاب جديد.</p>
+  1184→      </div>
+  1185→    </div>
+  1186→  );
+  1187→}
+  1188→
+  1189→// ---------------------------------------------------------------------------
+  1190→// Main Library Section
+  1191→// ---------------------------------------------------------------------------
+  1192→
+  1193→export default function LibrarySection() {
+  1194→  const { libraryBooks, setLibraryBooks } = useAppStore();
+  1195→
+  1196→  const initialized = useRef(false);
+  1197→
+  1198→  // State
+  1199→  const [searchQuery, setSearchQuery] = useState('');
+  1200→  const [categoryFilter, setCategoryFilter] = useState('all');
+  1201→  const [availabilityFilter, setAvailabilityFilter] = useState<AvailabilityFilter>('all');
+  1202→  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  1203→  const [currentPage, setCurrentPage] = useState(1);
+  1204→  const [sortField, setSortField] = useState<string>('title');
+  1205→  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  1206→
+  1207→  // Dialogs
+  1208→  const [viewBook, setViewBook] = useState<LibraryBook | null>(null);
+  1209→  const [editBook, setEditBook] = useState<LibraryBook | null>(null);
+  1210→  const [deleteBook, setDeleteBook] = useState<LibraryBook | null>(null);
+  1211→  const [addOpen, setAddOpen] = useState(false);
+  1212→
+  1213→  // Init mock data
+  1214→  useEffect(() => {
+  1215→    if (!initialized.current) {
+  1216→      initialized.current = true;
+  1217→      if (libraryBooks.length === 0) {
+  1218→        setLibraryBooks(generateMockBooks());
+  1219→      }
+  1220→    }
+  1221→  }, [libraryBooks.length, setLibraryBooks]);
+  1222→
+  1223→  // Filter handlers (reset page)
+  1224→  const handleSearchChange = useCallback((value: string) => {
+  1225→    setSearchQuery(value);
+  1226→    setCurrentPage(1);
+  1227→  }, []);
+  1228→
+  1229→  const handleCategoryChange = useCallback((value: string) => {
+  1230→    setCategoryFilter(value);
+  1231→    setCurrentPage(1);
+  1232→  }, []);
+  1233→
+  1234→  const handleAvailabilityChange = useCallback((value: AvailabilityFilter) => {
+  1235→    setAvailabilityFilter(value);
+  1236→    setCurrentPage(1);
+  1237→  }, []);
+  1238→
+  1239→  // Filtered & sorted
+  1240→  const filteredBooks = useMemo(() => {
+  1241→    let result = [...libraryBooks];
+  1242→
+  1243→    // Search
+  1244→    if (searchQuery.trim()) {
+  1245→      const q = searchQuery.trim().toLowerCase();
+  1246→      result = result.filter(
+  1247→        (b) =>
+  1248→          b.title.toLowerCase().includes(q) ||
+  1249→          b.author.toLowerCase().includes(q) ||
+  1250→          b.isbn.toLowerCase().includes(q),
+  1251→      );
+  1252→    }
+  1253→
+  1254→    // Category
+  1255→    if (categoryFilter !== 'all') {
+  1256→      result = result.filter((b) => b.category === categoryFilter);
+  1257→    }
+  1258→
+  1259→    // Availability
+  1260→    if (availabilityFilter === 'available') {
+  1261→      result = result.filter((b) => b.availableCopies > 0);
+  1262→    } else if (availabilityFilter === 'borrowed') {
+  1263→      result = result.filter((b) => b.availableCopies < b.totalCopies);
+  1264→    }
+  1265→
+  1266→    // Sort (list mode)
+  1267→    if (viewMode === 'list') {
+  1268→      result.sort((a, b) => {
+  1269→        let cmp = 0;
+  1270→        const fieldA = a[sortField as keyof LibraryBook];
+  1271→        const fieldB = b[sortField as keyof LibraryBook];
+  1272→        if (typeof fieldA === 'string' && typeof fieldB === 'string') {
+  1273→          cmp = fieldA.localeCompare(fieldB, 'ar');
+  1274→        } else if (typeof fieldA === 'number' && typeof fieldB === 'number') {
+  1275→          cmp = fieldA - fieldB;
+  1276→        }
+  1277→        return sortDir === 'asc' ? cmp : -cmp;
+  1278→      });
+  1279→    }
+  1280→
+  1281→    return result;
+  1282→  }, [libraryBooks, searchQuery, categoryFilter, availabilityFilter, viewMode, sortField, sortDir]);
+  1283→
+  1284→  // Pagination
+  1285→  const totalPages = Math.max(1, Math.ceil(filteredBooks.length / ITEMS_PER_PAGE));
+  1286→  const paginatedBooks = useMemo(() => {
+  1287→    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+  1288→    return filteredBooks.slice(start, start + ITEMS_PER_PAGE);
+  1289→  }, [filteredBooks, currentPage]);
+  1290→
+  1291→  // Stats
+  1292→  const stats = useMemo(() => {
+  1293→    const total = libraryBooks.length;
+  1294→    const available = libraryBooks.filter((b) => b.availableCopies > 0).length;
+  1295→    const borrowed = total - available;
+  1296→    const categories = new Set(libraryBooks.map((b) => b.category)).size;
+  1297→    return { total, available, borrowed, categories };
+  1298→  }, [libraryBooks]);
+  1299→
+  1300→  // Sort handler
+  1301→  const handleSort = useCallback((field: string) => {
+  1302→    if (sortField === field) {
+  1303→      setSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+  1304→    } else {
+  1305→      setSortField(field);
+  1306→      setSortDir('asc');
+  1307→    }
+  1308→  }, [sortField]);
+  1309→
+  1310→  return (
+  1311→    <div className="space-y-6">
+  1312→      {/* Header */}
+  1313→      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+  1314→        <div>
+  1315→          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+  1316→            <Library className="h-6 w-6 text-[#D4A574]" />
+  1317→            المكتبة
+  1318→          </h1>
+  1319→          <p className="text-sm text-muted-foreground mt-1">إدارة الكتب والموارد المكتبية</p>
+  1320→        </div>
+  1321→        <Button
+  1322→          onClick={() => setAddOpen(true)}
+  1323→          className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold rounded-lg gap-2"
+  1324→        >
+  1325→          <Plus className="h-4 w-4" />
+  1326→          إضافة كتاب
+  1327→        </Button>
+  1328→      </div>
+  1329→
+  1330→      {/* Stats Row */}
+  1331→      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+  1332→        <StatCard
+  1333→          icon={BookOpen}
+  1334→          label="إجمالي الكتب"
+  1335→          value={stats.total}
+  1336→          colorClass="text-[#D4A574]"
+  1337→          bgColor="bg-[#D4A574]/10"
+  1338→        />
+  1339→        <StatCard
+  1340→          icon={BookCopy}
+  1341→          label="كتب متاحة"
+  1342→          value={stats.available}
+  1343→          colorClass="text-emerald-400"
+  1344→          bgColor="bg-emerald-500/10"
+  1345→        />
+  1346→        <StatCard
+  1347→          icon={ArrowRightLeft}
+  1348→          label="كتب مستعارة"
+  1349→          value={stats.borrowed}
+  1350→          colorClass="text-amber-400"
+  1351→          bgColor="bg-amber-500/10"
+  1352→        />
+  1353→        <StatCard
+  1354→          icon={Filter}
+  1355→          label="التصنيفات"
+  1356→          value={stats.categories}
+  1357→          colorClass="text-purple-400"
+  1358→          bgColor="bg-purple-500/10"
+  1359→        />
+  1360→      </div>
+  1361→
+  1362→      {/* Filter Bar */}
+  1363→      <div
+  1364→        className="rounded-xl p-4"
+  1365→        style={{
+  1366→          backgroundColor: 'rgba(255,255,255,0.02)',
+  1367→          border: '1px solid rgba(255,255,255,0.06)',
+  1368→        }}
+  1369→      >
+  1370→        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+  1371→          {/* Search */}
+  1372→          <div className="relative flex-1">
+  1373→            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+  1374→            <Input
+  1375→              value={searchQuery}
+  1376→              onChange={(e) => handleSearchChange(e.target.value)}
+  1377→              placeholder="ابحث بالعنوان، المؤلف، أو ISBN..."
+  1378→              className="pr-9 bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+  1379→            />
+  1380→          </div>
+  1381→
+  1382→          {/* Category filter */}
+  1383→          <Select value={categoryFilter} onValueChange={handleCategoryChange}>
+  1384→            <SelectTrigger className="w-full md:w-[160px] bg-white/[0.03] border-white/[0.08] text-slate-200">
+  1385→              <SelectValue placeholder="التصنيف" />
+  1386→            </SelectTrigger>
+  1387→            <SelectContent>
+  1388→              <SelectItem value="all">جميع التصنيفات</SelectItem>
+  1389→              {CATEGORIES.map((c) => (
+  1390→                <SelectItem key={c} value={c}>{c}</SelectItem>
+  1391→              ))}
+  1392→            </SelectContent>
+  1393→          </Select>
+  1394→
+  1395→          {/* Availability filter */}
+  1396→          <Select value={availabilityFilter} onValueChange={(v) => handleAvailabilityChange(v as AvailabilityFilter)}>
+  1397→            <SelectTrigger className="w-full md:w-[140px] bg-white/[0.03] border-white/[0.08] text-slate-200">
+  1398→              <SelectValue placeholder="التوفر" />
+  1399→            </SelectTrigger>
+  1400→            <SelectContent>
+  1401→              <SelectItem value="all">الكل</SelectItem>
+  1402→              <SelectItem value="available">متاح</SelectItem>
+  1403→              <SelectItem value="borrowed">مستعار</SelectItem>
+  1404→            </SelectContent>
+  1405→          </Select>
+  1406→
+  1407→          {/* View toggle */}
+  1408→          <div className="flex items-center gap-1 bg-white/[0.03] rounded-lg p-1 border border-white/[0.06]">
+  1409→            <button
+  1410→              onClick={() => setViewMode('grid')}
+  1411→              className={cn(
+  1412→                'flex items-center justify-center h-8 w-8 rounded-md transition-all duration-200',
+  1413→                viewMode === 'grid'
+  1414→                  ? 'bg-[#D4A574]/15 text-[#D4A574]'
+  1415→                  : 'text-muted-foreground hover:text-slate-300',
+  1416→              )}
+  1417→            >
+  1418→              <LayoutGrid className="h-4 w-4" />
+  1419→            </button>
+  1420→            <button
+  1421→              onClick={() => setViewMode('list')}
+  1422→              className={cn(
+  1423→                'flex items-center justify-center h-8 w-8 rounded-md transition-all duration-200',
+  1424→                viewMode === 'list'
+  1425→                  ? 'bg-[#D4A574]/15 text-[#D4A574]'
+  1426→                  : 'text-muted-foreground hover:text-slate-300',
+  1427→              )}
+  1428→            >
+  1429→              <List className="h-4 w-4" />
+  1430→            </button>
+  1431→          </div>
+  1432→        </div>
+  1433→      </div>
+  1434→
+  1435→      {/* Content */}
+  1436→      {libraryBooks.length === 0 ? (
+  1437→        <EmptyState />
+  1438→      ) : filteredBooks.length === 0 ? (
+  1439→        <div className="flex flex-col items-center justify-center py-16 gap-3">
+  1440→          <Search className="h-10 w-10 text-muted-foreground/40" />
+  1441→          <p className="text-sm text-muted-foreground">لا توجد نتائج مطابقة للبحث</p>
+  1442→        </div>
+  1443→      ) : viewMode === 'grid' ? (
+  1444→        <>
+  1445→          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+  1446→            {paginatedBooks.map((book) => (
+  1447→              <BookCard
+  1448→                key={book.id}
+  1449→                book={book}
+  1450→                onView={() => setViewBook(book)}
+  1451→                onEdit={() => setEditBook(book)}
+  1452→              />
+  1453→            ))}
+  1454→          </div>
+  1455→        </>
+  1456→      ) : (
+  1457→        <>
+  1458→          <div
+  1459→            className="rounded-xl overflow-hidden"
+  1460→            style={{
+  1461→              backgroundColor: 'rgba(255,255,255,0.02)',
+  1462→              border: '1px solid rgba(255,255,255,0.06)',
+  1463→            }}
+  1464→          >
+  1465→            <div className="overflow-x-auto">
+  1466→              <table className="w-full" dir="rtl">
+  1467→                <thead>
+  1468→                  <tr className="border-b border-white/[0.06]" style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}>
+  1469→                    {[
+  1470→                      { key: 'title', label: 'العنوان' },
+  1471→                      { key: 'author', label: 'المؤلف' },
+  1472→                      { key: 'category', label: 'التصنيف' },
+  1473→                      { key: 'isbn', label: 'ISBN' },
+  1474→                      { key: 'year', label: 'السنة' },
+  1475→                      { key: 'location', label: 'الموقع' },
+  1476→                      { key: 'availableCopies', label: 'النسخ' },
+  1477→                    ].map((col) => (
+  1478→                      <th
+  1479→                        key={col.key}
+  1480→                        onClick={() => handleSort(col.key)}
+  1481→                        className="py-3 px-4 text-xs font-medium text-muted-foreground text-right cursor-pointer hover:text-[#D4A574] transition-colors select-none"
+  1482→                      >
+  1483→                        <div className="flex items-center gap-1">
+  1484→                          {col.label}
+  1485→                          {sortField === col.key && (
+  1486→                            <ChevronLeft className={cn('h-3 w-3 transition-transform', sortDir === 'desc' && 'rotate-180')} />
+  1487→                          )}
+  1488→                        </div>
+  1489→                      </th>
+  1490→                    ))}
+  1491→                    <th className="py-3 px-4 text-xs font-medium text-muted-foreground text-right">إجراءات</th>
+  1492→                  </tr>
+  1493→                </thead>
+  1494→                <tbody>
+  1495→                  {paginatedBooks.map((book) => (
+  1496→                    <BookRow
+  1497→                      key={book.id}
+  1498→                      book={book}
+  1499→                      onView={() => setViewBook(book)}
+  1500→                      onEdit={() => setEditBook(book)}
+  1501→                      onDelete={() => setDeleteBook(book)}
+  1502→                    />
+  1503→                  ))}
+  1504→                </tbody>
+  1505→              </table>
+  1506→            </div>
+  1507→          </div>
+  1508→        </>
+  1509→      )}
+  1510→
+  1511→      {/* Pagination */}
+  1512→      {totalPages > 1 && (
+  1513→        <div className="flex items-center justify-center gap-2">
+  1514→          <Button
+  1515→            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+  1516→            disabled={currentPage === 1}
+  1517→            variant="outline"
+  1518→            className="h-9 px-3 border-white/[0.08] text-slate-300 hover:bg-white/[0.05] rounded-lg disabled:opacity-40"
+  1519→          >
+  1520→            <ChevronRight className="h-4 w-4" />
+  1521→          </Button>
+  1522→
+  1523→          <div className="flex items-center gap-1">
+  1524→            {Array.from({ length: totalPages }, (_, i) => i + 1)
+  1525→              .filter((page) => {
+  1526→                // Show first, last, current, and adjacent pages
+  1527→                if (page === 1 || page === totalPages) return true;
+  1528→                if (Math.abs(page - currentPage) <= 1) return true;
+  1529→                return false;
+  1530→              })
+  1531→              .reduce<(number | 'ellipsis')[]>((acc, page, idx, arr) => {
+  1532→                if (idx > 0) {
+  1533→                  const prev = arr[idx - 1];
+  1534→                  if (page - prev > 1) acc.push('ellipsis');
+  1535→                }
+  1536→                acc.push(page);
+  1537→                return acc;
+  1538→              }, [])
+  1539→              .map((item, idx) =>
+  1540→                item === 'ellipsis' ? (
+  1541→                  <span key={`ellipsis-${idx}`} className="px-1 text-xs text-muted-foreground">...</span>
+  1542→                ) : (
+  1543→                  <button
+  1544→                    key={item}
+  1545→                    onClick={() => setCurrentPage(item)}
+  1546→                    className={cn(
+  1547→                      'h-9 w-9 rounded-lg text-sm font-medium transition-all duration-200',
+  1548→                      currentPage === item
+  1549→                        ? 'bg-[#D4A574] text-slate-900'
+  1550→                        : 'text-slate-300 hover:bg-white/[0.05]',
+  1551→                    )}
+  1552→                  >
+  1553→                    {item}
+  1554→                  </button>
+  1555→                ),
+  1556→              )}
+  1557→          </div>
+  1558→
+  1559→          <Button
+  1560→            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+  1561→            disabled={currentPage === totalPages}
+  1562→            variant="outline"
+  1563→            className="h-9 px-3 border-white/[0.08] text-slate-300 hover:bg-white/[0.05] rounded-lg disabled:opacity-40"
+  1564→          >
+  1565→            <ChevronLeft className="h-4 w-4" />
+  1566→          </Button>
+  1567→        </div>
+  1568→      )}
+  1569→
+  1570→      {/* View Dialog */}
+  1571→      <ViewBookDialog
+  1572→        book={viewBook}
+  1573→        open={!!viewBook}
+  1574→        onOpenChange={(open) => { if (!open) setViewBook(null); }}
+  1575→      />
+  1576→
+  1577→      {/* Add Dialog */}
+  1578→      <BookFormDialog
+  1579→        book={null}
+  1580→        open={addOpen}
+  1581→        onOpenChange={setAddOpen}
+  1582→      />
+  1583→
+  1584→      {/* Edit Dialog */}
+  1585→      <BookFormDialog
+  1586→        book={editBook}
+  1587→        open={!!editBook}
+  1588→        onOpenChange={(open) => { if (!open) setEditBook(null); }}
+  1589→      />
+  1590→
+  1591→      {/* Delete Dialog */}
+  1592→      <DeleteBookDialog
+  1593→        book={deleteBook}
+  1594→        open={!!deleteBook}
+  1595→        onOpenChange={(open) => { if (!open) setDeleteBook(null); }}
+  1596→      />
+  1597→    </div>
+  1598→  );
+  1599→}
+  1600→

@@ -1,0 +1,1611 @@
+     1→'use client';
+     2→
+     3→import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+     4→import {
+     5→  ClipboardCheck,
+     6→  Pencil,
+     7→  Trash2,
+     8→  Eye,
+     9→  Search,
+    10→  CalendarDays,
+    11→  Users,
+    12→  ChevronLeft,
+    13→  ChevronRight,
+    14→  CheckCircle2,
+    15→  XCircle,
+    16→  Clock,
+    17→  ShieldAlert,
+    18→  Save,
+    19→  BarChart3,
+    20→  Flame,
+    21→} from 'lucide-react';
+    22→import { create } from 'zustand';
+    23→import { useAppStore } from '@/lib/store';
+    24→import type { AttendanceRecord as AttendanceRecordType } from '@/lib/types';
+    25→import { cn } from '@/lib/utils';
+    26→import { toast } from 'sonner';
+    27→
+    28→// shadcn/ui
+    29→import { Button } from '@/components/ui/button';
+    30→import { Input } from '@/components/ui/input';
+    31→import { Label } from '@/components/ui/label';
+    32→import { Badge } from '@/components/ui/badge';
+    33→import { Textarea } from '@/components/ui/textarea';
+    34→import {
+    35→  Table,
+    36→  TableHeader,
+    37→  TableBody,
+    38→  TableHead,
+    39→  TableRow,
+    40→  TableCell,
+    41→} from '@/components/ui/table';
+    42→import {
+    43→  Dialog,
+    44→  DialogContent,
+    45→  DialogDescription,
+    46→  DialogFooter,
+    47→  DialogHeader,
+    48→  DialogTitle,
+    49→} from '@/components/ui/dialog';
+    50→import {
+    51→  AlertDialog,
+    52→  AlertDialogAction,
+    53→  AlertDialogCancel,
+    54→  AlertDialogContent,
+    55→  AlertDialogDescription,
+    56→  AlertDialogFooter,
+    57→  AlertDialogHeader,
+    58→  AlertDialogTitle,
+    59→} from '@/components/ui/alert-dialog';
+    60→import {
+    61→  Select,
+    62→  SelectContent,
+    63→  SelectItem,
+    64→  SelectTrigger,
+    65→  SelectValue,
+    66→} from '@/components/ui/select';
+    67→
+    68→// ---------------------------------------------------------------------------
+    69→// Types (re-export from @/lib/types with local extension)
+    70→// ---------------------------------------------------------------------------
+    71→
+    72→type AttendanceStatus = AttendanceRecordType['status'];
+    73→
+    74→interface AttendanceRecord extends Omit<AttendanceRecordType, 'className'> {
+    75→  studentName: string;
+    76→  classId: string | null;
+    77→}
+    78→
+    79→interface ClassOption {
+    80→  value: string;
+    81→  label: string;
+    82→}
+    83→
+    84→// ---------------------------------------------------------------------------
+    85→// Constants
+    86→// ---------------------------------------------------------------------------
+    87→
+    88→const ITEMS_PER_PAGE = 10;
+    89→
+    90→const STATUS_CONFIG: Record<AttendanceStatus, { label: string; icon: typeof CheckCircle2; color: string; bgClass: string; badgeClass: string }> = {
+    91→  present: {
+    92→    label: 'حاضر',
+    93→    icon: CheckCircle2,
+    94→    color: 'text-emerald-400',
+    95→    bgClass: 'bg-emerald-500/10 border-emerald-500/20',
+    96→    badgeClass: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20',
+    97→  },
+    98→  absent: {
+    99→    label: 'غائب',
+   100→    icon: XCircle,
+   101→    color: 'text-rose-400',
+   102→    bgClass: 'bg-rose-500/10 border-rose-500/20',
+   103→    badgeClass: 'bg-rose-500/15 text-rose-400 border-rose-500/20 hover:bg-rose-500/20',
+   104→  },
+   105→  late: {
+   106→    label: 'متأخر',
+   107→    icon: Clock,
+   108→    color: 'text-amber-400',
+   109→    bgClass: 'bg-amber-500/10 border-amber-500/20',
+   110→    badgeClass: 'bg-amber-500/15 text-amber-400 border-amber-500/20 hover:bg-amber-500/20',
+   111→  },
+   112→  excused: {
+   113→    label: 'مستأذن',
+   114→    icon: ShieldAlert,
+   115→    color: 'text-sky-400',
+   116→    bgClass: 'bg-sky-500/10 border-sky-500/20',
+   117→    badgeClass: 'bg-sky-500/15 text-sky-400 border-sky-500/20 hover:bg-sky-500/20',
+   118→  },
+   119→};
+   120→
+   121→const STATUS_OPTIONS: { value: AttendanceStatus; label: string }[] = [
+   122→  { value: 'present', label: 'حاضر' },
+   123→  { value: 'absent', label: 'غائب' },
+   124→  { value: 'late', label: 'متأخر' },
+   125→  { value: 'excused', label: 'مستأذن' },
+   126→];
+   127→
+   128→const FILTER_STATUS_OPTIONS = [
+   129→  { value: 'all', label: 'جميع الحالات' },
+   130→  ...STATUS_OPTIONS,
+   131→];
+   132→
+   133→const CLASS_OPTIONS: ClassOption[] = [
+   134→  { value: 'class-1', label: 'الصف الأول - أ' },
+   135→  { value: 'class-2', label: 'الصف الأول - ب' },
+   136→  { value: 'class-3', label: 'الصف الثاني - أ' },
+   137→  { value: 'class-4', label: 'الصف الثاني - ب' },
+   138→  { value: 'class-5', label: 'الصف الثالث - أ' },
+   139→  { value: 'class-6', label: 'الصف الثالث - ب' },
+   140→];
+   141→
+   142→const ARABIC_MONTHS = [
+   143→  'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+   144→  'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',
+   145→];
+   146→
+   147→const ARABIC_DAYS = ['أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
+   148→
+   149→// ---------------------------------------------------------------------------
+   150→// Mock Data
+   151→// ---------------------------------------------------------------------------
+   152→
+   153→function generateMockAttendance(): AttendanceRecord[] {
+   154→  const students = [
+   155→    { id: 'std-001', name: 'أحمد محمد علي', classId: 'class-1' },
+   156→    { id: 'std-002', name: 'فاطمة أحمد حسن', classId: 'class-2' },
+   157→    { id: 'std-003', name: 'عبدالله خالد العتيبي', classId: 'class-3' },
+   158→    { id: 'std-004', name: 'نورة سعيد القحطاني', classId: 'class-1' },
+   159→    { id: 'std-005', name: 'محمد عبدالرحمن الدوسري', classId: 'class-5' },
+   160→    { id: 'std-006', name: 'ريم فهد المطيري', classId: 'class-4' },
+   161→    { id: 'std-007', name: 'سلطان فيصل الشمري', classId: 'class-3' },
+   162→    { id: 'std-008', name: 'لطيفة عايض الحربي', classId: 'class-6' },
+   163→    { id: 'std-009', name: 'يزيد ناصر البقمي', classId: 'class-2' },
+   164→    { id: 'std-010', name: 'سارة ماجد العنزي', classId: 'class-5' },
+   165→    { id: 'std-011', name: 'عمر إبراهيم الزهراني', classId: 'class-4' },
+   166→    { id: 'std-012', name: 'هند تركي السبيعي', classId: 'class-6' },
+   167→  ];
+   168→
+   169→  const statuses: AttendanceStatus[] = ['present', 'present', 'present', 'present', 'present', 'absent', 'late', 'excused', 'present', 'present'];
+   170→  const notesMap: Record<string, string[]> = {
+   171→    present: ['', '', ''],
+   172→    absent: ['لم يحضر بدون عذر', 'غياب مرضي'],
+   173→    late: ['تأخر 15 دقيقة', 'تأخر بسبب النقل'],
+   174→    excused: ['إذن مرضي', 'إذن عائلي'],
+   175→  };
+   176→
+   177→  const records: AttendanceRecord[] = [];
+   178→  const today = new Date();
+   179→
+   180→  for (let dayOffset = 0; dayOffset < 15; dayOffset++) {
+   181→    const date = new Date(today);
+   182→    date.setDate(date.getDate() - dayOffset);
+   183→
+   184→    // Skip weekends
+   185→    const dayOfWeek = date.getDay();
+   186→    if (dayOfWeek === 5 || dayOfWeek === 6) continue;
+   187→
+   188→    // 6-8 students per day
+   189→    const shuffled = [...students].sort(() => Math.random() - 0.5);
+   190→    const dailyStudents = shuffled.slice(0, 6 + Math.floor(Math.random() * 3));
+   191→
+   192→    for (const student of dailyStudents) {
+   193→      const status = statuses[Math.floor(Math.random() * statuses.length)];
+   194→      const noteOptions = notesMap[status];
+   195→      const notes = noteOptions[Math.floor(Math.random() * noteOptions.length)];
+   196→
+   197→      records.push({
+   198→        id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+   199→        studentId: student.id,
+   200→        classId: student.classId,
+   201→        date: date.toISOString(),
+   202→        status,
+   203→        notes,
+   204→        createdAt: date.toISOString(),
+   205→        studentName: student.name,
+   206→      });
+   207→    }
+   208→  }
+   209→
+   210→  return records;
+   211→}
+   212→
+   213→// ---------------------------------------------------------------------------
+   214→// Helpers
+   215→// ---------------------------------------------------------------------------
+   216→
+   217→function getClassName(classId: string | null): string {
+   218→  if (!classId) return '—';
+   219→  const found = CLASS_OPTIONS.find((c) => c.value === classId);
+   220→  return found ? found.label : '—';
+   221→}
+   222→
+   223→function formatDate(dateStr: string): string {
+   224→  const date = new Date(dateStr);
+   225→  return date.toLocaleDateString('ar-SA', {
+   226→    year: 'numeric',
+   227→    month: 'short',
+   228→    day: 'numeric',
+   229→  });
+   230→}
+   231→
+   232→function formatDateShort(dateStr: string): string {
+   233→  const date = new Date(dateStr);
+   234→  return date.toLocaleDateString('ar-SA', { month: 'short', day: 'numeric' });
+   235→}
+   236→
+   237→function getStatusLabel(status: AttendanceStatus): string {
+   238→  return STATUS_CONFIG[status].label;
+   239→}
+   240→
+   241→// ---------------------------------------------------------------------------
+   242→// Sub-components
+   243→// ---------------------------------------------------------------------------
+   244→
+   245→/** Attendance status badge */
+   246→function StatusBadge({ status }: { status: AttendanceStatus }) {
+   247→  const config = STATUS_CONFIG[status];
+   248→  const Icon = config.icon;
+   249→  return (
+   250→    <Badge
+   251→      variant="outline"
+   252→      className={cn('text-xs font-medium px-2.5 py-0.5 rounded-full gap-1', config.badgeClass)}
+   253→    >
+   254→      <Icon className="h-3 w-3" />
+   255→      {config.label}
+   256→    </Badge>
+   257→  );
+   258→}
+   259→
+   260→/** Stat summary card */
+   261→function StatCard({
+   262→  icon: Icon,
+   263→  label,
+   264→  count,
+   265→  total,
+   266→  colorClass,
+   267→  bgColor,
+   268→  borderColor,
+   269→}: {
+   270→  icon: typeof CheckCircle2;
+   271→  label: string;
+   272→  count: number;
+   273→  total: number;
+   274→  colorClass: string;
+   275→  bgColor: string;
+   276→  borderColor: string;
+   277→}) {
+   278→  const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
+   279→
+   280→  return (
+   281→    <div
+   282→      className="rounded-xl p-4 transition-all duration-200 hover:scale-[1.02]"
+   283→      style={{
+   284→        backgroundColor: 'rgba(255,255,255,0.02)',
+   285→        border: '1px solid rgba(255,255,255,0.06)',
+   286→      }}
+   287→    >
+   288→      <div className="flex items-center justify-between mb-3">
+   289→        <div className="flex items-center gap-3">
+   290→          <div className={cn('flex items-center justify-center h-10 w-10 rounded-xl', bgColor)}>
+   291→            <Icon className={cn('h-5 w-5', colorClass)} />
+   292→          </div>
+   293→          <div>
+   294→            <p className="text-2xl font-bold text-white tabular-nums">{count}</p>
+   295→            <p className="text-xs text-muted-foreground">{label}</p>
+   296→          </div>
+   297→        </div>
+   298→        <span className={cn('text-lg font-bold tabular-nums', colorClass)}>{percentage}%</span>
+   299→      </div>
+   300→      {/* Progress bar */}
+   301→      <div className="h-1.5 w-full rounded-full bg-white/[0.06] overflow-hidden">
+   302→        <div
+   303→          className={cn('h-full rounded-full transition-all duration-500', bgColor.replace('/10', '/60'))}
+   304→          style={{ width: `${percentage}%` }}
+   305→        />
+   306→      </div>
+   307→    </div>
+   308→  );
+   309→}
+   310→
+   311→/** Empty state */
+   312→function EmptyState({ onMark }: { onMark: () => void }) {
+   313→  return (
+   314→    <div className="flex flex-col items-center justify-center py-16 px-4">
+   315→      <div className="flex items-center justify-center h-20 w-20 rounded-2xl bg-white/[0.03] border border-white/[0.06] mb-6">
+   316→        <ClipboardCheck className="h-10 w-10 text-slate-500" />
+   317→      </div>
+   318→      <h3 className="text-lg font-semibold text-slate-300 mb-2">
+   319→        لا توجد سجلات حضور
+   320→      </h3>
+   321→      <p className="text-sm text-muted-foreground mb-6 text-center max-w-sm">
+   322→        ابدأ بتسجيل حضور الطلاب يومياً لمتابعة انتظامهم ومعدلات حضورهم
+   323→      </p>
+   324→      <Button
+   325→        onClick={onMark}
+   326→        className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold gap-2 rounded-lg px-6 btn-shine"
+   327→      >
+   328→        <ClipboardCheck className="h-4 w-4" />
+   329→        تسجيل حضور
+   330→      </Button>
+   331→    </div>
+   332→  );
+   333→}
+   334→
+   335→/** View attendance dialog */
+   336→function ViewAttendanceDialog({
+   337→  record,
+   338→  open,
+   339→  onOpenChange,
+   340→}: {
+   341→  record: AttendanceRecord | null;
+   342→  open: boolean;
+   343→  onOpenChange: (open: boolean) => void;
+   344→}) {
+   345→  if (!record) return null;
+   346→
+   347→  const config = STATUS_CONFIG[record.status];
+   348→  const StatusIcon = config.icon;
+   349→
+   350→  return (
+   351→    <Dialog open={open} onOpenChange={onOpenChange}>
+   352→      <DialogContent
+   353→        className="sm:max-w-lg"
+   354→        dir="rtl"
+   355→        style={{
+   356→          backgroundColor: '#1A1A24',
+   357→          border: '1px solid rgba(255,255,255,0.06)',
+   358→        }}
+   359→      >
+   360→        <DialogHeader>
+   361→          <DialogTitle className="text-white text-xl">تفاصيل سجل الحضور</DialogTitle>
+   362→          <DialogDescription className="text-muted-foreground">
+   363→            عرض تفاصيل سجل حضور الطالب
+   364→          </DialogDescription>
+   365→        </DialogHeader>
+   366→
+   367→        <div className="flex flex-col gap-4 mt-2">
+   368→          <div
+   369→            className="rounded-xl p-4"
+   370→            style={{
+   371→              backgroundColor: 'rgba(255,255,255,0.02)',
+   372→              border: '1px solid rgba(255,255,255,0.04)',
+   373→            }}
+   374→          >
+   375→            <div className="grid grid-cols-1 gap-4">
+   376→              {/* Student name */}
+   377→              <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04]">
+   378→                <div className="flex items-center gap-3">
+   379→                  <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#D4A574]/10">
+   380→                    <Users className="h-4 w-4 text-[#D4A574]" />
+   381→                  </div>
+   382→                  <span className="text-sm text-muted-foreground">اسم الطالب</span>
+   383→                </div>
+   384→                <span className="text-sm font-medium text-slate-200">{record.studentName}</span>
+   385→              </div>
+   386→
+   387→              {/* Date */}
+   388→              <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04]">
+   389→                <div className="flex items-center gap-3">
+   390→                  <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#D4A574]/10">
+   391→                    <CalendarDays className="h-4 w-4 text-[#D4A574]" />
+   392→                  </div>
+   393→                  <span className="text-sm text-muted-foreground">التاريخ</span>
+   394→                </div>
+   395→                <span className="text-sm font-medium text-slate-200">{formatDate(record.date)}</span>
+   396→              </div>
+   397→
+   398→              {/* Class */}
+   399→              <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04]">
+   400→                <div className="flex items-center gap-3">
+   401→                  <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#D4A574]/10">
+   402→                    <Users className="h-4 w-4 text-[#D4A574]" />
+   403→                  </div>
+   404→                  <span className="text-sm text-muted-foreground">الفصل</span>
+   405→                </div>
+   406→                <span className="text-sm font-medium text-slate-200">{getClassName(record.classId)}</span>
+   407→              </div>
+   408→
+   409→              {/* Status */}
+   410→              <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04]">
+   411→                <div className="flex items-center gap-3">
+   412→                  <div className={cn('flex items-center justify-center h-8 w-8 rounded-lg', config.bgClass)}>
+   413→                    <StatusIcon className={cn('h-4 w-4', config.color)} />
+   414→                  </div>
+   415→                  <span className="text-sm text-muted-foreground">الحالة</span>
+   416→                </div>
+   417→                <StatusBadge status={record.status} />
+   418→              </div>
+   419→            </div>
+   420→          </div>
+   421→
+   422→          {/* Notes */}
+   423→          {record.notes && (
+   424→            <div
+   425→              className="rounded-xl p-4"
+   426→              style={{
+   427→                backgroundColor: 'rgba(255,255,255,0.02)',
+   428→                border: '1px solid rgba(255,255,255,0.04)',
+   429→              }}
+   430→            >
+   431→              <h4 className="text-sm font-semibold text-slate-300 mb-2">ملاحظات</h4>
+   432→              <p className="text-sm text-muted-foreground leading-relaxed">{record.notes}</p>
+   433→            </div>
+   434→          )}
+   435→
+   436→          {/* Created at */}
+   437→          <div className="flex items-center gap-4 text-xs text-muted-foreground/60">
+   438→            <span>تاريخ التسجيل: {new Date(record.createdAt).toLocaleDateString('ar-SA')}</span>
+   439→          </div>
+   440→        </div>
+   441→      </DialogContent>
+   442→    </Dialog>
+   443→  );
+   444→}
+   445→
+   446→// ---------------------------------------------------------------------------
+   447→// Edit form content
+   448→// ---------------------------------------------------------------------------
+   449→
+   450→function EditFormContent({
+   451→  record,
+   452→  onClose,
+   453→}: {
+   454→  record: AttendanceRecord | null;
+   455→  onClose: () => void;
+   456→}) {
+   457→  const { updateAttendanceRecord } = useAttendanceStore();
+   458→  const [status, setStatus] = useState<AttendanceStatus>(record?.status ?? 'present');
+   459→  const [notes, setNotes] = useState(record?.notes ?? '');
+   460→
+   461→  const handleSubmit = (e: React.FormEvent) => {
+   462→    e.preventDefault();
+   463→    if (!record) return;
+   464→
+   465→    updateAttendanceRecord(record.id, { status, notes });
+   466→    toast.success('تم تحديث سجل الحضور');
+   467→    onClose();
+   468→  };
+   469→
+   470→  return (
+   471→    <form onSubmit={handleSubmit} className="flex flex-col gap-5 mt-2">
+   472→      {/* Status radio buttons */}
+   473→      <div className="flex flex-col gap-2">
+   474→        <Label className="text-slate-300 text-sm">حالة الحضور</Label>
+   475→        <div className="grid grid-cols-2 gap-2">
+   476→          {STATUS_OPTIONS.map((opt) => {
+   477→            const config = STATUS_CONFIG[opt.value];
+   478→            const Icon = config.icon;
+   479→            const isSelected = status === opt.value;
+   480→            return (
+   481→              <button
+   482→                key={opt.value}
+   483→                type="button"
+   484→                onClick={() => setStatus(opt.value)}
+   485→                className={cn(
+   486→                  'flex items-center justify-center gap-2 rounded-xl py-3 px-4 border transition-all duration-200',
+   487→                  isSelected
+   488→                    ? config.bgClass + ' ' + config.color + ' font-semibold'
+   489→                    : 'border-white/[0.06] text-slate-400 hover:bg-white/[0.04] hover:text-slate-300'
+   490→                )}
+   491→              >
+   492→                <Icon className="h-4 w-4" />
+   493→                <span className="text-sm">{opt.label}</span>
+   494→              </button>
+   495→            );
+   496→          })}
+   497→        </div>
+   498→      </div>
+   499→
+   500→      {/* Notes */}
+   501→      <div className="flex flex-col gap-2">
+   502→        <Label className="text-slate-300 text-sm">ملاحظات</Label>
+   503→        <Textarea
+   504→          value={notes}
+   505→          onChange={(e) => setNotes(e.target.value)}
+   506→          placeholder="أضف ملاحظات حول الحضور..."
+   507→          className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 min-h-[80px] resize-none"
+   508→        />
+   509→      </div>
+   510→
+   511→      <DialogFooter className="flex-row gap-3 sm:justify-start pt-2">
+   512→        <Button
+   513→          type="submit"
+   514→          className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold rounded-lg px-6 gap-2"
+   515→        >
+   516→          <Save className="h-4 w-4" />
+   517→          حفظ التغييرات
+   518→        </Button>
+   519→        <Button
+   520→          type="button"
+   521→          variant="outline"
+   522→          onClick={onClose}
+   523→          className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-6"
+   524→        >
+   525→          إلغاء
+   526→        </Button>
+   527→      </DialogFooter>
+   528→    </form>
+   529→  );
+   530→}
+   531→
+   532→function EditAttendanceDialog({
+   533→  record,
+   534→  open,
+   535→  onOpenChange,
+   536→}: {
+   537→  record: AttendanceRecord | null;
+   538→  open: boolean;
+   539→  onOpenChange: (open: boolean) => void;
+   540→}) {
+   541→  return (
+   542→    <Dialog open={open} onOpenChange={onOpenChange}>
+   543→      <DialogContent
+   544→        className="sm:max-w-lg"
+   545→        dir="rtl"
+   546→        style={{
+   547→          backgroundColor: '#1A1A24',
+   548→          border: '1px solid rgba(255,255,255,0.06)',
+   549→        }}
+   550→      >
+   551→        <DialogHeader>
+   552→          <DialogTitle className="text-white text-xl">تعديل سجل الحضور</DialogTitle>
+   553→          <DialogDescription className="text-muted-foreground">
+   554→            {record ? `تعديل حضور ${record.studentName}` : ''}
+   555→          </DialogDescription>
+   556→        </DialogHeader>
+   557→        {open && record && (
+   558→          <EditFormContent record={record} onClose={() => onOpenChange(false)} />
+   559→        )}
+   560→      </DialogContent>
+   561→    </Dialog>
+   562→  );
+   563→}
+   564→
+   565→/** Delete confirmation dialog */
+   566→function DeleteAttendanceDialog({
+   567→  record,
+   568→  open,
+   569→  onOpenChange,
+   570→}: {
+   571→  record: AttendanceRecord | null;
+   572→  open: boolean;
+   573→  onOpenChange: (open: boolean) => void;
+   574→}) {
+   575→  const { deleteAttendanceRecord } = useAttendanceStore();
+   576→
+   577→  const handleDelete = () => {
+   578→    if (record) {
+   579→      deleteAttendanceRecord(record.id);
+   580→      toast.success('تم حذف سجل الحضور');
+   581→      onOpenChange(false);
+   582→    }
+   583→  };
+   584→
+   585→  return (
+   586→    <AlertDialog open={open} onOpenChange={onOpenChange}>
+   587→      <AlertDialogContent
+   588→        dir="rtl"
+   589→        style={{
+   590→          backgroundColor: '#1A1A24',
+   591→          border: '1px solid rgba(255,255,255,0.06)',
+   592→        }}
+   593→      >
+   594→        <AlertDialogHeader>
+   595→          <AlertDialogTitle className="text-white text-lg">تأكيد حذف سجل الحضور</AlertDialogTitle>
+   596→          <AlertDialogDescription className="text-muted-foreground leading-relaxed">
+   597→            هل أنت متأكد من حذف سجل حضور{' '}
+   598→            <span className="font-semibold text-slate-200">{record?.studentName}</span>
+   599→            {' '}بتاريخ{' '}
+   600→            <span className="font-semibold text-slate-200">{record ? formatDate(record.date) : ''}</span>؟
+   601→            <br />
+   602→            لا يمكن التراجع عن هذا الإجراء.
+   603→          </AlertDialogDescription>
+   604→        </AlertDialogHeader>
+   605→        <AlertDialogFooter className="flex-row gap-3 sm:justify-start mt-2">
+   606→          <AlertDialogCancel className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-6 mt-0">
+   607→            إلغاء
+   608→          </AlertDialogCancel>
+   609→          <AlertDialogAction
+   610→            onClick={handleDelete}
+   611→            className="bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-lg px-6 gap-2"
+   612→          >
+   613→            <Trash2 className="h-4 w-4" />
+   614→            نعم، احذف
+   615→          </AlertDialogAction>
+   616→        </AlertDialogFooter>
+   617→      </AlertDialogContent>
+   618→    </AlertDialog>
+   619→  );
+   620→}
+   621→
+   622→// ---------------------------------------------------------------------------
+   623→// Attendance Marking Mode (class roster with radio buttons)
+   624→// ---------------------------------------------------------------------------
+   625→
+   626→interface MarkingStudent {
+   627→  id: string;
+   628→  name: string;
+   629→  classId: string;
+   630→}
+   631→
+   632→function MarkAttendanceDialog({
+   633→  open,
+   634→  onOpenChange,
+   635→  students,
+   636→  selectedClass,
+   637→}: {
+   638→  open: boolean;
+   639→  onOpenChange: (open: boolean) => void;
+   640→  students: MarkingStudent[];
+   641→  selectedClass: string;
+   642→}) {
+   643→  const { addAttendanceRecords } = useAttendanceStore();
+   644→  const [attendanceMap, setAttendanceMap] = useState<Record<string, AttendanceStatus>>({});
+   645→  const [noteMap, setNoteMap] = useState<Record<string, string>>({});
+   646→
+   647→  // Initialize all as present when dialog opens (use key-based reset pattern)
+   648→  const prevOpenRef = useRef(false);
+   649→  useEffect(() => {
+   650→    if (open && !prevOpenRef.current) {
+   651→      const init: Record<string, AttendanceStatus> = {};
+   652→      const initNotes: Record<string, string> = {};
+   653→      students.forEach((s) => {
+   654→        init[s.id] = 'present';
+   655→        initNotes[s.id] = '';
+   656→      });
+   657→      // Use rAF to avoid synchronous setState in effect
+   658→      requestAnimationFrame(() => {
+   659→        setAttendanceMap(init);
+   660→        setNoteMap(initNotes);
+   661→      });
+   662→    }
+   663→    prevOpenRef.current = open;
+   664→  }, [open, students]);
+   665→
+   666→  const handleStatusChange = useCallback((studentId: string, status: AttendanceStatus) => {
+   667→    setAttendanceMap((prev) => ({ ...prev, [studentId]: status }));
+   668→  }, []);
+   669→
+   670→  const handleNoteChange = useCallback((studentId: string, note: string) => {
+   671→    setNoteMap((prev) => ({ ...prev, [studentId]: note }));
+   672→  }, []);
+   673→
+   674→  const handleSubmit = () => {
+   675→    const today = new Date().toISOString().split('T')[0];
+   676→    const records: AttendanceRecord[] = students.map((s) => ({
+   677→      id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+   678→      studentId: s.id,
+   679→      classId: s.classId,
+   680→      date: today,
+   681→      status: attendanceMap[s.id] || 'present',
+   682→      notes: noteMap[s.id] || '',
+   683→      createdAt: new Date().toISOString(),
+   684→      studentName: s.name,
+   685→    }));
+   686→
+   687→    addAttendanceRecords(records);
+   688→    toast.success(`تم تسجيل حضور ${students.length} طالب بنجاح`);
+   689→    onOpenChange(false);
+   690→  };
+   691→
+   692→  return (
+   693→    <Dialog open={open} onOpenChange={onOpenChange}>
+   694→      <DialogContent
+   695→        className="sm:max-w-2xl max-h-[85vh] overflow-hidden flex flex-col"
+   696→        dir="rtl"
+   697→        style={{
+   698→          backgroundColor: '#1A1A24',
+   699→          border: '1px solid rgba(255,255,255,0.06)',
+   700→        }}
+   701→      >
+   702→        <DialogHeader>
+   703→          <DialogTitle className="text-white text-xl flex items-center gap-2">
+   704→            <ClipboardCheck className="h-5 w-5 text-[#D4A574]" />
+   705→            تسجيل حضور — {getClassName(selectedClass)}
+   706→          </DialogTitle>
+   707→          <DialogDescription className="text-muted-foreground">
+   708→            {new Date().toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+   709→          </DialogDescription>
+   710→        </DialogHeader>
+   711→
+   712→        {/* Student list */}
+   713→        <div className="flex-1 overflow-y-auto max-h-[55vh] -mx-1 px-1">
+   714→          <div className="flex flex-col gap-2">
+   715→            {students.map((student) => {
+   716→              const currentStatus = attendanceMap[student.id] || 'present';
+   717→              return (
+   718→                <div
+   719→                  key={student.id}
+   720→                  className={cn(
+   721→                    'rounded-xl p-3 transition-all duration-200',
+   722→                    'hover:bg-white/[0.04]',
+   723→                    STATUS_CONFIG[currentStatus].bgClass.replace('/10', '/5'),
+   724→                    'border border-white/[0.04]',
+   725→                  )}
+   726→                >
+   727→                  <div className="flex items-center justify-between gap-3">
+   728→                    {/* Student name + avatar */}
+   729→                    <div className="flex items-center gap-3 min-w-0">
+   730→                      <div className="flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-[#D4A574]/20 to-[#D4A574]/5 shrink-0 border border-[#D4A574]/10">
+   731→                        <span className="text-xs font-bold text-[#D4A574]">
+   732→                          {student.name.charAt(0)}
+   733→                        </span>
+   734→                      </div>
+   735→                      <span className="text-sm font-medium text-slate-200 truncate">
+   736→                        {student.name}
+   737→                      </span>
+   738→                    </div>
+   739→
+   740→                    {/* Status radio buttons */}
+   741→                    <div className="flex items-center gap-1.5 shrink-0">
+   742→                      {STATUS_OPTIONS.map((opt) => {
+   743→                        const isSelected = currentStatus === opt.value;
+   744→                        const config = STATUS_CONFIG[opt.value];
+   745→                        return (
+   746→                          <button
+   747→                            key={opt.value}
+   748→                            type="button"
+   749→                            onClick={() => handleStatusChange(student.id, opt.value)}
+   750→                            title={opt.label}
+   751→                            className={cn(
+   752→                              'flex items-center justify-center h-8 w-8 rounded-lg border transition-all duration-200',
+   753→                              isSelected
+   754→                                ? config.bgClass + ' ' + config.color
+   755→                                : 'border-white/[0.06] text-slate-500 hover:text-slate-300 hover:bg-white/[0.04]'
+   756→                            )}
+   757→                          >
+   758→                            <config.icon className="h-3.5 w-3.5" />
+   759→                          </button>
+   760→                        );
+   761→                      })}
+   762→                    </div>
+   763→                  </div>
+   764→
+   765→                  {/* Note input (expandable) */}
+   766→                  {currentStatus !== 'present' && (
+   767→                    <div className="mt-2 mr-11">
+   768→                      <input
+   769→                        type="text"
+   770→                        value={noteMap[student.id] || ''}
+   771→                        onChange={(e) => handleNoteChange(student.id, e.target.value)}
+   772→                        placeholder="أضف سبب أو ملاحظة..."
+   773→                        className="w-full bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-1.5 text-xs text-slate-200 placeholder:text-muted-foreground/40 focus:outline-none focus:border-[#D4A574]/40"
+   774→                      />
+   775→                    </div>
+   776→                  )}
+   777→                </div>
+   778→              );
+   779→            })}
+   780→          </div>
+   781→        </div>
+   782→
+   783→        {/* Footer */}
+   784→        <DialogFooter className="flex-row gap-3 sm:justify-start pt-3 border-t border-white/[0.06] mt-2">
+   785→          <Button
+   786→            onClick={handleSubmit}
+   787→            className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold rounded-lg px-6 gap-2"
+   788→          >
+   789→            <Save className="h-4 w-4" />
+   790→            حفظ الحضور
+   791→          </Button>
+   792→          <Button
+   793→            type="button"
+   794→            variant="outline"
+   795→            onClick={() => onOpenChange(false)}
+   796→            className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-6"
+   797→          >
+   798→            إلغاء
+   799→          </Button>
+   800→        </DialogFooter>
+   801→      </DialogContent>
+   802→    </Dialog>
+   803→  );
+   804→}
+   805→
+   806→// ---------------------------------------------------------------------------
+   807→// Attendance Heatmap Calendar
+   808→// ---------------------------------------------------------------------------
+   809→
+   810→function AttendanceHeatmap({
+   811→  records,
+   812→  currentMonth,
+   813→  currentYear,
+   814→  onMonthChange,
+   815→  onYearChange,
+   816→}: {
+   817→  records: AttendanceRecord[];
+   818→  currentMonth: number;
+   819→  currentYear: number;
+   820→  onMonthChange: (month: number) => void;
+   821→  onYearChange: (year: number) => void;
+   822→}) {
+   823→  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+   824→  const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+   825→
+   826→  // Group records by date for this month
+   827→  const dateMap = new Map<string, AttendanceRecord[]>();
+   828→  for (const rec of records) {
+   829→    const d = new Date(rec.date);
+   830→    if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
+   831→      const key = d.getDate().toString();
+   832→      if (!dateMap.has(key)) dateMap.set(key, []);
+   833→      dateMap.get(key)!.push(rec);
+   834→    }
+   835→  }
+   836→
+   837→  const getCellColor = (day: number) => {
+   838→    const dayRecords = dateMap.get(day.toString());
+   839→    if (!dayRecords || dayRecords.length === 0) return 'bg-white/[0.02]';
+   840→    const presentCount = dayRecords.filter((r) => r.status === 'present').length;
+   841→    const ratio = presentCount / dayRecords.length;
+   842→    if (ratio >= 0.9) return 'bg-emerald-500/40';
+   843→    if (ratio >= 0.7) return 'bg-emerald-500/25';
+   844→    if (ratio >= 0.5) return 'bg-amber-500/25';
+   845→    if (ratio > 0) return 'bg-rose-500/25';
+   846→    return 'bg-rose-500/40';
+   847→  };
+   848→
+   849→  const getDaySummary = (day: number) => {
+   850→    const dayRecords = dateMap.get(day.toString());
+   851→    if (!dayRecords || dayRecords.length === 0) return null;
+   852→    const present = dayRecords.filter((r) => r.status === 'present').length;
+   853→    const absent = dayRecords.filter((r) => r.status === 'absent').length;
+   854→    const late = dayRecords.filter((r) => r.status === 'late').length;
+   855→    const excused = dayRecords.filter((r) => r.status === 'excused').length;
+   856→    return { total: dayRecords.length, present, absent, late, excused };
+   857→  };
+   858→
+   859→  const handlePrevMonth = () => {
+   860→    if (currentMonth === 0) {
+   861→      onMonthChange(11);
+   862→      onYearChange(currentYear - 1);
+   863→    } else {
+   864→      onMonthChange(currentMonth - 1);
+   865→    }
+   866→  };
+   867→
+   868→  const handleNextMonth = () => {
+   869→    if (currentMonth === 11) {
+   870→      onMonthChange(0);
+   871→      onYearChange(currentYear + 1);
+   872→    } else {
+   873→      onMonthChange(currentMonth + 1);
+   874→    }
+   875→  };
+   876→
+   877→  // Build calendar grid (6 rows × 7 columns)
+   878→  const cells: (number | null)[] = [];
+   879→  // Add empty cells for offset (Saturday-first week: shift by (firstDay + 1) % 7)
+   880→  const offset = (firstDayOfMonth + 1) % 7;
+   881→  for (let i = 0; i < offset; i++) cells.push(null);
+   882→  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+   883→  while (cells.length % 7 !== 0) cells.push(null);
+   884→
+   885→  return (
+   886→    <div
+   887→      className="rounded-xl p-4"
+   888→      style={{
+   889→        backgroundColor: 'rgba(255,255,255,0.02)',
+   890→        border: '1px solid rgba(255,255,255,0.06)',
+   891→      }}
+   892→    >
+   893→      {/* Month navigation */}
+   894→      <div className="flex items-center justify-between mb-4">
+   895→        <h3 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
+   896→          <BarChart3 className="h-4 w-4 text-[#D4A574]" />
+   897→          خريطة الحضور الشهرية
+   898→        </h3>
+   899→        <div className="flex items-center gap-2">
+   900→          <Button
+   901→            variant="ghost"
+   902→            size="icon"
+   903→            onClick={handlePrevMonth}
+   904→            className="h-7 w-7 text-slate-400 hover:text-white hover:bg-white/[0.05] rounded-lg"
+   905→          >
+   906→            <ChevronRight className="h-4 w-4" />
+   907→          </Button>
+   908→          <span className="text-sm font-medium text-slate-200 min-w-[120px] text-center">
+   909→            {ARABIC_MONTHS[currentMonth]} {currentYear}
+   910→          </span>
+   911→          <Button
+   912→            variant="ghost"
+   913→            size="icon"
+   914→            onClick={handleNextMonth}
+   915→            className="h-7 w-7 text-slate-400 hover:text-white hover:bg-white/[0.05] rounded-lg"
+   916→          >
+   917→            <ChevronLeft className="h-4 w-4" />
+   918→          </Button>
+   919→        </div>
+   920→      </div>
+   921→
+   922→      {/* Day headers */}
+   923→      <div className="grid grid-cols-7 gap-1 mb-1">
+   924→        {ARABIC_DAYS.map((day) => (
+   925→          <div key={day} className="text-center text-[10px] font-semibold text-muted-foreground/60 py-1">
+   926→            {day}
+   927→          </div>
+   928→        ))}
+   929→      </div>
+   930→
+   931→      {/* Calendar cells */}
+   932→      <div className="grid grid-cols-7 gap-1">
+   933→        {cells.map((day, i) => {
+   934→          if (day === null) {
+   935→            return <div key={`empty-${i}`} className="aspect-square" />;
+   936→          }
+   937→
+   938→          const summary = getDaySummary(day);
+   939→          const isToday =
+   940→            day === new Date().getDate() &&
+   941→            currentMonth === new Date().getMonth() &&
+   942→            currentYear === new Date().getFullYear();
+   943→
+   944→          return (
+   945→            <div
+   946→              key={day}
+   947→              className={cn(
+   948→                'aspect-square rounded-lg flex flex-col items-center justify-center text-xs relative transition-all duration-200 cursor-default',
+   949→                getCellColor(day),
+   950→                isToday && 'ring-1 ring-[#D4A574]/60 ring-offset-1 ring-offset-[#121218]'
+   951→              )}
+   952→              title={summary ? `حاضر: ${summary.present}, غائب: ${summary.absent}, متأخر: ${summary.late}, مستأذن: ${summary.excused}` : 'لا توجد بيانات'}
+   953→            >
+   954→              <span className={cn(
+   955→                'font-medium tabular-nums',
+   956→                summary ? 'text-slate-200' : 'text-muted-foreground/40'
+   957→              )}>
+   958→                {day}
+   959→              </span>
+   960→              {summary && summary.total > 0 && (
+   961→                <span className="text-[9px] text-muted-foreground/50 mt-0.5">
+   962→                  {summary.total}
+   963→                </span>
+   964→              )}
+   965→            </div>
+   966→          );
+   967→        })}
+   968→      </div>
+   969→
+   970→      {/* Legend */}
+   971→      <div className="flex items-center justify-center gap-4 mt-3 pt-3 border-t border-white/[0.04]">
+   972→        <div className="flex items-center gap-1.5">
+   973→          <div className="h-3 w-3 rounded bg-emerald-500/40" />
+   974→          <span className="text-[10px] text-muted-foreground">ممتاز</span>
+   975→        </div>
+   976→        <div className="flex items-center gap-1.5">
+   977→          <div className="h-3 w-3 rounded bg-emerald-500/25" />
+   978→          <span className="text-[10px] text-muted-foreground">جيد</span>
+   979→        </div>
+   980→        <div className="flex items-center gap-1.5">
+   981→          <div className="h-3 w-3 rounded bg-amber-500/25" />
+   982→          <span className="text-[10px] text-muted-foreground">متوسط</span>
+   983→        </div>
+   984→        <div className="flex items-center gap-1.5">
+   985→          <div className="h-3 w-3 rounded bg-rose-500/25" />
+   986→          <span className="text-[10px] text-muted-foreground">ضعيف</span>
+   987→        </div>
+   988→        <div className="flex items-center gap-1.5">
+   989→          <div className="h-3 w-3 rounded bg-rose-500/40" />
+   990→          <span className="text-[10px] text-muted-foreground">حرج</span>
+   991→        </div>
+   992→      </div>
+   993→    </div>
+   994→  );
+   995→}
+   996→
+   997→// ---------------------------------------------------------------------------
+   998→// Local Zustand Store for Attendance Records
+   999→// ---------------------------------------------------------------------------
+  1000→
+  1001→interface AttendanceState {
+  1002→  records: AttendanceRecord[];
+  1003→  setRecords: (records: AttendanceRecord[]) => void;
+  1004→  addAttendanceRecords: (records: AttendanceRecord[]) => void;
+  1005→  updateAttendanceRecord: (id: string, data: Partial<AttendanceRecord>) => void;
+  1006→  deleteAttendanceRecord: (id: string) => void;
+  1007→}
+  1008→
+  1009→const useAttendanceStore = create<AttendanceState>((set) => ({
+  1010→  records: [],
+  1011→  setRecords: (records) => set({ records }),
+  1012→  addAttendanceRecords: (newRecords) =>
+  1013→    set((state) => ({ records: [...newRecords, ...state.records] })),
+  1014→  updateAttendanceRecord: (id, data) =>
+  1015→    set((state) => ({
+  1016→      records: state.records.map((r) => (r.id === id ? { ...r, ...data } : r)),
+  1017→    })),
+  1018→  deleteAttendanceRecord: (id) =>
+  1019→    set((state) => ({
+  1020→      records: state.records.filter((r) => r.id !== id),
+  1021→    })),
+  1022→}));
+  1023→
+  1024→// ---------------------------------------------------------------------------
+  1025→// Main Component
+  1026→// ---------------------------------------------------------------------------
+  1027→
+  1028→export default function AttendanceSection() {
+  1029→  const { students } = useAppStore();
+  1030→  const { records, setRecords } = useAttendanceStore();
+  1031→
+  1032→  // Local UI state
+  1033→  const [localSearch, setLocalSearch] = useState('');
+  1034→  const [statusFilter, setStatusFilter] = useState<string>('all');
+  1035→  const [classFilter, setClassFilter] = useState<string>('all');
+  1036→  const [dateFilter, setDateFilter] = useState<string>('');
+  1037→  const [currentPage, setCurrentPage] = useState(1);
+  1038→
+  1039→  // Dialogs
+  1040→  const [viewOpen, setViewOpen] = useState(false);
+  1041→  const [editOpen, setEditOpen] = useState(false);
+  1042→  const [deleteOpen, setDeleteOpen] = useState(false);
+  1043→  const [markOpen, setMarkOpen] = useState(false);
+  1044→  const [selectedRecord, setSelectedRecord] = useState<AttendanceRecord | null>(null);
+  1045→
+  1046→  // Calendar state
+  1047→  const today = new Date();
+  1048→  const [heatmapMonth, setHeatmapMonth] = useState(today.getMonth());
+  1049→  const [heatmapYear, setHeatmapYear] = useState(today.getFullYear());
+  1050→
+  1051→  // Initialize mock data once
+  1052→  const initialized = useRef(false);
+  1053→  useEffect(() => {
+  1054→    if (!initialized.current && records.length === 0) {
+  1055→      initialized.current = true;
+  1056→      const mock = generateMockAttendance();
+  1057→      requestAnimationFrame(() => setRecords(mock));
+  1058→    }
+  1059→  }, []);
+  1060→
+  1061→  // Statistics
+  1062→  const stats = useMemo(() => {
+  1063→    const total = records.length;
+  1064→    const present = records.filter((r) => r.status === 'present').length;
+  1065→    const absent = records.filter((r) => r.status === 'absent').length;
+  1066→    const late = records.filter((r) => r.status === 'late').length;
+  1067→    const excused = records.filter((r) => r.status === 'excused').length;
+  1068→    const attendanceRate = total > 0 ? Math.round(((present + late) / total) * 100) : 0;
+  1069→    return { total, present, absent, late, excused, attendanceRate };
+  1070→  }, [records]);
+  1071→
+  1072→  // Filtered & searched records
+  1073→  const filteredRecords = useMemo(() => {
+  1074→    let result = [...records];
+  1075→
+  1076→    // Status filter
+  1077→    if (statusFilter !== 'all') {
+  1078→      result = result.filter((r) => r.status === statusFilter);
+  1079→    }
+  1080→
+  1081→    // Class filter
+  1082→    if (classFilter !== 'all') {
+  1083→      result = result.filter((r) => r.classId === classFilter);
+  1084→    }
+  1085→
+  1086→    // Date filter
+  1087→    if (dateFilter) {
+  1088→      result = result.filter((r) => {
+  1089→        const d = new Date(r.date);
+  1090→        const filterDate = new Date(dateFilter);
+  1091→        return (
+  1092→          d.getFullYear() === filterDate.getFullYear() &&
+  1093→          d.getMonth() === filterDate.getMonth() &&
+  1094→          d.getDate() === filterDate.getDate()
+  1095→        );
+  1096→      });
+  1097→    }
+  1098→
+  1099→    // Search filter
+  1100→    if (localSearch.trim()) {
+  1101→      const query = localSearch.trim().toLowerCase();
+  1102→      result = result.filter((r) => r.studentName.toLowerCase().includes(query));
+  1103→    }
+  1104→
+  1105→    // Sort by date descending
+  1106→    result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  1107→
+  1108→    return result;
+  1109→  }, [records, statusFilter, classFilter, dateFilter, localSearch]);
+  1110→
+  1111→  // Pagination
+  1112→  const totalPages = Math.max(1, Math.ceil(filteredRecords.length / ITEMS_PER_PAGE));
+  1113→  const paginatedRecords = filteredRecords.slice(
+  1114→    (currentPage - 1) * ITEMS_PER_PAGE,
+  1115→    currentPage * ITEMS_PER_PAGE
+  1116→  );
+  1117→
+  1118→  // Get students for the selected class (for marking mode)
+  1119→  const classStudents = useMemo(() => {
+  1120→    if (classFilter === 'all') {
+  1121→      // If no class filter, use first class with students
+  1122→      const activeClass = CLASS_OPTIONS.find((c) =>
+  1123→        students.some((s) => s.classId === c.value)
+  1124→      );
+  1125→      if (!activeClass) return [];
+  1126→      return students
+  1127→        .filter((s) => s.classId === activeClass.value && s.status === 'active')
+  1128→        .map((s) => ({ id: s.id, name: s.name, classId: s.classId! }));
+  1129→    }
+  1130→    return students
+  1131→      .filter((s) => s.classId === classFilter && s.status === 'active')
+  1132→      .map((s) => ({ id: s.id, name: s.name, classId: s.classId! }));
+  1133→  }, [students, classFilter]);
+  1134→
+  1135→  // Handlers
+  1136→  const handleMarkAttendance = () => {
+  1137→    if (classStudents.length === 0) {
+  1138→      toast.error('لا يوجد طلاب في الفصل المحدد. اختر فصلاً يحتوي على طلاب.');
+  1139→      return;
+  1140→    }
+  1141→    setMarkOpen(true);
+  1142→  };
+  1143→
+  1144→  const handleView = (record: AttendanceRecord) => {
+  1145→    setSelectedRecord(record);
+  1146→    setViewOpen(true);
+  1147→  };
+  1148→
+  1149→  const handleEdit = (record: AttendanceRecord) => {
+  1150→    setSelectedRecord(record);
+  1151→    setEditOpen(true);
+  1152→  };
+  1153→
+  1154→  const handleDelete = (record: AttendanceRecord) => {
+  1155→    setSelectedRecord(record);
+  1156→    setDeleteOpen(true);
+  1157→  };
+  1158→
+  1159→  const handlePrevPage = () => setCurrentPage((p) => Math.max(1, p - 1));
+  1160→  const handleNextPage = () => setCurrentPage((p) => Math.min(totalPages, p + 1));
+  1161→
+  1162→  // Reset page on filter changes (tracked via ref to avoid setState in effect)
+  1163→  const prevFiltersRef = useRef({ statusFilter, classFilter, dateFilter, localSearch });
+  1164→  useEffect(() => {
+  1165→    const prev = prevFiltersRef.current;
+  1166→    if (
+  1167→      prev.statusFilter !== statusFilter ||
+  1168→      prev.classFilter !== classFilter ||
+  1169→      prev.dateFilter !== dateFilter ||
+  1170→      prev.localSearch !== localSearch
+  1171→    ) {
+  1172→      prevFiltersRef.current = { statusFilter, classFilter, dateFilter, localSearch };
+  1173→      requestAnimationFrame(() => setCurrentPage(1));
+  1174→    }
+  1175→  }, [statusFilter, classFilter, dateFilter, localSearch]);
+  1176→
+  1177→  return (
+  1178→    <div className="flex flex-col gap-6" dir="rtl">
+  1179→      {/* ── Page Title ── */}
+  1180→      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+  1181→        <div className="flex items-center gap-3">
+  1182→          <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-[#D4A574]/10">
+  1183→            <ClipboardCheck className="h-5 w-5 text-[#D4A574]" />
+  1184→          </div>
+  1185→          <div>
+  1186→            <h1 className="text-2xl font-bold text-white tracking-tight sm:text-3xl flex items-center gap-3">
+  1187→              إدارة الحضور
+  1188→              <Badge className="bg-[#D4A574]/15 text-[#D4A574] border-[#D4A574]/20 hover:bg-[#D4A574]/20 text-sm px-2.5 py-0.5 rounded-full font-semibold tabular-nums">
+  1189→                {records.length}
+  1190→              </Badge>
+  1191→            </h1>
+  1192→            <p className="mt-0.5 text-sm text-muted-foreground">
+  1193→              متابعة حضور الطلاب وانتظامهم اليومي
+  1194→            </p>
+  1195→          </div>
+  1196→        </div>
+  1197→      </div>
+  1198→
+  1199→      {/* ── Statistics Summary Cards ── */}
+  1200→      {records.length > 0 && (
+  1201→        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 container-glow">
+  1202→          {/* Overall rate */}
+  1203→          <div
+  1204→            className="rounded-xl p-4 flex items-center gap-3 transition-all duration-200 hover:scale-[1.02]"
+  1205→            style={{
+  1206→              backgroundColor: 'rgba(255,255,255,0.02)',
+  1207→              border: '1px solid rgba(255,255,255,0.06)',
+  1208→            }}
+  1209→          >
+  1210→            <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-gradient-to-br from-[#D4A574]/20 to-[#D4A574]/5 border border-[#D4A574]/10">
+  1211→              <Flame className="h-6 w-6 text-[#D4A574]" />
+  1212→            </div>
+  1213→            <div>
+  1214→              <p className="text-2xl font-bold text-white tabular-nums">{stats.attendanceRate}%</p>
+  1215→              <p className="text-xs text-muted-foreground">معدل الحضور</p>
+  1216→            </div>
+  1217→          </div>
+  1218→
+  1219→          <StatCard
+  1220→            icon={CheckCircle2}
+  1221→            label="حاضر"
+  1222→            count={stats.present}
+  1223→            total={stats.total}
+  1224→            colorClass="text-emerald-400"
+  1225→            bgColor="bg-emerald-500/10"
+  1226→            borderColor="border-emerald-500/20"
+  1227→          />
+  1228→
+  1229→          <StatCard
+  1230→            icon={XCircle}
+  1231→            label="غائب"
+  1232→            count={stats.absent}
+  1233→            total={stats.total}
+  1234→            colorClass="text-rose-400"
+  1235→            bgColor="bg-rose-500/10"
+  1236→            borderColor="border-rose-500/20"
+  1237→          />
+  1238→
+  1239→          <StatCard
+  1240→            icon={Clock}
+  1241→            label="متأخر"
+  1242→            count={stats.late}
+  1243→            total={stats.total}
+  1244→            colorClass="text-amber-400"
+  1245→            bgColor="bg-amber-500/10"
+  1246→            borderColor="border-amber-500/20"
+  1247→          />
+  1248→
+  1249→          <StatCard
+  1250→            icon={ShieldAlert}
+  1251→            label="مستأذن"
+  1252→            count={stats.excused}
+  1253→            total={stats.total}
+  1254→            colorClass="text-sky-400"
+  1255→            bgColor="bg-sky-500/10"
+  1256→            borderColor="border-sky-500/20"
+  1257→          />
+  1258→        </div>
+  1259→      )}
+  1260→
+  1261→      {/* ── Action Bar ── */}
+  1262→      <div
+  1263→        className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl p-4"
+  1264→        style={{
+  1265→          backgroundColor: '#1A1A24',
+  1266→          border: '1px solid rgba(255,255,255,0.06)',
+  1267→        }}
+  1268→      >
+  1269→        {/* Action buttons */}
+  1270→        <div className="flex items-center gap-2">
+  1271→          <Button
+  1272→            onClick={handleMarkAttendance}
+  1273→            className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold gap-2 rounded-lg px-5 h-10"
+  1274→          >
+  1275→            <ClipboardCheck className="h-4 w-4" />
+  1276→            تسجيل حضور
+  1277→          </Button>
+  1278→        </div>
+  1279→
+  1280→        {/* Search & Filter */}
+  1281→        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+  1282→          {/* Search */}
+  1283→          <div className="relative">
+  1284→            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+  1285→            <Input
+  1286→              value={localSearch}
+  1287→              onChange={(e) => setLocalSearch(e.target.value)}
+  1288→              placeholder="بحث باسم الطالب..."
+  1289→              className="pr-10 w-full sm:w-56 bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 h-10"
+  1290→            />
+  1291→          </div>
+  1292→
+  1293→          {/* Status filter */}
+  1294→          <Select value={statusFilter} onValueChange={setStatusFilter}>
+  1295→            <SelectTrigger className="w-full sm:w-36 bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 h-10">
+  1296→              <SelectValue />
+  1297→            </SelectTrigger>
+  1298→            <SelectContent className="bg-[#1A1A24] border-white/[0.08]">
+  1299→              {FILTER_STATUS_OPTIONS.map((opt) => (
+  1300→                <SelectItem
+  1301→                  key={opt.value}
+  1302→                  value={opt.value}
+  1303→                  className="text-slate-200 focus:bg-white/[0.05] focus:text-white"
+  1304→                >
+  1305→                  {opt.label}
+  1306→                </SelectItem>
+  1307→              ))}
+  1308→            </SelectContent>
+  1309→          </Select>
+  1310→
+  1311→          {/* Class filter */}
+  1312→          <Select value={classFilter} onValueChange={setClassFilter}>
+  1313→            <SelectTrigger className="w-full sm:w-40 bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 h-10">
+  1314→              <SelectValue />
+  1315→            </SelectTrigger>
+  1316→            <SelectContent className="bg-[#1A1A24] border-white/[0.08]">
+  1317→              <SelectItem value="all" className="text-slate-200 focus:bg-white/[0.05] focus:text-white">
+  1318→                جميع الصفوف
+  1319→              </SelectItem>
+  1320→              {CLASS_OPTIONS.map((cls) => (
+  1321→                <SelectItem
+  1322→                  key={cls.value}
+  1323→                  value={cls.value}
+  1324→                  className="text-slate-200 focus:bg-white/[0.05] focus:text-white"
+  1325→                >
+  1326→                  {cls.label}
+  1327→                </SelectItem>
+  1328→              ))}
+  1329→            </SelectContent>
+  1330→          </Select>
+  1331→
+  1332→          {/* Date filter */}
+  1333→          <input
+  1334→            type="date"
+  1335→            value={dateFilter}
+  1336→            onChange={(e) => setDateFilter(e.target.value)}
+  1337→            className="w-full sm:w-auto bg-white/[0.03] border border-white/[0.08] text-slate-200 text-sm rounded-lg px-3 py-2 focus:border-[#D4A574]/50 focus:outline-none focus:ring-1 focus:ring-[#D4A574]/20 [color-scheme:dark] h-10"
+  1338→          />
+  1339→        </div>
+  1340→      </div>
+  1341→
+  1342→      {/* ── Main Content Grid ── */}
+  1343→      {filteredRecords.length === 0 && !dateFilter && !statusFilter && !classFilter && !localSearch ? (
+  1344→        <div
+  1345→          className="rounded-xl"
+  1346→          style={{
+  1347→            backgroundColor: '#1A1A24',
+  1348→            border: '1px solid rgba(255,255,255,0.06)',
+  1349→          }}
+  1350→        >
+  1351→          <EmptyState onMark={handleMarkAttendance} />
+  1352→        </div>
+  1353→      ) : (
+  1354→        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  1355→          {/* ── Attendance Table (2/3 width) ── */}
+  1356→          <div
+  1357→            className="lg:col-span-2 rounded-xl overflow-hidden"
+  1358→            style={{
+  1359→              backgroundColor: '#1A1A24',
+  1360→              border: '1px solid rgba(255,255,255,0.06)',
+  1361→            }}
+  1362→          >
+  1363→            {filteredRecords.length === 0 ? (
+  1364→              <div className="flex flex-col items-center justify-center py-12">
+  1365→                <Search className="h-8 w-8 text-slate-600 mb-3" />
+  1366→                <p className="text-sm text-muted-foreground">لا توجد نتائج مطابقة للبحث</p>
+  1367→                <Button
+  1368→                  variant="ghost"
+  1369→                  onClick={() => {
+  1370→                    setLocalSearch('');
+  1371→                    setStatusFilter('all');
+  1372→                    setClassFilter('all');
+  1373→                    setDateFilter('');
+  1374→                  }}
+  1375→                  className="mt-3 text-[#D4A574] hover:text-[#B8895A] hover:bg-[#D4A574]/10 text-sm"
+  1376→                >
+  1377→                  مسح الفلاتر
+  1378→                </Button>
+  1379→              </div>
+  1380→            ) : (
+  1381→              <>
+  1382→                <Table>
+  1383→                  <TableHeader>
+  1384→                    <TableRow className="border-b border-white/[0.06] hover:bg-transparent">
+  1385→                      <TableHead className="text-slate-400 font-semibold text-xs uppercase tracking-wider py-3.5 px-4">
+  1386→                        التاريخ
+  1387→                      </TableHead>
+  1388→                      <TableHead className="text-slate-400 font-semibold text-xs uppercase tracking-wider py-3.5 px-4">
+  1389→                        الطالب
+  1390→                      </TableHead>
+  1391→                      <TableHead className="text-slate-400 font-semibold text-xs uppercase tracking-wider py-3.5 px-4 hidden md:table-cell">
+  1392→                        الفصل
+  1393→                      </TableHead>
+  1394→                      <TableHead className="text-slate-400 font-semibold text-xs uppercase tracking-wider py-3.5 px-4">
+  1395→                        الحالة
+  1396→                      </TableHead>
+  1397→                      <TableHead className="text-slate-400 font-semibold text-xs uppercase tracking-wider py-3.5 px-4 hidden lg:table-cell">
+  1398→                        ملاحظات
+  1399→                      </TableHead>
+  1400→                      <TableHead className="text-slate-400 font-semibold text-xs uppercase tracking-wider py-3.5 px-4 text-center">
+  1401→                        إجراءات
+  1402→                      </TableHead>
+  1403→                    </TableRow>
+  1404→                  </TableHeader>
+  1405→                  <TableBody>
+  1406→                    {paginatedRecords.map((record, index) => (
+  1407→                      <TableRow
+  1408→                        key={record.id}
+  1409→                        className={cn(
+  1410→                          'border-b border-white/[0.04] transition-all duration-200',
+  1411→                          'hover:bg-white/[0.04]',
+  1412→                          index % 2 === 1 ? 'bg-white/[0.015]' : 'bg-transparent',
+  1413→                        )}
+  1414→                      >
+  1415→                        {/* Date */}
+  1416→                        <TableCell className="py-3.5 px-4">
+  1417→                          <div className="flex items-center gap-2">
+  1418→                            <CalendarDays className="h-3.5 w-3.5 text-muted-foreground/50" />
+  1419→                            <span className="text-sm text-slate-300">{formatDateShort(record.date)}</span>
+  1420→                          </div>
+  1421→                        </TableCell>
+  1422→
+  1423→                        {/* Student */}
+  1424→                        <TableCell className="py-3.5 px-4">
+  1425→                          <div className="flex items-center gap-3">
+  1426→                            <div className="flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-[#D4A574]/20 to-[#D4A574]/5 shrink-0 border border-[#D4A574]/10">
+  1427→                              <span className="text-xs font-bold text-[#D4A574]">
+  1428→                                {record.studentName.charAt(0)}
+  1429→                              </span>
+  1430→                            </div>
+  1431→                            <span className="text-sm font-medium text-slate-200 truncate max-w-[140px]">
+  1432→                              {record.studentName}
+  1433→                            </span>
+  1434→                          </div>
+  1435→                        </TableCell>
+  1436→
+  1437→                        {/* Class */}
+  1438→                        <TableCell className="py-3.5 px-4 hidden md:table-cell">
+  1439→                          <span className="text-sm text-slate-300">
+  1440→                            {getClassName(record.classId)}
+  1441→                          </span>
+  1442→                        </TableCell>
+  1443→
+  1444→                        {/* Status */}
+  1445→                        <TableCell className="py-3.5 px-4">
+  1446→                          <StatusBadge status={record.status} />
+  1447→                        </TableCell>
+  1448→
+  1449→                        {/* Notes */}
+  1450→                        <TableCell className="py-3.5 px-4 hidden lg:table-cell">
+  1451→                          <span className="text-sm text-muted-foreground truncate block max-w-[180px]">
+  1452→                            {record.notes || '—'}
+  1453→                          </span>
+  1454→                        </TableCell>
+  1455→
+  1456→                        {/* Actions */}
+  1457→                        <TableCell className="py-3.5 px-4">
+  1458→                          <div className="flex items-center justify-center gap-1">
+  1459→                            <Button
+  1460→                              variant="ghost"
+  1461→                              size="icon"
+  1462→                              onClick={() => handleView(record)}
+  1463→                              className="h-8 w-8 text-slate-400 hover:text-sky-400 hover:bg-sky-400/10 rounded-lg"
+  1464→                              title="عرض"
+  1465→                            >
+  1466→                              <Eye className="h-4 w-4" />
+  1467→                            </Button>
+  1468→                            <Button
+  1469→                              variant="ghost"
+  1470→                              size="icon"
+  1471→                              onClick={() => handleEdit(record)}
+  1472→                              className="h-8 w-8 text-slate-400 hover:text-amber-400 hover:bg-amber-400/10 rounded-lg"
+  1473→                              title="تعديل"
+  1474→                            >
+  1475→                              <Pencil className="h-4 w-4" />
+  1476→                            </Button>
+  1477→                            <Button
+  1478→                              variant="ghost"
+  1479→                              size="icon"
+  1480→                              onClick={() => handleDelete(record)}
+  1481→                              className="h-8 w-8 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg"
+  1482→                              title="حذف"
+  1483→                            >
+  1484→                              <Trash2 className="h-4 w-4" />
+  1485→                            </Button>
+  1486→                          </div>
+  1487→                        </TableCell>
+  1488→                      </TableRow>
+  1489→                    ))}
+  1490→                  </TableBody>
+  1491→                </Table>
+  1492→
+  1493→                {/* ── Pagination ── */}
+  1494→                {totalPages > 1 && (
+  1495→                  <div
+  1496→                    className="flex items-center justify-between px-4 py-3 border-t"
+  1497→                    style={{ borderColor: 'rgba(255,255,255,0.06)' }}
+  1498→                  >
+  1499→                    <div className="text-xs text-muted-foreground/60">
+  1500→                      عرض{' '}
+  1501→                      <span className="font-semibold text-slate-300 tabular-nums">
+  1502→                        {(currentPage - 1) * ITEMS_PER_PAGE + 1}
+  1503→                      </span>
+  1504→                      {' - '}
+  1505→                      <span className="font-semibold text-slate-300 tabular-nums">
+  1506→                        {Math.min(currentPage * ITEMS_PER_PAGE, filteredRecords.length)}
+  1507→                      </span>
+  1508→                      {' '}من{' '}
+  1509→                      <span className="font-semibold text-slate-300 tabular-nums">
+  1510→                        {filteredRecords.length}
+  1511→                      </span>
+  1512→                    </div>
+  1513→
+  1514→                    <div className="flex items-center gap-1.5">
+  1515→                      <Button
+  1516→                        variant="ghost"
+  1517→                        size="icon"
+  1518→                        onClick={handlePrevPage}
+  1519→                        disabled={currentPage === 1}
+  1520→                        className="h-8 w-8 text-slate-400 hover:text-white hover:bg-white/[0.05] disabled:opacity-30 disabled:cursor-not-allowed rounded-lg"
+  1521→                      >
+  1522→                        <ChevronRight className="h-4 w-4" />
+  1523→                      </Button>
+  1524→
+  1525→                      {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+  1526→                        let page: number;
+  1527→                        if (totalPages <= 5) {
+  1528→                          page = i + 1;
+  1529→                        } else if (currentPage <= 3) {
+  1530→                          page = i + 1;
+  1531→                        } else if (currentPage >= totalPages - 2) {
+  1532→                          page = totalPages - 4 + i;
+  1533→                        } else {
+  1534→                          page = currentPage - 2 + i;
+  1535→                        }
+  1536→                        return (
+  1537→                          <Button
+  1538→                            key={page}
+  1539→                            variant={currentPage === page ? 'outline' : 'ghost'}
+  1540→                            size="icon"
+  1541→                            onClick={() => setCurrentPage(page)}
+  1542→                            className={cn(
+  1543→                              'h-8 w-8 text-sm font-medium tabular-nums rounded-lg transition-all',
+  1544→                              currentPage === page
+  1545→                                ? 'bg-[#D4A574]/15 text-[#D4A574] border-[#D4A574]/30 hover:bg-[#D4A574]/20'
+  1546→                                : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'
+  1547→                            )}
+  1548→                          >
+  1549→                            {page}
+  1550→                          </Button>
+  1551→                        );
+  1552→                      })}
+  1553→
+  1554→                      <Button
+  1555→                        variant="ghost"
+  1556→                        size="icon"
+  1557→                        onClick={handleNextPage}
+  1558→                        disabled={currentPage === totalPages}
+  1559→                        className="h-8 w-8 text-slate-400 hover:text-white hover:bg-white/[0.05] disabled:opacity-30 disabled:cursor-not-allowed rounded-lg"
+  1560→                      >
+  1561→                        <ChevronLeft className="h-4 w-4" />
+  1562→                      </Button>
+  1563→                    </div>
+  1564→                  </div>
+  1565→                )}
+  1566→              </>
+  1567→            )}
+  1568→          </div>
+  1569→
+  1570→          {/* ── Heatmap Calendar (1/3 width) ── */}
+  1571→          <div>
+  1572→            <AttendanceHeatmap
+  1573→              records={records}
+  1574→              currentMonth={heatmapMonth}
+  1575→              currentYear={heatmapYear}
+  1576→              onMonthChange={setHeatmapMonth}
+  1577→              onYearChange={setHeatmapYear}
+  1578→            />
+  1579→          </div>
+  1580→        </div>
+  1581→      )}
+  1582→
+  1583→      {/* ── Dialogs ── */}
+  1584→      <ViewAttendanceDialog
+  1585→        record={selectedRecord}
+  1586→        open={viewOpen}
+  1587→        onOpenChange={setViewOpen}
+  1588→      />
+  1589→
+  1590→      <EditAttendanceDialog
+  1591→        record={selectedRecord}
+  1592→        open={editOpen}
+  1593→        onOpenChange={setEditOpen}
+  1594→      />
+  1595→
+  1596→      <DeleteAttendanceDialog
+  1597→        record={selectedRecord}
+  1598→        open={deleteOpen}
+  1599→        onOpenChange={setDeleteOpen}
+  1600→      />
+  1601→
+  1602→      <MarkAttendanceDialog
+  1603→        open={markOpen}
+  1604→        onOpenChange={setMarkOpen}
+  1605→        students={classStudents}
+  1606→        selectedClass={classFilter !== 'all' ? classFilter : CLASS_OPTIONS.find((c) => students.some((s) => s.classId === c.value))?.value || 'class-1'}
+  1607→      />
+  1608→    </div>
+  1609→  );
+  1610→}
+  1611→

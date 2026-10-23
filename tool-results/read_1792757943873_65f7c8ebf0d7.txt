@@ -1,0 +1,1097 @@
+     1→'use client';
+     2→
+     3→import { useState, useMemo } from 'react';
+     4→import {
+     5→  Calendar,
+     6→  Clock,
+     7→  Users,
+     8→  PlayCircle,
+     9→  CheckCircle2,
+    10→  Plus,
+    11→  Eye,
+    12→  MapPin,
+    13→  BookOpen,
+    14→  Filter,
+    15→  X,
+    16→  Timer,
+    17→} from 'lucide-react';
+    18→import type { Session } from '@/lib/types';
+    19→import { cn } from '@/lib/utils';
+    20→import { Button } from '@/components/ui/button';
+    21→import { Badge } from '@/components/ui/badge';
+    22→import {
+    23→  Dialog,
+    24→  DialogContent,
+    25→  DialogDescription,
+    26→  DialogHeader,
+    27→  DialogTitle,
+    28→} from '@/components/ui/dialog';
+    29→import {
+    30→  Select,
+    31→  SelectContent,
+    32→  SelectItem,
+    33→  SelectTrigger,
+    34→  SelectValue,
+    35→} from '@/components/ui/select';
+    36→
+    37→// ---------------------------------------------------------------------------
+    38→// Types
+    39→// ---------------------------------------------------------------------------
+    40→
+    41→type SessionStatus = 'upcoming' | 'in-progress' | 'completed';
+    42→
+    43→interface SessionCardData extends Session {
+    44→  status: SessionStatus;
+    45→  engagementScore: number;
+    46→  teacherNameDisplay: string;
+    47→  classNameDisplay: string;
+    48→  room?: string;
+    49→}
+    50→
+    51→// ---------------------------------------------------------------------------
+    52→// Mock Data
+    53→// ---------------------------------------------------------------------------
+    54→
+    55→const CLASS_FILTER_MAP: Record<string, string> = {
+    56→  'class-1': 'الصف الأول - أ',
+    57→  'class-2': 'الصف الأول - ب',
+    58→  'class-3': 'الصف الثاني - أ',
+    59→  'class-4': 'الصف الثاني - ب',
+    60→  'class-5': 'الصف الثالث - أ',
+    61→  'class-6': 'الصف الثالث - ب',
+    62→};
+    63→
+    64→const MOCK_SESSIONS: SessionCardData[] = [
+    65→  {
+    66→    id: 'session-001',
+    67→    classId: 'class-1',
+    68→    teacherId: 'teacher-001',
+    69→    date: new Date().toISOString().split('T')[0],
+    70→    startTime: '08:00',
+    71→    endTime: '09:30',
+    72→    engagementAvg: 88,
+    73→    topic: 'مقدمة في الجبر والمعادلات',
+    74→    notes: 'شرح تفاعلي مع تمارين تطبيقية',
+    75→    createdAt: '2025-01-14T08:00:00.000Z',
+    76→    updatedAt: '2025-01-15T10:00:00.000Z',
+    77→    className: 'الصف الأول - أ',
+    78→    teacherName: 'أ. عبدالله السالم',
+    79→    status: 'completed',
+    80→    engagementScore: 88,
+    81→    teacherNameDisplay: 'أ. عبدالله السالم',
+    82→    classNameDisplay: 'الصف الأول - أ',
+    83→    room: 'قاعة 101',
+    84→  },
+    85→  {
+    86→    id: 'session-002',
+    87→    classId: 'class-3',
+    88→    teacherId: 'teacher-002',
+    89→    date: new Date().toISOString().split('T')[0],
+    90→    startTime: '10:00',
+    91→    endTime: '11:30',
+    92→    engagementAvg: 92,
+    93→    topic: 'الفيزياء: قوانين نيوتن',
+    94→    notes: 'تجارب معملية عملية',
+    95→    createdAt: '2025-01-14T08:00:00.000Z',
+    96→    updatedAt: '2025-01-15T12:00:00.000Z',
+    97→    className: 'الصف الثاني - أ',
+    98→    teacherName: 'أ. سارة المنصور',
+    99→    status: 'completed',
+   100→    engagementScore: 92,
+   101→    teacherNameDisplay: 'أ. سارة المنصور',
+   102→    classNameDisplay: 'الصف الثاني - أ',
+   103→    room: 'معمل الفيزياء',
+   104→  },
+   105→  {
+   106→    id: 'session-003',
+   107→    classId: 'class-5',
+   108→    teacherId: 'teacher-001',
+   109→    date: new Date().toISOString().split('T')[0],
+   110→    startTime: '12:00',
+   111→    endTime: '13:30',
+   112→    engagementAvg: 76,
+   113→    topic: 'الكيمياء العضوية - الجزيئات',
+   114→    notes: 'مراجعة عامة للفصل السابق',
+   115→    createdAt: '2025-01-15T08:00:00.000Z',
+   116→    updatedAt: '2025-01-16T10:00:00.000Z',
+   117→    className: 'الصف الثالث - أ',
+   118→    teacherName: 'أ. عبدالله السالم',
+   119→    status: 'in-progress',
+   120→    engagementScore: 76,
+   121→    teacherNameDisplay: 'أ. عبدالله السالم',
+   122→    classNameDisplay: 'الصف الثالث - أ',
+   123→    room: 'قاعة 205',
+   124→  },
+   125→  {
+   126→    id: 'session-004',
+   127→    classId: 'class-2',
+   128→    teacherId: 'teacher-003',
+   129→    date: new Date().toISOString().split('T')[0],
+   130→    startTime: '14:00',
+   131→    endTime: '15:30',
+   132→    engagementAvg: null,
+   133→    topic: 'اللغة العربية: النحو والإعراب',
+   134→    notes: '',
+   135→    createdAt: '2025-01-15T08:00:00.000Z',
+   136→    updatedAt: '2025-01-15T08:00:00.000Z',
+   137→    className: 'الصف الأول - ب',
+   138→    teacherName: 'أ. فهد العتيبي',
+   139→    status: 'upcoming',
+   140→    engagementScore: 0,
+   141→    teacherNameDisplay: 'أ. فهد العتيبي',
+   142→    classNameDisplay: 'الصف الأول - ب',
+   143→    room: 'قاعة 102',
+   144→  },
+   145→  {
+   146→    id: 'session-005',
+   147→    classId: 'class-4',
+   148→    teacherId: 'teacher-002',
+   149→    date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+   150→    startTime: '08:00',
+   151→    endTime: '09:30',
+   152→    engagementAvg: null,
+   153→    topic: 'العلوم: الأحياء الخلوية',
+   154→    notes: 'شرح جديد مع عروض تقديمية',
+   155→    createdAt: '2025-01-16T08:00:00.000Z',
+   156→    updatedAt: '2025-01-16T08:00:00.000Z',
+   157→    className: 'الصف الثاني - ب',
+   158→    teacherName: 'أ. سارة المنصور',
+   159→    status: 'upcoming',
+   160→    engagementScore: 0,
+   161→    teacherNameDisplay: 'أ. سارة المنصور',
+   162→    classNameDisplay: 'الصف الثاني - ب',
+   163→    room: 'معمل الأحياء',
+   164→  },
+   165→  {
+   166→    id: 'session-006',
+   167→    classId: 'class-6',
+   168→    teacherId: 'teacher-003',
+   169→    date: new Date(Date.now() - 86400000).toISOString().split('T')[0],
+   170→    startTime: '10:00',
+   171→    endTime: '11:30',
+   172→    engagementAvg: 65,
+   173→    topic: 'التاريخ: الحضارات القديمة',
+   174→    notes: 'نقاش جماعي ومشاريع فردية',
+   175→    createdAt: '2025-01-13T08:00:00.000Z',
+   176→    updatedAt: '2025-01-14T12:00:00.000Z',
+   177→    className: 'الصف الثالث - ب',
+   178→    teacherName: 'أ. فهد العتيبي',
+   179→    status: 'completed',
+   180→    engagementScore: 65,
+   181→    teacherNameDisplay: 'أ. فهد العتيبي',
+   182→    classNameDisplay: 'الصف الثالث - ب',
+   183→    room: 'قاعة 303',
+   184→  },
+   185→  {
+   186→    id: 'session-007',
+   187→    classId: 'class-1',
+   188→    teacherId: 'teacher-002',
+   189→    date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+   190→    startTime: '12:00',
+   191→    endTime: '13:30',
+   192→    engagementAvg: null,
+   193→    topic: 'الرياضيات: الهندسة والقياس',
+   194→    notes: 'حصة تطبيقية مع أنشطة تفاعلية',
+   195→    createdAt: '2025-01-16T08:00:00.000Z',
+   196→    updatedAt: '2025-01-16T08:00:00.000Z',
+   197→    className: 'الصف الأول - أ',
+   198→    teacherName: 'أ. سارة المنصور',
+   199→    status: 'upcoming',
+   200→    engagementScore: 0,
+   201→    teacherNameDisplay: 'أ. سارة المنصور',
+   202→    classNameDisplay: 'الصف الأول - أ',
+   203→    room: 'قاعة 101',
+   204→  },
+   205→  {
+   206→    id: 'session-008',
+   207→    classId: 'class-3',
+   208→    teacherId: 'teacher-001',
+   209→    date: new Date(Date.now() - 86400000).toISOString().split('T')[0],
+   210→    startTime: '14:00',
+   211→    endTime: '15:30',
+   212→    engagementAvg: 81,
+   213→    topic: 'اللغة الإنجليزية: المحادثة والمفردات',
+   214→    notes: 'أنشطة مجموعات وتطبيقات عملية',
+   215→    createdAt: '2025-01-15T08:00:00.000Z',
+   216→    updatedAt: '2025-01-16T16:00:00.000Z',
+   217→    className: 'الصف الثاني - أ',
+   218→    teacherName: 'أ. عبدالله السالم',
+   219→    status: 'completed',
+   220→    engagementScore: 81,
+   221→    teacherNameDisplay: 'أ. عبدالله السالم',
+   222→    classNameDisplay: 'الصف الثاني - أ',
+   223→    room: 'قاعة 201',
+   224→  },
+   225→];
+   226→
+   227→// ---------------------------------------------------------------------------
+   228→// Helpers
+   229→// ---------------------------------------------------------------------------
+   230→
+   231→const STATUS_CONFIG: Record<
+   232→  SessionStatus,
+   233→  { label: string; icon: React.ComponentType<{ className?: string }>; color: string; bg: string }
+   234→> = {
+   235→  upcoming: {
+   236→    label: 'قادمة',
+   237→    icon: Calendar,
+   238→    color: 'text-sky-400',
+   239→    bg: 'bg-sky-500/10 border-sky-500/20',
+   240→  },
+   241→  'in-progress': {
+   242→    label: 'جارية',
+   243→    icon: PlayCircle,
+   244→    color: 'text-amber-400',
+   245→    bg: 'bg-amber-500/10 border-amber-500/20',
+   246→  },
+   247→  completed: {
+   248→    label: 'مكتملة',
+   249→    icon: CheckCircle2,
+   250→    color: 'text-slate-400',
+   251→    bg: 'bg-slate-500/10 border-slate-500/20',
+   252→  },
+   253→};
+   254→
+   255→function getStatusColor(status: SessionStatus): string {
+   256→  switch (status) {
+   257→    case 'upcoming': return '#0ea5e9';
+   258→    case 'in-progress': return '#D4A574';
+   259→    case 'completed': return '#64748b';
+   260→  }
+   261→}
+   262→
+   263→function getEngagementColor(score: number): string {
+   264→  if (score >= 80) return '#10b981';
+   265→  if (score >= 60) return '#f59e0b';
+   266→  return '#ef4444';
+   267→}
+   268→
+   269→function formatDateArabic(dateStr: string): string {
+   270→  const date = new Date(dateStr);
+   271→  return date.toLocaleDateString('ar-SA', {
+   272→    weekday: 'long',
+   273→    year: 'numeric',
+   274→    month: 'long',
+   275→    day: 'numeric',
+   276→  });
+   277→}
+   278→
+   279→function formatTime(time: string | null): string {
+   280→  if (!time) return '—';
+   281→  return time;
+   282→}
+   283→
+   284→function calcDuration(start: string | null, end: string | null): string {
+   285→  if (!start || !end) return '—';
+   286→  const [sh, sm] = start.split(':').map(Number);
+   287→  const [eh, em] = end.split(':').map(Number);
+   288→  const diff = (eh * 60 + em) - (sh * 60 + sm);
+   289→  if (diff <= 0) return '—';
+   290→  const h = Math.floor(diff / 60);
+   291→  const m = diff % 60;
+   292→  if (h === 0) return `${m} دقيقة`;
+   293→  if (m === 0) return `${h} ساعة`;
+   294→  return `${h} ساعة و ${m} دقيقة`;
+   295→}
+   296→
+   297→function getTodayLabel(dateStr: string): string {
+   298→  const today = new Date().toISOString().split('T')[0];
+   299→  const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+   300→  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+   301→  if (dateStr === today) return 'اليوم';
+   302→  if (dateStr === tomorrow) return 'غداً';
+   303→  if (dateStr === yesterday) return 'أمس';
+   304→  return formatDateArabic(dateStr);
+   305→}
+   306→
+   307→// ---------------------------------------------------------------------------
+   308→// Sub-components
+   309→// ---------------------------------------------------------------------------
+   310→
+   311→/** Circular engagement indicator using SVG */
+   312→function EngagementRing({
+   313→  score,
+   314→  size = 52,
+   315→  strokeWidth = 4,
+   316→}: {
+   317→  score: number;
+   318→  size?: number;
+   319→  strokeWidth?: number;
+   320→}) {
+   321→  const radius = (size - strokeWidth) / 2;
+   322→  const circumference = radius * 2 * Math.PI;
+   323→  const color = score > 0 ? getEngagementColor(score) : 'rgba(255,255,255,0.1)';
+   324→
+   325→  return (
+   326→    <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
+   327→      <svg width={size} height={size} className="-rotate-90">
+   328→        <circle
+   329→          cx={size / 2}
+   330→          cy={size / 2}
+   331→          r={radius}
+   332→          fill="none"
+   333→          stroke="rgba(255,255,255,0.06)"
+   334→          strokeWidth={strokeWidth}
+   335→        />
+   336→        {score > 0 && (
+   337→          <circle
+   338→            cx={size / 2}
+   339→            cy={size / 2}
+   340→            r={radius}
+   341→            fill="none"
+   342→            stroke={color}
+   343→            strokeWidth={strokeWidth}
+   344→            strokeLinecap="round"
+   345→            strokeDasharray={`${circumference} ${circumference}`}
+   346→            style={{
+   347→              strokeDashoffset: circumference - (score / 100) * circumference,
+   348→              transition: 'stroke-dashoffset 1s ease-out',
+   349→            }}
+   350→          />
+   351→        )}
+   352→      </svg>
+   353→      <span className="absolute text-xs font-bold text-white tabular-nums select-none">
+   354→        {score > 0 ? score : '—'}
+   355→      </span>
+   356→    </div>
+   357→  );
+   358→}
+   359→
+   360→/** Status badge */
+   361→function StatusBadge({ status }: { status: SessionStatus }) {
+   362→  const config = STATUS_CONFIG[status];
+   363→  const Icon = config.icon;
+   364→
+   365→  return (
+   366→    <span
+   367→      className={cn(
+   368→        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium border',
+   369→        config.bg,
+   370→        config.color,
+   371→      )}
+   372→    >
+   373→      <Icon className="h-3 w-3" />
+   374→      {config.label}
+   375→    </span>
+   376→  );
+   377→}
+   378→
+   379→/** Timeline dot */
+   380→function TimelineDot({ status, isActive }: { status: SessionStatus; isActive: boolean }) {
+   381→  const color = getStatusColor(status);
+   382→  return (
+   383→    <div className="relative flex items-center justify-center shrink-0">
+   384→      {/* Pulsing ring for active sessions */}
+   385→      {isActive && (
+   386→        <span
+   387→          className="absolute h-5 w-5 rounded-full animate-ping opacity-30"
+   388→          style={{ backgroundColor: '#D4A574' }}
+   389→        />
+   390→      )}
+   391→      <span
+   392→        className="relative h-3 w-3 rounded-full border-2"
+   393→        style={{
+   394→          borderColor: color,
+   395→          backgroundColor: status === 'completed' ? color : 'transparent',
+   396→        }}
+   397→      />
+   398→    </div>
+   399→  );
+   400→}
+   401→
+   402→/** Session card on the timeline */
+   403→function SessionCardComponent({
+   404→  session,
+   405→  onView,
+   406→}: {
+   407→  session: SessionCardData;
+   408→  onView: (s: SessionCardData) => void;
+   409→}) {
+   410→  const isActive = session.status === 'in-progress';
+   411→  const borderColor = getStatusColor(session.status);
+   412→
+   413→  return (
+   414→    <div
+   415→      className={cn(
+   416→        'group relative rounded-xl p-5 transition-all duration-300 cursor-pointer',
+   417→        isActive ? 'ring-1 ring-amber-500/30' : '',
+   418→      )}
+   419→      style={{
+   420→        backgroundColor: isActive ? 'rgba(212,165,116,0.06)' : '#1A1A24',
+   421→        border: isActive ? '1px solid rgba(212,165,116,0.25)' : '1px solid rgba(255,255,255,0.06)',
+   422→      }}
+   423→      onMouseEnter={(e) => {
+   424→        e.currentTarget.style.boxShadow = `0 8px 30px rgba(0,0,0,0.3), 0 0 0 1px ${borderColor}25`;
+   425→        e.currentTarget.style.borderColor = `${borderColor}40`;
+   426→        e.currentTarget.style.transform = 'translateY(-2px)';
+   427→      }}
+   428→      onMouseLeave={(e) => {
+   429→        e.currentTarget.style.boxShadow = 'none';
+   430→        e.currentTarget.style.borderColor = isActive ? 'rgba(212,165,116,0.25)' : 'rgba(255,255,255,0.06)';
+   431→        e.currentTarget.style.transform = 'translateY(0)';
+   432→      }}
+   433→      onClick={() => onView(session)}
+   434→    >
+   435→      {/* Top row: status + time */}
+   436→      <div className="flex items-center justify-between mb-4">
+   437→        <div className="flex items-center gap-2">
+   438→          <StatusBadge status={session.status} />
+   439→          {isActive && (
+   440→            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-full px-2 py-0.5">
+   441→              <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+   442→              مباشر
+   443→            </span>
+   444→          )}
+   445→        </div>
+   446→        <span className="text-xs text-slate-500 flex items-center gap-1.5">
+   447→          <Clock className="h-3.5 w-3.5" />
+   448→          <span dir="ltr" className="text-left">
+   449→            {formatTime(session.startTime)} - {formatTime(session.endTime)}
+   450→          </span>
+   451→        </span>
+   452→      </div>
+   453→
+   454→      {/* Topic */}
+   455→      <h4 className="text-sm font-semibold text-white mb-3 truncate">
+   456→        {session.topic}
+   457→      </h4>
+   458→
+   459→      {/* Info rows */}
+   460→      <div className="flex flex-col gap-2 mb-4">
+   461→        <div className="flex items-center gap-2 text-xs text-slate-400">
+   462→          <Users className="h-3.5 w-3.5 text-slate-500" />
+   463→          <span>{session.classNameDisplay}</span>
+   464→        </div>
+   465→        <div className="flex items-center gap-2 text-xs text-slate-400">
+   466→          <BookOpen className="h-3.5 w-3.5 text-slate-500" />
+   467→          <span>{session.teacherNameDisplay}</span>
+   468→        </div>
+   469→        <div className="flex items-center gap-4 text-xs text-slate-400">
+   470→          {session.room && (
+   471→            <div className="flex items-center gap-2">
+   472→              <MapPin className="h-3.5 w-3.5 text-slate-500" />
+   473→              <span>{session.room}</span>
+   474→            </div>
+   475→          )}
+   476→          <div className="flex items-center gap-2">
+   477→            <Timer className="h-3.5 w-3.5 text-slate-500" />
+   478→            <span>{calcDuration(session.startTime, session.endTime)}</span>
+   479→          </div>
+   480→        </div>
+   481→      </div>
+   482→
+   483→      {/* Bottom row: engagement + view button */}
+   484→      <div className="flex items-center justify-between pt-3 border-t border-white/[0.04]">
+   485→        <div className="flex items-center gap-2.5">
+   486→          <span className="text-[10px] text-slate-500">التفاعل</span>
+   487→          <EngagementRing score={session.engagementScore} size={40} strokeWidth={3} />
+   488→        </div>
+   489→        <Button
+   490→          variant="ghost"
+   491→          size="sm"
+   492→          className="text-slate-400 hover:text-white hover:bg-white/[0.06] gap-1.5 h-8 px-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+   493→          onClick={(e) => {
+   494→            e.stopPropagation();
+   495→            onView(session);
+   496→          }}
+   497→        >
+   498→          <Eye className="h-3.5 w-3.5" />
+   499→          عرض
+   500→        </Button>
+   501→      </div>
+   502→    </div>
+   503→  );
+   504→}
+   505→
+   506→/** Session detail dialog */
+   507→function SessionDetailDialog({
+   508→  session,
+   509→  open,
+   510→  onOpenChange,
+   511→}: {
+   512→  session: SessionCardData | null;
+   513→  open: boolean;
+   514→  onOpenChange: (open: boolean) => void;
+   515→}) {
+   516→  if (!session) return null;
+   517→
+   518→  return (
+   519→    <Dialog open={open} onOpenChange={onOpenChange}>
+   520→      <DialogContent
+   521→        className="sm:max-w-lg max-h-[90vh] overflow-y-auto"
+   522→        dir="rtl"
+   523→        style={{
+   524→          backgroundColor: '#1A1A24',
+   525→          border: '1px solid rgba(255,255,255,0.06)',
+   526→        }}
+   527→      >
+   528→        <DialogHeader>
+   529→          <DialogTitle className="text-white text-xl flex items-center gap-3">
+   530→            تفاصيل الجلسة
+   531→            <StatusBadge status={session.status} />
+   532→          </DialogTitle>
+   533→          <DialogDescription className="text-muted-foreground">
+   534→            عرض كافة تفاصيل الجلسة التعليمية
+   535→          </DialogDescription>
+   536→        </DialogHeader>
+   537→
+   538→        <div className="flex flex-col gap-5 mt-2">
+   539→          {/* Topic */}
+   540→          <div
+   541→            className="rounded-xl p-5 text-center"
+   542→            style={{
+   543→              backgroundColor: 'rgba(255,255,255,0.02)',
+   544→              border: '1px solid rgba(255,255,255,0.04)',
+   545→            }}
+   546→          >
+   547→            <BookOpen className="h-6 w-6 text-[#D4A574] mx-auto mb-2" />
+   548→            <h3 className="text-lg font-bold text-white mb-1">{session.topic}</h3>
+   549→            <p className="text-sm text-slate-500">الموضوع الدراسي</p>
+   550→          </div>
+   551→
+   552→          {/* Engagement ring - large */}
+   553→          <div
+   554→            className="rounded-xl p-5 flex items-center justify-center gap-6"
+   555→            style={{
+   556→              backgroundColor: 'rgba(255,255,255,0.02)',
+   557→              border: '1px solid rgba(255,255,255,0.04)',
+   558→            }}
+   559→          >
+   560→            <div className="text-center">
+   561→              <EngagementRing score={session.engagementScore} size={90} strokeWidth={6} />
+   562→              <p className="text-xs text-slate-500 mt-2">
+   563→                {session.engagementScore > 0 ? 'معدل التفاعل' : 'لم يبدأ بعد'}
+   564→              </p>
+   565→            </div>
+   566→
+   567→            {session.engagementScore > 0 && (
+   568→              <div className="flex flex-col gap-2">
+   569→                <div className="flex items-center gap-2 text-sm text-slate-300">
+   570→                  <div className={cn(
+   571→                    'h-2 w-2 rounded-full',
+   572→                    session.engagementScore >= 80 ? 'bg-emerald-500' :
+   573→                    session.engagementScore >= 60 ? 'bg-amber-500' : 'bg-red-500',
+   574→                  )} />
+   575→                  <span>
+   576→                    {session.engagementScore >= 80 ? 'تفاعل ممتاز' :
+   577→                     session.engagementScore >= 60 ? 'تفاعل جيد' : 'يحتاج تحسين'}
+   578→                  </span>
+   579→                </div>
+   580→                <span className="text-xs text-slate-500">
+   581→                  من إجمالي المشاركين في الفصل
+   582→                </span>
+   583→              </div>
+   584→            )}
+   585→          </div>
+   586→
+   587→          {/* Details */}
+   588→          <div
+   589→            className="rounded-xl p-4"
+   590→            style={{
+   591→              backgroundColor: 'rgba(255,255,255,0.02)',
+   592→              border: '1px solid rgba(255,255,255,0.04)',
+   593→            }}
+   594→          >
+   595→            <div className="flex flex-col gap-3">
+   596→              {[
+   597→                { label: 'التاريخ', value: formatDateArabic(session.date), icon: Calendar },
+   598→                { label: 'الوقت', value: `${formatTime(session.startTime)} - ${formatTime(session.endTime)}`, icon: Clock },
+   599→                { label: 'المدة', value: calcDuration(session.startTime, session.endTime), icon: Timer },
+   600→                { label: 'الفصل', value: session.classNameDisplay, icon: Users },
+   601→                { label: 'المعلم', value: session.teacherNameDisplay, icon: BookOpen },
+   602→                { label: 'القاعة', value: session.room || 'غير محدد', icon: MapPin },
+   603→              ].map((field) => (
+   604→                <div
+   605→                  key={field.label}
+   606→                  className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04] last:border-0"
+   607→                >
+   608→                  <div className="flex items-center gap-3">
+   609→                    <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#D4A574]/10">
+   610→                      <field.icon className="h-4 w-4 text-[#D4A574]" />
+   611→                    </div>
+   612→                    <span className="text-sm text-muted-foreground">{field.label}</span>
+   613→                  </div>
+   614→                  <span className="text-sm font-medium text-slate-200">{field.value}</span>
+   615→                </div>
+   616→              ))}
+   617→            </div>
+   618→          </div>
+   619→
+   620→          {/* Notes */}
+   621→          {session.notes && (
+   622→            <div
+   623→              className="rounded-xl p-4"
+   624→              style={{
+   625→                backgroundColor: 'rgba(255,255,255,0.02)',
+   626→                border: '1px solid rgba(255,255,255,0.04)',
+   627→              }}
+   628→            >
+   629→              <h4 className="text-sm font-semibold text-slate-300 mb-2">ملاحظات</h4>
+   630→              <p className="text-sm text-muted-foreground leading-relaxed">
+   631→                {session.notes}
+   632→              </p>
+   633→            </div>
+   634→          )}
+   635→        </div>
+   636→      </DialogContent>
+   637→    </Dialog>
+   638→  );
+   639→}
+   640→
+   641→/** Add / Start session dialog */
+   642→function StartSessionDialog({
+   643→  open,
+   644→  onOpenChange,
+   645→}: {
+   646→  open: boolean;
+   647→  onOpenChange: (open: boolean) => void;
+   648→}) {
+   649→  const [topic, setTopic] = useState('');
+   650→  const [classId, setClassId] = useState('class-1');
+   651→  const [teacherId, setTeacherId] = useState('teacher-001');
+   652→  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+   653→  const [startTime, setStartTime] = useState('08:00');
+   654→  const [endTime, setEndTime] = useState('09:30');
+   655→  const [room, setRoom] = useState('');
+   656→  const [notes, setNotes] = useState('');
+   657→
+   658→  const handleAdd = () => {
+   659→    if (!topic.trim()) return;
+   660→    onOpenChange(false);
+   661→  };
+   662→
+   663→  return (
+   664→    <Dialog open={open} onOpenChange={onOpenChange}>
+   665→      <DialogContent
+   666→        className="sm:max-w-lg max-h-[90vh] overflow-y-auto"
+   667→        dir="rtl"
+   668→        style={{
+   669→          backgroundColor: '#1A1A24',
+   670→          border: '1px solid rgba(255,255,255,0.06)',
+   671→        }}
+   672→      >
+   673→        <DialogHeader>
+   674→          <DialogTitle className="text-white text-xl flex items-center gap-2">
+   675→            <Plus className="h-5 w-5 text-[#D4A574]" />
+   676→            بدء جلسة جديدة
+   677→          </DialogTitle>
+   678→          <DialogDescription className="text-muted-foreground">
+   679→            أضف جلسة تعليمية جديدة للجدول الدراسي
+   680→          </DialogDescription>
+   681→        </DialogHeader>
+   682→
+   683→        <div className="flex flex-col gap-5 mt-2">
+   684→          {/* Topic */}
+   685→          <div className="flex flex-col gap-2">
+   686→            <label className="text-sm text-slate-300 font-medium">الموضوع</label>
+   687→            <input
+   688→              type="text"
+   689→              value={topic}
+   690→              onChange={(e) => setTopic(e.target.value)}
+   691→              placeholder="مثال: مقدمة في الجبر"
+   692→              className="w-full rounded-lg px-3.5 py-2.5 text-sm bg-white/[0.03] border border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 outline-none transition-colors"
+   693→            />
+   694→          </div>
+   695→
+   696→          {/* Class & Teacher row */}
+   697→          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   698→            <div className="flex flex-col gap-2">
+   699→              <label className="text-sm text-slate-300 font-medium">الفصل</label>
+   700→              <Select value={classId} onValueChange={setClassId}>
+   701→                <SelectTrigger className="w-full bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20">
+   702→                  <SelectValue />
+   703→                </SelectTrigger>
+   704→                <SelectContent className="bg-[#1A1A24] border-white/[0.08]">
+   705→                  {Object.entries(CLASS_FILTER_MAP).map(([id, name]) => (
+   706→                    <SelectItem
+   707→                      key={id}
+   708→                      value={id}
+   709→                      className="text-slate-200 focus:bg-white/[0.05] focus:text-white"
+   710→                    >
+   711→                      {name}
+   712→                    </SelectItem>
+   713→                  ))}
+   714→                </SelectContent>
+   715→              </Select>
+   716→            </div>
+   717→
+   718→            <div className="flex flex-col gap-2">
+   719→              <label className="text-sm text-slate-300 font-medium">المعلم</label>
+   720→              <Select value={teacherId} onValueChange={setTeacherId}>
+   721→                <SelectTrigger className="w-full bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20">
+   722→                  <SelectValue />
+   723→                </SelectTrigger>
+   724→                <SelectContent className="bg-[#1A1A24] border-white/[0.08]">
+   725→                  <SelectItem value="teacher-001" className="text-slate-200 focus:bg-white/[0.05] focus:text-white">
+   726→                    أ. عبدالله السالم
+   727→                  </SelectItem>
+   728→                  <SelectItem value="teacher-002" className="text-slate-200 focus:bg-white/[0.05] focus:text-white">
+   729→                    أ. سارة المنصور
+   730→                  </SelectItem>
+   731→                  <SelectItem value="teacher-003" className="text-slate-200 focus:bg-white/[0.05] focus:text-white">
+   732→                    أ. فهد العتيبي
+   733→                  </SelectItem>
+   734→                </SelectContent>
+   735→              </Select>
+   736→            </div>
+   737→          </div>
+   738→
+   739→          {/* Room */}
+   740→          <div className="flex flex-col gap-2">
+   741→            <label className="text-sm text-slate-300 font-medium">القاعة</label>
+   742→            <input
+   743→              type="text"
+   744→              value={room}
+   745→              onChange={(e) => setRoom(e.target.value)}
+   746→              placeholder="مثال: قاعة 101"
+   747→              className="w-full rounded-lg px-3.5 py-2.5 text-sm bg-white/[0.03] border border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 outline-none transition-colors"
+   748→            />
+   749→          </div>
+   750→
+   751→          {/* Date */}
+   752→          <div className="flex flex-col gap-2">
+   753→            <label className="text-sm text-slate-300 font-medium">التاريخ</label>
+   754→            <input
+   755→              type="date"
+   756→              value={date}
+   757→              onChange={(e) => setDate(e.target.value)}
+   758→              className="w-full rounded-lg px-3.5 py-2.5 text-sm bg-white/[0.03] border border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 outline-none transition-colors"
+   759→              dir="ltr"
+   760→            />
+   761→          </div>
+   762→
+   763→          {/* Time row */}
+   764→          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   765→            <div className="flex flex-col gap-2">
+   766→              <label className="text-sm text-slate-300 font-medium">وقت البداية</label>
+   767→              <input
+   768→                type="time"
+   769→                value={startTime}
+   770→                onChange={(e) => setStartTime(e.target.value)}
+   771→                className="w-full rounded-lg px-3.5 py-2.5 text-sm bg-white/[0.03] border border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 outline-none transition-colors"
+   772→                dir="ltr"
+   773→              />
+   774→            </div>
+   775→            <div className="flex flex-col gap-2">
+   776→              <label className="text-sm text-slate-300 font-medium">وقت النهاية</label>
+   777→              <input
+   778→                type="time"
+   779→                value={endTime}
+   780→                onChange={(e) => setEndTime(e.target.value)}
+   781→                className="w-full rounded-lg px-3.5 py-2.5 text-sm bg-white/[0.03] border border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 outline-none transition-colors"
+   782→                dir="ltr"
+   783→              />
+   784→            </div>
+   785→          </div>
+   786→
+   787→          {/* Notes */}
+   788→          <div className="flex flex-col gap-2">
+   789→            <label className="text-sm text-slate-300 font-medium">ملاحظات</label>
+   790→            <textarea
+   791→              value={notes}
+   792→              onChange={(e) => setNotes(e.target.value)}
+   793→              placeholder="أضف ملاحظات حول الجلسة..."
+   794→              rows={3}
+   795→              className="w-full rounded-lg px-3.5 py-2.5 text-sm bg-white/[0.03] border border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 outline-none transition-colors resize-none"
+   796→            />
+   797→          </div>
+   798→
+   799→          {/* Actions */}
+   800→          <div className="flex items-center gap-3 pt-2">
+   801→            <Button
+   802→              onClick={handleAdd}
+   803→              className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold gap-2 rounded-lg px-6"
+   804→            >
+   805→              <Plus className="h-4 w-4" />
+   806→              بدء الجلسة
+   807→            </Button>
+   808→            <Button
+   809→              variant="outline"
+   810→              onClick={() => onOpenChange(false)}
+   811→              className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-6"
+   812→            >
+   813→              إلغاء
+   814→            </Button>
+   815→          </div>
+   816→        </div>
+   817→      </DialogContent>
+   818→    </Dialog>
+   819→  );
+   820→}
+   821→
+   822→/** Empty state with better illustration */
+   823→function EmptyState({ onAdd }: { onAdd: () => void }) {
+   824→  return (
+   825→    <div
+   826→      className="flex flex-col items-center justify-center py-20 px-4 rounded-xl"
+   827→      style={{
+   828→        backgroundColor: '#1A1A24',
+   829→        border: '1px solid rgba(255,255,255,0.06)',
+   830→      }}
+   831→    >
+   832→      <div className="relative mb-6">
+   833→        <div className="flex items-center justify-center h-24 w-24 rounded-3xl bg-white/[0.03] border border-white/[0.06]">
+   834→          <Calendar className="h-12 w-12 text-slate-500" />
+   835→        </div>
+   836→        <div className="absolute -bottom-1 -left-1 flex items-center justify-center h-8 w-8 rounded-full bg-[#D4A574]/15 border border-[#D4A574]/30">
+   837→          <Plus className="h-4 w-4 text-[#D4A574]" />
+   838→        </div>
+   839→      </div>
+   840→      <h3 className="text-lg font-semibold text-slate-300 mb-2">
+   841→        لا توجد جلسات
+   842→      </h3>
+   843→      <p className="text-sm text-muted-foreground mb-6 text-center max-w-sm leading-relaxed">
+   844→        لم يتم العثور على جلسات تطابق معايير البحث المحددة.
+   845→        <br />
+   846→        يمكنك بدء جلسة جديدة الآن!
+   847→      </p>
+   848→      <Button
+   849→        onClick={onAdd}
+   850→        className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold gap-2 rounded-lg px-6"
+   851→      >
+   852→        <PlayCircle className="h-4 w-4" />
+   853→        بدء جلسة جديدة
+   854→      </Button>
+   855→    </div>
+   856→  );
+   857→}
+   858→
+   859→// ---------------------------------------------------------------------------
+   860→// Main Component
+   861→// ---------------------------------------------------------------------------
+   862→
+   863→export default function SessionsSection() {
+   864→  // Local state
+   865→  const [classFilter, setClassFilter] = useState<string>('all');
+   866→  const [statusFilter, setStatusFilter] = useState<string>('all');
+   867→  const [detailOpen, setDetailOpen] = useState(false);
+   868→  const [addOpen, setAddOpen] = useState(false);
+   869→  const [selectedSession, setSelectedSession] = useState<SessionCardData | null>(null);
+   870→
+   871→  // Filtered sessions
+   872→  const filteredSessions = useMemo(() => {
+   873→    let result = [...MOCK_SESSIONS];
+   874→
+   875→    if (classFilter !== 'all') {
+   876→      result = result.filter((s) => s.classId === classFilter);
+   877→    }
+   878→
+   879→    if (statusFilter !== 'all') {
+   880→      result = result.filter((s) => s.status === statusFilter);
+   881→    }
+   882→
+   883→    return result;
+   884→  }, [classFilter, statusFilter]);
+   885→
+   886→  // Group by date
+   887→  const groupedByDate = useMemo(() => {
+   888→    const groups: Record<string, SessionCardData[]> = {};
+   889→    for (const s of filteredSessions) {
+   890→      const label = getTodayLabel(s.date);
+   891→      if (!groups[label]) groups[label] = [];
+   892→      groups[label].push(s);
+   893→    }
+   894→    // Sort within each group by startTime
+   895→    for (const key of Object.keys(groups)) {
+   896→      groups[key].sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
+   897→    }
+   898→    return groups;
+   899→  }, [filteredSessions]);
+   900→
+   901→  // Summary stats
+   902→  const stats = useMemo(() => {
+   903→    const total = MOCK_SESSIONS.length;
+   904→    const completed = MOCK_SESSIONS.filter((s) => s.status === 'completed').length;
+   905→    const inProgress = MOCK_SESSIONS.filter((s) => s.status === 'in-progress').length;
+   906→    const upcoming = MOCK_SESSIONS.filter((s) => s.status === 'upcoming').length;
+   907→    const avgEngagement = MOCK_SESSIONS.filter((s) => s.engagementScore > 0);
+   908→    const engagementAvg =
+   909→      avgEngagement.length > 0
+   910→        ? Math.round(avgEngagement.reduce((sum, s) => sum + s.engagementScore, 0) / avgEngagement.length)
+   911→        : 0;
+   912→
+   913→    return { total, completed, inProgress, upcoming, engagementAvg };
+   914→  }, []);
+   915→
+   916→  const handleView = (session: SessionCardData) => {
+   917→    setSelectedSession(session);
+   918→    setDetailOpen(true);
+   919→  };
+   920→
+   921→  return (
+   922→    <div className="flex flex-col gap-6 container-gradient" dir="rtl">
+   923→      {/* ── Page Title ── */}
+   924→      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+   925→        <div className="flex items-center gap-3">
+   926→          <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-[#D4A574]/10">
+   927→            <Calendar className="h-5 w-5 text-[#D4A574]" />
+   928→          </div>
+   929→          <div>
+   930→            <h1 className="text-2xl font-bold text-white tracking-tight sm:text-3xl flex items-center gap-3">
+   931→              إدارة الجلسات
+   932→              <Badge className="bg-[#D4A574]/15 text-[#D4A574] border-[#D4A574]/20 hover:bg-[#D4A574]/20 text-sm px-2.5 py-0.5 rounded-full font-semibold tabular-nums">
+   933→                {stats.total}
+   934→              </Badge>
+   935→            </h1>
+   936→            <p className="mt-0.5 text-sm text-muted-foreground">
+   937→              متابعة وإدارة الجلسات التعليمية
+   938→            </p>
+   939→          </div>
+   940→        </div>
+   941→      </div>
+   942→
+   943→      {/* ── Summary Stats ── */}
+   944→      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+   945→        {[
+   946→          { label: 'مكتملة', value: stats.completed, color: '#64748b', bg: 'bg-slate-500/15', icon: CheckCircle2 },
+   947→          { label: 'جارية', value: stats.inProgress, color: '#D4A574', bg: 'bg-amber-500/15', icon: PlayCircle },
+   948→          { label: 'قادمة', value: stats.upcoming, color: '#0ea5e9', bg: 'bg-sky-500/15', icon: Calendar },
+   949→          { label: 'متوسط التفاعل', value: `${stats.engagementAvg}%`, color: '#f59e0b', bg: 'bg-amber-500/15', icon: Users },
+   950→        ].map((stat) => (
+   951→          <div
+   952→            key={stat.label}
+   953→            className="flex items-center gap-4 rounded-xl p-4 transition-all duration-300 hover:-translate-y-0.5"
+   954→            style={{
+   955→              backgroundColor: '#1A1A24',
+   956→              border: '1px solid rgba(255,255,255,0.06)',
+   957→            }}
+   958→          >
+   959→            <div className={cn('flex items-center justify-center h-11 w-11 rounded-xl shrink-0', stat.bg)}>
+   960→              <stat.icon className="h-5 w-5 text-white" style={{ color: stat.color }} />
+   961→            </div>
+   962→            <div className="min-w-0">
+   963→              <p className="text-xs text-muted-foreground mb-0.5">{stat.label}</p>
+   964→              <p className="text-xl font-bold text-white tabular-nums leading-tight">{stat.value}</p>
+   965→            </div>
+   966→          </div>
+   967→        ))}
+   968→      </div>
+   969→
+   970→      {/* ── Filters + Start Button ── */}
+   971→      <div
+   972→        className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl p-4"
+   973→        style={{
+   974→          backgroundColor: '#1A1A24',
+   975→          border: '1px solid rgba(255,255,255,0.06)',
+   976→        }}
+   977→      >
+   978→        {/* Start new session button */}
+   979→        <Button
+   980→          onClick={() => setAddOpen(true)}
+   981→          className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold gap-2 rounded-lg px-5 h-10"
+   982→        >
+   983→          <PlayCircle className="h-4 w-4" />
+   984→          بدء جلسة جديدة
+   985→        </Button>
+   986→
+   987→        {/* Filters */}
+   988→        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+   989→          <div className="flex items-center gap-2 text-xs text-slate-500">
+   990→            <Filter className="h-3.5 w-3.5" />
+   991→            <span>تصفية:</span>
+   992→          </div>
+   993→
+   994→          {/* Status filter */}
+   995→          <Select value={statusFilter} onValueChange={setStatusFilter}>
+   996→            <SelectTrigger className="w-full sm:w-36 bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 h-10">
+   997→              <SelectValue placeholder="الحالة" />
+   998→            </SelectTrigger>
+   999→            <SelectContent className="bg-[#1A1A24] border-white/[0.08]">
+  1000→              <SelectItem value="all" className="text-slate-200 focus:bg-white/[0.05] focus:text-white">
+  1001→                كل الحالات
+  1002→              </SelectItem>
+  1003→              <SelectItem value="completed" className="text-slate-200 focus:bg-white/[0.05] focus:text-white">
+  1004→                مكتملة
+  1005→              </SelectItem>
+  1006→              <SelectItem value="in-progress" className="text-slate-200 focus:bg-white/[0.05] focus:text-white">
+  1007→                جارية
+  1008→              </SelectItem>
+  1009→              <SelectItem value="upcoming" className="text-slate-200 focus:bg-white/[0.05] focus:text-white">
+  1010→                قادمة
+  1011→              </SelectItem>
+  1012→            </SelectContent>
+  1013→          </Select>
+  1014→
+  1015→          {/* Class filter */}
+  1016→          <Select value={classFilter} onValueChange={setClassFilter}>
+  1017→            <SelectTrigger className="w-full sm:w-40 bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 h-10">
+  1018→              <SelectValue placeholder="الفصل" />
+  1019→            </SelectTrigger>
+  1020→            <SelectContent className="bg-[#1A1A24] border-white/[0.08]">
+  1021→              <SelectItem value="all" className="text-slate-200 focus:bg-white/[0.05] focus:text-white">
+  1022→                كل الفصول
+  1023→              </SelectItem>
+  1024→              {Object.entries(CLASS_FILTER_MAP).map(([id, name]) => (
+  1025→                <SelectItem
+  1026→                  key={id}
+  1027→                  value={id}
+  1028→                  className="text-slate-200 focus:bg-white/[0.05] focus:text-white"
+  1029→                >
+  1030→                  {name}
+  1031→                </SelectItem>
+  1032→              ))}
+  1033→            </SelectContent>
+  1034→          </Select>
+  1035→
+  1036→          {/* Active filter indicators */}
+  1037→          {(statusFilter !== 'all' || classFilter !== 'all') && (
+  1038→            <Button
+  1039→              variant="ghost"
+  1040→              size="sm"
+  1041→              className="h-10 px-3 text-slate-400 hover:text-white hover:bg-white/[0.06]"
+  1042→              onClick={() => {
+  1043→                setStatusFilter('all');
+  1044→                setClassFilter('all');
+  1045→              }}
+  1046→            >
+  1047→              <X className="h-4 w-4 ml-1" />
+  1048→              مسح
+  1049→            </Button>
+  1050→          )}
+  1051→        </div>
+  1052→      </div>
+  1053→
+  1054→      {/* ── Sessions Timeline ── */}
+  1055→      {filteredSessions.length === 0 ? (
+  1056→        <EmptyState onAdd={() => setAddOpen(true)} />
+  1057→      ) : (
+  1058→        <div className="flex flex-col gap-6">
+  1059→          {Object.entries(groupedByDate).map(([dateLabel, sessions]) => (
+  1060→            <div key={dateLabel}>
+  1061→              {/* Date header */}
+  1062→              <div className="flex items-center gap-3 mb-4">
+  1063→                <div className="h-px flex-1 bg-white/[0.06]" />
+  1064→                <span className="text-sm font-semibold text-[#D4A574] px-2">{dateLabel}</span>
+  1065→                <div className="h-px flex-1 bg-white/[0.06]" />
+  1066→              </div>
+  1067→
+  1068→              {/* Sessions grid with timeline */}
+  1069→              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+  1070→                {sessions.map((session) => (
+  1071→                  <SessionCardComponent
+  1072→                    key={session.id}
+  1073→                    session={session}
+  1074→                    onView={handleView}
+  1075→                  />
+  1076→                ))}
+  1077→              </div>
+  1078→            </div>
+  1079→          ))}
+  1080→        </div>
+  1081→      )}
+  1082→
+  1083→      {/* ── Dialogs ── */}
+  1084→      <SessionDetailDialog
+  1085→        session={selectedSession}
+  1086→        open={detailOpen}
+  1087→        onOpenChange={setDetailOpen}
+  1088→      />
+  1089→
+  1090→      <StartSessionDialog
+  1091→        open={addOpen}
+  1092→        onOpenChange={setAddOpen}
+  1093→      />
+  1094→    </div>
+  1095→  );
+  1096→}
+  1097→
