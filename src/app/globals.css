@@ -200,17 +200,17 @@ body::before {
   content: "";
   position: fixed;
   inset: 0;
-  z-index: 0;
+  z-index: -1;
   pointer-events: none;
   background-image: radial-gradient(circle, var(--dot-color) 1px, transparent 1px);
   background-size: var(--dot-spacing) var(--dot-spacing);
 }
 
-/* Ensure content sits above the dot grid */
-body > * {
-  position: relative;
-  z-index: 1;
-}
+/* IMPORTANT: We do NOT set position:relative on body > * because Radix UI
+   renders portal elements (dialogs, popovers, dropdowns, tooltips, selects)
+   as direct children of <body>. Forcing position:relative on them breaks
+   their position:fixed centering, making dialogs invisible/off-screen.
+   The dot grid uses z-index:-1 to sit behind all content naturally. */
 
 /* ===================================================================
    2. ENHANCED SCROLLBAR STYLING

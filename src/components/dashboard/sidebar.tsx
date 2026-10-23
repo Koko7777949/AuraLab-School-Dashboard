@@ -25,6 +25,7 @@ import {
   ShieldAlert,
   BookOpen,
   CalendarRange,
+  Camera,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import type { ActiveSection } from '@/lib/types';
@@ -62,6 +63,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'trash', label: 'المحذوفات', icon: Trash2, showCount: true },
   { id: 'library', label: 'المكتبة', icon: BookOpen, showCount: true },
   { id: 'fees', label: 'الرسوم', icon: Wallet, showCount: true },
+  { id: 'camera', label: 'الكاميرات', icon: Camera },
   { id: 'settings', label: 'الإعدادات', icon: Settings },
 ];
 

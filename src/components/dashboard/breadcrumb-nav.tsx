@@ -33,6 +33,7 @@ const SECTION_LABELS: Record<ActiveSection, string> = {
   timetable: 'الجدول الدراسي',
   library: 'المكتبة',
   fees: 'الرسوم',
+  camera: 'الكاميرات',
 };
 
 export default function BreadcrumbNav() {

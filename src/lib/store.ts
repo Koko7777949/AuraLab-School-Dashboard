@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { ActiveSection, Student, Teacher, ClassRoom, Exam, TrashItem, AppNotification, ChatMessage, GradeRecord, Message, BehaviorRecord, ScheduleBlock, LibraryBook, FeeRecord, Announcement } from './types';
+import type { ActiveSection, Student, Teacher, ClassRoom, Exam, Session, TrashItem, AppNotification, ChatMessage, GradeRecord, ReportCard, Message, BehaviorRecord, ScheduleBlock, LibraryBook, FeeRecord, Announcement } from './types';
 
 interface CalendarEventItem {
   id: string;
@@ -8,6 +8,47 @@ interface CalendarEventItem {
   title: string;
   color: string;
   category: string;
+}
+
+interface AdminProfile {
+  name: string;
+  email: string;
+  phone: string;
+  role: string;
+  avatar: string;
+}
+
+interface SchoolInfo {
+  name: string;
+  address: string;
+  phone: string;
+  email: string;
+  logo: string;
+}
+
+interface AcademicYearSettings {
+  startDate: string;
+  endDate: string;
+  semester1Name: string;
+  semester2Name: string;
+}
+
+interface NotificationSettings {
+  emailEnabled: boolean;
+  smsEnabled: boolean;
+  pushEnabled: boolean;
+  soundEnabled: boolean;
+}
+
+interface DisplaySettings {
+  animationsEnabled: boolean;
+}
+
+interface LanguageSettings {
+  defaultLanguage: string;
+  dateFormat: string;
+  timeFormat: string;
+  numberFormat: string;
 }
 
 interface AppState {
@@ -64,6 +105,8 @@ interface AppState {
   setNotifications: (notifications: AppNotification[]) => void;
   markNotificationRead: (id: string) => void;
   addNotification: (notification: AppNotification) => void;
+  deleteNotification: (id: string) => void;
+  markAllNotificationsRead: () => void;
 
   // AI Chat
   chatMessages: ChatMessage[];
@@ -137,6 +180,20 @@ interface AppState {
   deleteAnnouncement: (id: string) => void;
   toggleAnnouncementPin: (id: string) => void;
 
+  // Sessions
+  sessions: Session[];
+  setSessions: (sessions: Session[]) => void;
+  addSession: (session: Session) => void;
+  updateSession: (id: string, data: Partial<Session>) => void;
+  deleteSession: (id: string) => void;
+
+  // Report Cards
+  reportCards: ReportCard[];
+  setReportCards: (reportCards: ReportCard[]) => void;
+  addReportCard: (reportCard: ReportCard) => void;
+  updateReportCard: (id: string, data: Partial<ReportCard>) => void;
+  deleteReportCard: (id: string) => void;
+
   // Theme Customizer
   accentColor: string;
   setAccentColor: (color: string) => void;
@@ -146,6 +203,36 @@ interface AppState {
   setBorderRadius: (radius: number) => void;
   backgroundStyle: 'solid' | 'gradient' | 'dots';
   setBackgroundStyle: (style: 'solid' | 'gradient' | 'dots') => void;
+
+  // Admin Profile
+  adminProfile: AdminProfile;
+  setAdminProfile: (profile: AdminProfile) => void;
+  updateAdminProfile: (data: Partial<AdminProfile>) => void;
+
+  // School Info
+  schoolInfo: SchoolInfo;
+  setSchoolInfo: (info: SchoolInfo) => void;
+  updateSchoolInfo: (data: Partial<SchoolInfo>) => void;
+
+  // Academic Year Settings
+  academicYear: AcademicYearSettings;
+  setAcademicYear: (settings: AcademicYearSettings) => void;
+  updateAcademicYear: (data: Partial<AcademicYearSettings>) => void;
+
+  // Notification Settings
+  notificationSettings: NotificationSettings;
+  setNotificationSettings: (settings: NotificationSettings) => void;
+  updateNotificationSettings: (data: Partial<NotificationSettings>) => void;
+
+  // Display Settings
+  displaySettings: DisplaySettings;
+  setDisplaySettings: (settings: DisplaySettings) => void;
+  updateDisplaySettings: (data: Partial<DisplaySettings>) => void;
+
+  // Language Settings
+  languageSettings: LanguageSettings;
+  setLanguageSettings: (settings: LanguageSettings) => void;
+  updateLanguageSettings: (data: Partial<LanguageSettings>) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -288,6 +375,12 @@ export const useAppStore = create<AppState>()(
       addNotification: (notification) => set((state) => ({
         notifications: [notification, ...state.notifications],
       })),
+      deleteNotification: (id) => set((state) => ({
+        notifications: state.notifications.filter((n) => n.id !== id),
+      })),
+      markAllNotificationsRead: () => set((state) => ({
+        notifications: state.notifications.map((n) => ({ ...n, isRead: true })),
+      })),
 
       // AI Chat
       chatMessages: [],
@@ -409,6 +502,28 @@ export const useAppStore = create<AppState>()(
         announcements: state.announcements.map((a) => (a.id === id ? { ...a, pinned: !a.pinned } : a)),
       })),
 
+      // Sessions
+      sessions: [],
+      setSessions: (sessions) => set({ sessions }),
+      addSession: (session) => set((state) => ({ sessions: [...state.sessions, session] })),
+      updateSession: (id, data) => set((state) => ({
+        sessions: state.sessions.map((s) => (s.id === id ? { ...s, ...data } : s)),
+      })),
+      deleteSession: (id) => set((state) => ({
+        sessions: state.sessions.filter((s) => s.id !== id),
+      })),
+
+      // Report Cards
+      reportCards: [],
+      setReportCards: (reportCards) => set({ reportCards }),
+      addReportCard: (reportCard) => set((state) => ({ reportCards: [...state.reportCards, reportCard] })),
+      updateReportCard: (id, data) => set((state) => ({
+        reportCards: state.reportCards.map((r) => (r.id === id ? { ...r, ...data } : r)),
+      })),
+      deleteReportCard: (id) => set((state) => ({
+        reportCards: state.reportCards.filter((r) => r.id !== id),
+      })),
+
       // Theme Customizer
       accentColor: '#D4A574',
       setAccentColor: (color) => set({ accentColor: color }),
@@ -418,6 +533,77 @@ export const useAppStore = create<AppState>()(
       setBorderRadius: (radius) => set({ borderRadius: radius }),
       backgroundStyle: 'dots',
       setBackgroundStyle: (style) => set({ backgroundStyle: style }),
+
+      // Admin Profile
+      adminProfile: {
+        name: 'مدير النظام',
+        email: 'admin@auralab.edu.sa',
+        phone: '+966 5x xxx xxxx',
+        role: 'مدير النظام',
+        avatar: '',
+      },
+      setAdminProfile: (profile) => set({ adminProfile: profile }),
+      updateAdminProfile: (data) => set((state) => ({
+        adminProfile: { ...state.adminProfile, ...data },
+      })),
+
+      // School Info
+      schoolInfo: {
+        name: 'مدرسة الأفق الخاصّة',
+        address: 'الرياض، حي الملقا، شارع الأمير سلطان',
+        phone: '+966 11 xxx xxxx',
+        email: 'info@alofuq.edu.sa',
+        logo: '',
+      },
+      setSchoolInfo: (info) => set({ schoolInfo: info }),
+      updateSchoolInfo: (data) => set((state) => ({
+        schoolInfo: { ...state.schoolInfo, ...data },
+      })),
+
+      // Academic Year Settings
+      academicYear: {
+        startDate: '2025-09-01',
+        endDate: '2026-06-30',
+        semester1Name: 'الفصل الدراسي الأول',
+        semester2Name: 'الفصل الدراسي الثاني',
+      },
+      setAcademicYear: (settings) => set({ academicYear: settings }),
+      updateAcademicYear: (data) => set((state) => ({
+        academicYear: { ...state.academicYear, ...data },
+      })),
+
+      // Notification Settings
+      notificationSettings: {
+        emailEnabled: true,
+        smsEnabled: false,
+        pushEnabled: true,
+        soundEnabled: true,
+      },
+      setNotificationSettings: (settings) => set({ notificationSettings: settings }),
+      updateNotificationSettings: (data) => set((state) => ({
+        notificationSettings: { ...state.notificationSettings, ...data },
+      })),
+
+      // Display Settings
+      displaySettings: {
+        animationsEnabled: true,
+      },
+      setDisplaySettings: (settings) => set({ displaySettings: settings }),
+      updateDisplaySettings: (data) => set((state) => ({
+        displaySettings: { ...state.displaySettings, ...data },
+      })),
+
+      // Language Settings
+      languageSettings: {
+        defaultLanguage: 'ar',
+        dateFormat: 'yyyy/mm/dd',
+        timeFormat: '24h',
+        numberFormat: 'arabic',
+      },
+      setLanguageSettings: (settings) => set({ languageSettings: settings }),
+      updateLanguageSettings: (data) => set((state) => ({
+        languageSettings: { ...state.languageSettings, ...data },
+      })),
     }),
     {
       name: 'auralab-store',
@@ -442,6 +628,14 @@ export const useAppStore = create<AppState>()(
         backgroundStyle: state.backgroundStyle,
         activeSection: state.activeSection,
         calendarEvents: state.calendarEvents,
+        adminProfile: state.adminProfile,
+        sessions: state.sessions,
+        reportCards: state.reportCards,
+        schoolInfo: state.schoolInfo,
+        academicYear: state.academicYear,
+        notificationSettings: state.notificationSettings,
+        displaySettings: state.displaySettings,
+        languageSettings: state.languageSettings,
       }),
     }
   )

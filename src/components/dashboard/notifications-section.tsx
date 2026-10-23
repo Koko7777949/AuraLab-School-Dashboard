@@ -510,10 +510,9 @@ export default function NotificationsSection() {
         createdAt: new Date().toISOString(),
       };
       // Cap at 50 notifications: remove oldest if exceeding
-      setNotifications((prev) => {
-        const next = [newNotif, ...prev];
-        return next.length > 50 ? next.slice(0, 50) : next;
-      });
+      const currentNotifs = useAppStore.getState().notifications;
+      const next = [newNotif, ...currentNotifs];
+      setNotifications(next.length > 50 ? next.slice(0, 50) : next);
     }, 45000);
 
     return () => clearInterval(interval);

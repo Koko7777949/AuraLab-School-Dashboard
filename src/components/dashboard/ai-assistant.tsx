@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAppStore } from '@/lib/store';
+import { t } from '@/lib/i18n';
 import {
   Bot,
   Send,
@@ -13,6 +14,12 @@ import {
   Bell,
   Paperclip,
   Mic,
+  MicOff,
+  Volume2,
+  Loader2,
+  X,
+  FileText,
+  ImageIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -20,8 +27,7 @@ import { toast } from 'sonner';
    Constants
    ═══════════════════════════════════════════════════════════════ */
 
-const WELCOME_MESSAGE =
-  'مرحباً! أنا المساعد الذكي لنظام AuraLab. يمكنني مساعدتك في تحليل بيانات الطلاب، تقديم اقتراحات لتحسين التفاعل، وإعداد التقارير. كيف يمكنني مساعدتك اليوم؟';
+const WELCOME_MESSAGE = t('ai.welcome');
 
 interface Suggestion {
   label: string;
@@ -51,6 +57,15 @@ const SUGGESTIONS: Suggestion[] = [
     icon: Bell,
   },
 ];
+
+const ACCEPTED_FILE_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'application/pdf',
+];
+
+const ACCEPTED_EXTENSIONS = '.jpg,.jpeg,.png,.webp,.pdf';
 
 /* ═══════════════════════════════════════════════════════════════
    Helpers
@@ -82,6 +97,23 @@ export default function AiAssistant() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
+  // TTS state
+  const [ttsLoadingId, setTtsLoadingId] = useState<string | null>(null);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+
+  // ASR state
+  const [isRecording, setIsRecording] = useState(false);
+  const [isAsrProcessing, setIsAsrProcessing] = useState(false);
+
+  // File upload state
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // ─── Scroll to bottom ───────────────────────────────────────
   const scrollToBottom = useCallback(() => {
@@ -100,11 +132,237 @@ export default function AiAssistant() {
     el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
   }, [inputValue]);
 
+  // ─── Cleanup audio on unmount ───────────────────────────────
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+      if (filePreviewUrl) {
+        URL.revokeObjectURL(filePreviewUrl);
+      }
+    };
+  }, [filePreviewUrl]);
+
+  // ─── TTS: Read message aloud ────────────────────────────────
+  const handleTts = useCallback(async (messageId: string, text: string) => {
+    try {
+      // Stop any currently playing audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+        setPlayingId(null);
+      }
+
+      setTtsLoadingId(messageId);
+
+      const res = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, voice: 'tongtong' }),
+      });
+
+      if (!res.ok) throw new Error('TTS failed');
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+
+      const audio = new Audio(url);
+      audioRef.current = audio;
+
+      setTtsLoadingId(null);
+      setPlayingId(messageId);
+
+      audio.onended = () => {
+        setPlayingId(null);
+        audioRef.current = null;
+        URL.revokeObjectURL(url);
+      };
+
+      audio.onerror = () => {
+        setPlayingId(null);
+        audioRef.current = null;
+        URL.revokeObjectURL(url);
+        toast.error('فشل في تشغيل الصوت');
+      };
+
+      await audio.play();
+    } catch {
+      setTtsLoadingId(null);
+      toast.error('فشل في إنشاء الصوت');
+    }
+  }, []);
+
+  // ─── ASR: Start/stop recording ──────────────────────────────
+  const handleMicToggle = useCallback(async () => {
+    if (isRecording) {
+      // Stop recording
+      mediaRecorderRef.current?.stop();
+      setIsRecording(false);
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+          ? 'audio/webm;codecs=opus'
+          : 'audio/webm',
+      });
+
+      audioChunksRef.current = [];
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+
+        setIsAsrProcessing(true);
+        try {
+          const formData = new FormData();
+          formData.append('audio', audioBlob, 'recording.webm');
+
+          const res = await fetch('/api/asr', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!res.ok) throw new Error('ASR failed');
+
+          const data = await res.json();
+          if (data.transcript && data.transcript.trim()) {
+            setInputValue((prev) => {
+              const trimmed = data.transcript.trim();
+              return prev ? `${prev} ${trimmed}` : trimmed;
+            });
+            toast.success('تم التعرف على الصوت');
+          } else {
+            toast.error('لم يتم التعرف على كلام');
+          }
+        } catch {
+          toast.error('فشل في التعرف على الصوت');
+        } finally {
+          setIsAsrProcessing(false);
+        }
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch {
+      toast.error('لا يمكن الوصول إلى الميكروفون');
+    }
+  }, [isRecording]);
+
+  // ─── File attachment handling ───────────────────────────────
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!ACCEPTED_FILE_TYPES.includes(file.type) && !file.name.endsWith('.pdf')) {
+      toast.error('نوع الملف غير مدعوم. يرجى رفع صورة أو PDF');
+      return;
+    }
+
+    setAttachedFile(file);
+
+    // Generate preview for images
+    if (file.type.startsWith('image/')) {
+      const url = URL.createObjectURL(file);
+      setFilePreviewUrl(url);
+    } else {
+      setFilePreviewUrl(null);
+    }
+  }, []);
+
+  const handleRemoveFile = useCallback(() => {
+    if (filePreviewUrl) {
+      URL.revokeObjectURL(filePreviewUrl);
+    }
+    setAttachedFile(null);
+    setFilePreviewUrl(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, [filePreviewUrl]);
+
+  // ─── Analyze uploaded file ──────────────────────────────────
+  const handleAnalyzeFile = useCallback(async () => {
+    if (!attachedFile || isAiLoading) return;
+
+    // Add user message showing the file
+    const userMessage = {
+      id: generateId(),
+      role: 'user' as const,
+      content: filePreviewUrl
+        ? `📷 ${attachedFile.name}`
+        : `📄 ${attachedFile.name}`,
+      timestamp: new Date().toISOString(),
+    };
+
+    addChatMessage(userMessage);
+    setIsAiLoading(true);
+    setIsAnalyzing(true);
+
+    const currentFile = attachedFile;
+    handleRemoveFile();
+
+    try {
+      const formData = new FormData();
+      formData.append('file', currentFile);
+      formData.append('prompt', 'حلل هذا الملف بالتفصيل وقدم ملخصاً شاملاً');
+      formData.append('fileType', currentFile.type);
+
+      const res = await fetch('/api/ai-analyze', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error('Analysis failed');
+
+      const data = await res.json();
+
+      addChatMessage({
+        id: generateId(),
+        role: 'assistant',
+        content: data.response ?? data.error ?? 'عذراً، لم أتمكن من تحليل الملف.',
+        timestamp: new Date().toISOString(),
+      });
+    } catch {
+      addChatMessage({
+        id: generateId(),
+        role: 'assistant',
+        content: 'عذراً، حدث خطأ أثناء تحليل الملف. يرجى المحاولة مرة أخرى.',
+        timestamp: new Date().toISOString(),
+      });
+    } finally {
+      setIsAiLoading(false);
+      setIsAnalyzing(false);
+    }
+  }, [attachedFile, isAiLoading, addChatMessage, setIsAiLoading, handleRemoveFile, filePreviewUrl]);
+
   // ─── Send message ───────────────────────────────────────────
   const sendMessage = useCallback(
     async (text: string) => {
       const trimmed = text.trim();
       if (!trimmed || isAiLoading) return;
+
+      // If there's an attached file, analyze it instead
+      if (attachedFile) {
+        await handleAnalyzeFile();
+        if (trimmed) {
+          // Also send the text message
+          setInputValue('');
+        }
+        return;
+      }
 
       const userMessage = {
         id: generateId(),
@@ -155,7 +413,7 @@ export default function AiAssistant() {
         setIsAiLoading(false);
       }
     },
-    [chatMessages, addChatMessage, isAiLoading, setIsAiLoading],
+    [chatMessages, addChatMessage, isAiLoading, setIsAiLoading, attachedFile, handleAnalyzeFile],
   );
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -375,16 +633,34 @@ export default function AiAssistant() {
                   <span className="relative z-10">{msg.content}</span>
                 </div>
 
-                {/* Timestamp (only show for last message in group) */}
-                {showAvatar && (
-                  <span
-                    className={`mt-1.5 text-[10px] text-zinc-600 px-1 ${
-                      isUser ? 'text-right' : 'text-left'
-                    }`}
-                  >
-                    {formatTime(msg.timestamp)}
-                  </span>
-                )}
+                {/* TTS button + Timestamp row for AI messages */}
+                <div className={`flex items-center gap-2 mt-1.5 px-1 ${isUser ? 'justify-end' : 'justify-start'}`}>
+                  {/* TTS speaker button for AI messages */}
+                  {!isUser && (
+                    <button
+                      onClick={() => handleTts(msg.id, msg.content)}
+                      disabled={ttsLoadingId === msg.id}
+                      className="flex items-center justify-center w-5 h-5 rounded-md
+                        text-zinc-600 hover:text-amber-400 hover:bg-amber-500/10
+                        disabled:opacity-50 transition-colors"
+                      aria-label={t('ai.ttsTooltip')}
+                      title={t('ai.ttsTooltip')}
+                    >
+                      {ttsLoadingId === msg.id ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : playingId === msg.id ? (
+                        <Volume2 className="w-3 h-3 text-amber-400" />
+                      ) : (
+                        <Volume2 className="w-3 h-3" />
+                      )}
+                    </button>
+                  )}
+                  {showAvatar && (
+                    <span className="text-[10px] text-zinc-600">
+                      {formatTime(msg.timestamp)}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           );
@@ -433,7 +709,7 @@ export default function AiAssistant() {
                     }}
                   />
                   <span className="text-[10px] text-zinc-500 mr-1" dir="rtl">
-                    يكتب...
+                    {isAnalyzing ? 'جاري التحليل...' : 'يكتب...'}
                   </span>
                 </div>
               </div>
@@ -445,25 +721,78 @@ export default function AiAssistant() {
       </div>
 
       {/* ═══════════════════════════════════════════════════════
+          FILE PREVIEW BAR
+          ═══════════════════════════════════════════════════════ */}
+      {attachedFile && (
+        <div
+          className="flex items-center gap-3 px-4 py-2 border-t border-white/10 bg-[#1E1E26]"
+        >
+          {/* File icon or image preview */}
+          {filePreviewUrl ? (
+            <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-white/10 shrink-0">
+              <img
+                src={filePreviewUrl}
+                alt={attachedFile.name}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          ) : (
+            <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-white/5 border border-white/10 shrink-0">
+              {attachedFile.type === 'application/pdf' ? (
+                <FileText className="w-5 h-5 text-red-400" />
+              ) : (
+                <ImageIcon className="w-5 h-5 text-amber-400" />
+              )}
+            </div>
+          )}
+
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-slate-200 truncate">{attachedFile.name}</p>
+            <p className="text-[10px] text-slate-500">
+              {(attachedFile.size / 1024).toFixed(1)} ك.ب
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleRemoveFile}
+            className="flex items-center justify-center w-7 h-7 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
+            aria-label="إزالة الملف"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════
           INPUT AREA
           ═══════════════════════════════════════════════════════ */}
       <form
         onSubmit={handleSubmit}
         className="flex items-end gap-2 px-4 py-3 border-t border-white/10 bg-[#1E1E26]"
       >
-        {/* Attachment button (coming soon) */}
+        {/* Attachment button */}
         <button
           type="button"
-          disabled
-          aria-label="إرفاق ملف"
-          title="قريباً..."
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isAiLoading || !!attachedFile}
+          aria-label={t('ai.attachTooltip')}
+          title={`${t('ai.attachTooltip')} (${t('ai.attachAccepted')})`}
           className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0
             bg-white/5 border border-white/10
-            text-zinc-600 cursor-not-allowed
+            text-zinc-500 hover:text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/30
+            disabled:opacity-30 disabled:cursor-not-allowed
             transition-colors"
         >
           <Paperclip className="w-4 h-4" />
         </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={ACCEPTED_EXTENSIONS}
+          onChange={handleFileSelect}
+          className="hidden"
+        />
 
         {/* Textarea with gradient focus border */}
         <div className="relative flex-1">
@@ -486,7 +815,7 @@ export default function AiAssistant() {
             onKeyDown={handleKeyDown}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
-            placeholder="اكتب رسالتك هنا..."
+            placeholder={t('ai.placeholder')}
             disabled={isAiLoading}
             rows={1}
             dir="rtl"
@@ -497,24 +826,34 @@ export default function AiAssistant() {
           />
         </div>
 
-        {/* Voice input button (coming soon) */}
+        {/* Microphone button */}
         <button
           type="button"
-          disabled
-          aria-label="إدخال صوتي"
-          title="قريباً..."
-          className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0
-            bg-white/5 border border-white/10
-            text-zinc-600 cursor-not-allowed
-            transition-colors"
+          onClick={handleMicToggle}
+          disabled={isAiLoading || isAsrProcessing}
+          aria-label={isRecording ? t('ai.micRecording') : t('ai.micTooltip')}
+          title={isRecording ? t('ai.micRecording') : isAsrProcessing ? t('ai.micProcessing') : t('ai.micTooltip')}
+          className={`flex items-center justify-center w-9 h-9 rounded-xl shrink-0 transition-all ${
+            isRecording
+              ? 'bg-red-500/20 border border-red-500/40 text-red-400 animate-pulse'
+              : isAsrProcessing
+                ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400'
+                : 'bg-white/5 border border-white/10 text-zinc-500 hover:text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/30'
+          } disabled:opacity-30 disabled:cursor-not-allowed`}
         >
-          <Mic className="w-4 h-4" />
+          {isAsrProcessing ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : isRecording ? (
+            <MicOff className="w-4 h-4" />
+          ) : (
+            <Mic className="w-4 h-4" />
+          )}
         </button>
 
         {/* Send button with animated gradient */}
         <button
           type="submit"
-          disabled={!inputValue.trim() || isAiLoading}
+          disabled={(!inputValue.trim() && !attachedFile) || isAiLoading}
           aria-label="إرسال"
           className="relative flex items-center justify-center w-10 h-10 rounded-xl shrink-0 overflow-hidden
             transition-all duration-200
@@ -522,17 +861,17 @@ export default function AiAssistant() {
             cursor-pointer"
           style={{
             background:
-              inputValue.trim() && !isAiLoading
+              (inputValue.trim() || attachedFile) && !isAiLoading
                 ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%)'
                 : '#3f3f46',
             boxShadow:
-              inputValue.trim() && !isAiLoading
+              (inputValue.trim() || attachedFile) && !isAiLoading
                 ? '0 4px 16px -2px rgba(245, 158, 11, 0.4)'
                 : 'none',
           }}
         >
           {/* Animated shimmer overlay when active */}
-          {inputValue.trim() && !isAiLoading && (
+          {(inputValue.trim() || attachedFile) && !isAiLoading && (
             <div
               className="absolute inset-0"
               style={{
@@ -546,7 +885,7 @@ export default function AiAssistant() {
           <Send
             className="relative z-10 w-4 h-4"
             style={{
-              color: inputValue.trim() && !isAiLoading ? '#fff' : '#a1a1aa',
+              color: (inputValue.trim() || attachedFile) && !isAiLoading ? '#fff' : '#a1a1aa',
             }}
           />
         </button>

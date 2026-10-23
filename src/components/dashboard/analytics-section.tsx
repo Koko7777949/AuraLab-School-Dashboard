@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   BarChart3,
   TrendingUp,
@@ -14,6 +14,8 @@ import {
   PieChart,
   Target,
   LineChart,
+  Download,
+  CalendarDays,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import SectionCard from './section-card';
@@ -22,6 +24,9 @@ import DonutChart from '@/components/charts/donut-chart';
 import RadarChart from '@/components/charts/radar-chart';
 import AreaChart from '@/components/charts/area-chart';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -346,6 +351,34 @@ function SeverityBadge({ severity }: { severity: 'high' | 'medium' | 'low' }) {
 export default function AnalyticsSection() {
   const { students, exams, classes } = useAppStore();
 
+  // Date range filter state
+  const [dateFrom, setDateFrom] = useState(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 3);
+    return d.toISOString().split('T')[0];
+  });
+  const [dateTo, setDateTo] = useState(() => new Date().toISOString().split('T')[0]);
+
+  const handleExportAnalytics = useCallback(() => {
+    const analyticsData = {
+      dateRange: { from: dateFrom, to: dateTo },
+      scoreDistribution: SCORE_DISTRIBUTION,
+      classEngagement: CLASS_ENGAGEMENT,
+      weeklyTrend: WEEKLY_TREND,
+      topStudents: TOP_STUDENTS,
+      performanceAlerts: PERFORMANCE_ALERTS,
+      exportedAt: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(analyticsData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `analytics-${dateFrom}-to-${dateTo}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('تم تصدير التحليلات بنجاح');
+  }, [dateFrom, dateTo]);
+
   return (
     <div className="flex flex-col gap-6" dir="rtl">
       {/* ── Page Title ── */}
@@ -363,6 +396,45 @@ export default function AnalyticsSection() {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* ── Date Range Filter + Export ── */}
+      <div
+        className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl p-4"
+        style={{
+          backgroundColor: '#1A1A24',
+          border: '1px solid rgba(255,255,255,0.06)',
+        }}
+      >
+        <div className="flex items-center gap-3">
+          <CalendarDays className="h-4 w-4 text-[#D4A574]" />
+          <span className="text-sm text-slate-300">الفترة الزمنية:</span>
+          <div className="flex items-center gap-2">
+            <Input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="h-9 w-36 bg-white/[0.03] border-white/[0.08] text-slate-200 text-sm rounded-lg"
+              dir="ltr"
+            />
+            <span className="text-slate-500">—</span>
+            <Input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="h-9 w-36 bg-white/[0.03] border-white/[0.08] text-slate-200 text-sm rounded-lg"
+              dir="ltr"
+            />
+          </div>
+        </div>
+        <Button
+          onClick={handleExportAnalytics}
+          variant="outline"
+          className="gap-2 text-slate-300 border-white/[0.08] hover:bg-[#D4A574]/10 hover:text-[#D4A574] hover:border-[#D4A574]/40 transition-colors rounded-lg"
+        >
+          <Download className="h-4 w-4" />
+          تصدير التحليلات
+        </Button>
       </div>
 
       {/* ── Top Row: 4 Mini Stat Cards ── */}

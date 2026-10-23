@@ -23,6 +23,7 @@ import {
   Eye,
   Trash2,
   ArrowLeft,
+  Plus,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
@@ -32,6 +33,24 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import SectionCard from './section-card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -614,6 +633,9 @@ export default function ReportsSection() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedReport, setGeneratedReport] = useState<GeneratedReport | null>(null);
   const [viewingReport, setViewingReport] = useState<GeneratedReport | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const [reportTitle, setReportTitle] = useState('');
   const [dateFrom, setDateFrom] = useState(() => {
@@ -695,13 +717,22 @@ export default function ReportsSection() {
 
   const handleDeleteReport = useCallback(
     (id: string) => {
-      setRecentReports((prev) => prev.filter((r) => r.id !== id));
-      if (viewingReport?.id === id) setViewingReport(null);
-      if (generatedReport?.id === id) setGeneratedReport(null);
-      toast.success('تم حذف التقرير');
+      setDeleteTargetId(id);
+      setDeleteConfirmOpen(true);
     },
-    [viewingReport, generatedReport],
+    [],
   );
+
+  const confirmDeleteReport = useCallback(() => {
+    if (deleteTargetId) {
+      setRecentReports((prev) => prev.filter((r) => r.id !== deleteTargetId));
+      if (viewingReport?.id === deleteTargetId) setViewingReport(null);
+      if (generatedReport?.id === deleteTargetId) setGeneratedReport(null);
+      toast.success('تم حذف التقرير');
+    }
+    setDeleteConfirmOpen(false);
+    setDeleteTargetId(null);
+  }, [deleteTargetId, viewingReport, generatedReport]);
 
   const handleViewReport = useCallback((report: GeneratedReport) => {
     setViewingReport(report);
@@ -742,6 +773,15 @@ export default function ReportsSection() {
           >
             <ArrowLeft className="h-4 w-4 ml-1" />
             العودة إلى الأنواع
+          </Button>
+        )}
+        {!selectedType && (
+          <Button
+            onClick={() => setCreateOpen(true)}
+            className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold gap-2 rounded-lg px-5 h-10"
+          >
+            <Plus className="h-4 w-4" />
+            إنشاء تقرير
           </Button>
         )}
       </div>
@@ -1316,6 +1356,92 @@ export default function ReportsSection() {
           </SectionCard>
         </>
       )}
+
+      {/* ── Create Report Dialog ── */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent
+          className="sm:max-w-lg"
+          dir="rtl"
+          style={{ backgroundColor: '#1A1A24', border: '1px solid rgba(255,255,255,0.06)' }}
+        >
+          <DialogHeader>
+            <DialogTitle className="text-white text-xl flex items-center gap-2">
+              <Plus className="h-5 w-5 text-[#D4A574]" />
+              إنشاء تقرير جديد
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              اختر نوع التقرير وابدأ بإنشائه
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+            {REPORT_CATEGORIES.map((cat) => {
+              const Icon = cat.icon;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => {
+                    handleSelectType(cat.id);
+                    setCreateOpen(false);
+                  }}
+                  className="flex items-center gap-3 rounded-xl p-4 text-right transition-all duration-200 hover:bg-white/[0.05]"
+                  style={{
+                    backgroundColor: 'rgba(255,255,255,0.02)',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                  }}
+                >
+                  <div
+                    className="flex items-center justify-center h-10 w-10 rounded-xl shrink-0"
+                    style={{
+                      background: `linear-gradient(135deg, ${cat.gradientFrom}33, ${cat.gradientTo}33)`,
+                    }}
+                  >
+                    <Icon className="h-5 w-5" style={{ color: cat.gradientFrom }} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-200 truncate">{cat.title}</p>
+                    <p className="text-xs text-slate-500 line-clamp-1">{cat.description}</p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <DialogFooter className="mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setCreateOpen(false)}
+              className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg"
+            >
+              إلغاء
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete Confirmation Dialog ── */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent
+          dir="rtl"
+          style={{ backgroundColor: '#1A1A24', border: '1px solid rgba(255,255,255,0.06)' }}
+        >
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">حذف التقرير</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              هل أنت متأكد من حذف هذا التقرير؟ لا يمكن التراجع عن هذا الإجراء.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-2">
+            <AlertDialogCancel className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg">
+              إلغاء
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteReport}
+              className="bg-rose-500 hover:bg-rose-600 text-white rounded-lg"
+            >
+              حذف
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

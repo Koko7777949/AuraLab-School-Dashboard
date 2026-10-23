@@ -190,7 +190,8 @@ export type ActiveSection =
   | 'behavior'
   | 'timetable'
   | 'library'
-  | 'fees';
+  | 'fees'
+  | 'camera';
 
 export interface KpiData {
   label: string;

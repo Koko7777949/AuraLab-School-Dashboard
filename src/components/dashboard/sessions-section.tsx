@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Calendar,
   Clock,
@@ -14,18 +14,36 @@ import {
   Filter,
   X,
   Timer,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 import type { Session } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { useAppStore } from '@/lib/store';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Select,
   SelectContent,
@@ -403,9 +421,13 @@ function TimelineDot({ status, isActive }: { status: SessionStatus; isActive: bo
 function SessionCardComponent({
   session,
   onView,
+  onEdit,
+  onDelete,
 }: {
   session: SessionCardData;
   onView: (s: SessionCardData) => void;
+  onEdit: (s: SessionCardData) => void;
+  onDelete: (s: SessionCardData) => void;
 }) {
   const isActive = session.status === 'in-progress';
   const borderColor = getStatusColor(session.status);
@@ -486,18 +508,44 @@ function SessionCardComponent({
           <span className="text-[10px] text-slate-500">التفاعل</span>
           <EngagementRing score={session.engagementScore} size={40} strokeWidth={3} />
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-slate-400 hover:text-white hover:bg-white/[0.06] gap-1.5 h-8 px-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-          onClick={(e) => {
-            e.stopPropagation();
-            onView(session);
-          }}
-        >
-          <Eye className="h-3.5 w-3.5" />
-          عرض
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-slate-400 hover:text-white hover:bg-white/[0.06] gap-1.5 h-8 px-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+            onClick={(e) => {
+              e.stopPropagation();
+              onView(session);
+            }}
+          >
+            <Eye className="h-3.5 w-3.5" />
+            عرض
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-slate-400 hover:text-[#D4A574] hover:bg-[#D4A574]/10 h-8 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(session);
+            }}
+            title="تعديل"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 h-8 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(session);
+            }}
+            title="حذف"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -642,21 +690,65 @@ function SessionDetailDialog({
 function StartSessionDialog({
   open,
   onOpenChange,
+  editSession,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  editSession?: SessionCardData | null;
 }) {
-  const [topic, setTopic] = useState('');
-  const [classId, setClassId] = useState('class-1');
-  const [teacherId, setTeacherId] = useState('teacher-001');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [startTime, setStartTime] = useState('08:00');
-  const [endTime, setEndTime] = useState('09:30');
-  const [room, setRoom] = useState('');
-  const [notes, setNotes] = useState('');
+  const { addSession, updateSession, classes, teachers } = useAppStore();
+  const isEdit = !!editSession;
+  const [topic, setTopic] = useState(isEdit ? (editSession?.topic || '') : '');
+  const [classId, setClassId] = useState(isEdit ? (editSession?.classId || 'class-1') : 'class-1');
+  const [teacherId, setTeacherId] = useState(isEdit ? (editSession?.teacherId || 'teacher-001') : 'teacher-001');
+  const [date, setDate] = useState(isEdit ? (editSession?.date || new Date().toISOString().split('T')[0]) : new Date().toISOString().split('T')[0]);
+  const [startTime, setStartTime] = useState(isEdit ? (editSession?.startTime || '08:00') : '08:00');
+  const [endTime, setEndTime] = useState(isEdit ? (editSession?.endTime || '09:30') : '09:30');
+  const [room, setRoom] = useState(isEdit ? (editSession?.room || '') : '');
+  const [notes, setNotes] = useState(isEdit ? (editSession?.notes || '') : '');
 
-  const handleAdd = () => {
+  const handleSave = () => {
     if (!topic.trim()) return;
+    const className = CLASS_FILTER_MAP[classId] || '';
+    const teacherMap: Record<string, string> = {
+      'teacher-001': 'أ. عبدالله السالم',
+      'teacher-002': 'أ. سارة المنصور',
+      'teacher-003': 'أ. فهد العتيبي',
+    };
+    const teacherName = teacherMap[teacherId] || '';
+
+    if (isEdit && editSession) {
+      updateSession(editSession.id, {
+        topic,
+        classId,
+        teacherId,
+        date,
+        startTime,
+        endTime,
+        notes,
+        className,
+        teacherName,
+      });
+      toast.success('تم تحديث الجلسة بنجاح');
+    } else {
+      const newSession: Session = {
+        id: `session-${Date.now()}`,
+        classId,
+        teacherId,
+        date,
+        startTime,
+        endTime,
+        engagementAvg: null,
+        topic,
+        notes,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        className,
+        teacherName,
+      };
+      addSession(newSession);
+      toast.success('تم إضافة الجلسة بنجاح');
+    }
     onOpenChange(false);
   };
 
@@ -672,8 +764,8 @@ function StartSessionDialog({
       >
         <DialogHeader>
           <DialogTitle className="text-white text-xl flex items-center gap-2">
-            <Plus className="h-5 w-5 text-[#D4A574]" />
-            بدء جلسة جديدة
+            {isEdit ? <Pencil className="h-5 w-5 text-[#D4A574]" /> : <Plus className="h-5 w-5 text-[#D4A574]" />}
+            {isEdit ? 'تعديل الجلسة' : 'بدء جلسة جديدة'}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
             أضف جلسة تعليمية جديدة للجدول الدراسي
@@ -799,11 +891,11 @@ function StartSessionDialog({
           {/* Actions */}
           <div className="flex items-center gap-3 pt-2">
             <Button
-              onClick={handleAdd}
+              onClick={handleSave}
               className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold gap-2 rounded-lg px-6"
             >
-              <Plus className="h-4 w-4" />
-              بدء الجلسة
+              {isEdit ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+              {isEdit ? 'تحديث الجلسة' : 'بدء الجلسة'}
             </Button>
             <Button
               variant="outline"
@@ -861,16 +953,56 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
 // ---------------------------------------------------------------------------
 
 export default function SessionsSection() {
+  const { sessions, setSessions, addSession, updateSession, deleteSession, classes, teachers } = useAppStore();
   // Local state
   const [classFilter, setClassFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [detailOpen, setDetailOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState<SessionCardData | null>(null);
+
+  // Seed mock data on mount if store is empty
+  const initialized = useRef(false);
+  useEffect(() => {
+    if (!initialized.current && sessions.length === 0) {
+      initialized.current = true;
+      setSessions(MOCK_SESSIONS.map((s) => ({
+        id: s.id,
+        classId: s.classId,
+        teacherId: s.teacherId,
+        date: s.date,
+        startTime: s.startTime,
+        endTime: s.endTime,
+        engagementAvg: s.engagementAvg,
+        topic: s.topic,
+        notes: s.notes,
+        createdAt: s.createdAt,
+        updatedAt: s.updatedAt,
+        className: s.className,
+        teacherName: s.teacherName,
+      })));
+    }
+  }, []);
+
+  // Enrich sessions with display data
+  const enrichedSessions: SessionCardData[] = useMemo(() => {
+    return sessions.map((s) => {
+      const status: SessionStatus = s.engagementAvg !== null && s.endTime ? 'completed' : 'upcoming';
+      return {
+        ...s,
+        status,
+        engagementScore: s.engagementAvg || 0,
+        teacherNameDisplay: s.teacherName || 'غير محدد',
+        classNameDisplay: s.className || 'غير محدد',
+      };
+    });
+  }, [sessions]);
 
   // Filtered sessions
   const filteredSessions = useMemo(() => {
-    let result = [...MOCK_SESSIONS];
+    let result = [...enrichedSessions];
 
     if (classFilter !== 'all') {
       result = result.filter((s) => s.classId === classFilter);
@@ -881,7 +1013,7 @@ export default function SessionsSection() {
     }
 
     return result;
-  }, [classFilter, statusFilter]);
+  }, [enrichedSessions, classFilter, statusFilter]);
 
   // Group by date
   const groupedByDate = useMemo(() => {
@@ -900,22 +1032,41 @@ export default function SessionsSection() {
 
   // Summary stats
   const stats = useMemo(() => {
-    const total = MOCK_SESSIONS.length;
-    const completed = MOCK_SESSIONS.filter((s) => s.status === 'completed').length;
-    const inProgress = MOCK_SESSIONS.filter((s) => s.status === 'in-progress').length;
-    const upcoming = MOCK_SESSIONS.filter((s) => s.status === 'upcoming').length;
-    const avgEngagement = MOCK_SESSIONS.filter((s) => s.engagementScore > 0);
+    const total = enrichedSessions.length;
+    const completed = enrichedSessions.filter((s) => s.status === 'completed').length;
+    const inProgress = enrichedSessions.filter((s) => s.status === 'in-progress').length;
+    const upcoming = enrichedSessions.filter((s) => s.status === 'upcoming').length;
+    const avgEngagement = enrichedSessions.filter((s) => s.engagementScore > 0);
     const engagementAvg =
       avgEngagement.length > 0
         ? Math.round(avgEngagement.reduce((sum, s) => sum + s.engagementScore, 0) / avgEngagement.length)
         : 0;
 
     return { total, completed, inProgress, upcoming, engagementAvg };
-  }, []);
+  }, [enrichedSessions]);
 
   const handleView = (session: SessionCardData) => {
     setSelectedSession(session);
     setDetailOpen(true);
+  };
+
+  const handleEdit = (session: SessionCardData) => {
+    setSelectedSession(session);
+    setEditOpen(true);
+  };
+
+  const handleDelete = (session: SessionCardData) => {
+    setSelectedSession(session);
+    setDeleteOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (selectedSession) {
+      deleteSession(selectedSession.id);
+      toast.success('تم حذف الجلسة بنجاح');
+    }
+    setDeleteOpen(false);
+    setSelectedSession(null);
   };
 
   return (
@@ -1072,6 +1223,8 @@ export default function SessionsSection() {
                     key={session.id}
                     session={session}
                     onView={handleView}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
                   />
                 ))}
               </div>
@@ -1091,6 +1244,38 @@ export default function SessionsSection() {
         open={addOpen}
         onOpenChange={setAddOpen}
       />
+
+      <StartSessionDialog
+        open={editOpen}
+        onOpenChange={(val) => { setEditOpen(val); if (!val) setSelectedSession(null); }}
+        editSession={selectedSession}
+      />
+
+      {/* Delete confirmation */}
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent
+          dir="rtl"
+          style={{ backgroundColor: '#1A1A24', border: '1px solid rgba(255,255,255,0.06)' }}
+        >
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">حذف الجلسة</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              هل أنت متأكد من حذف جلسة "{selectedSession?.topic}"؟ لا يمكن التراجع عن هذا الإجراء.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-2">
+            <AlertDialogCancel className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg">
+              إلغاء
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-rose-500 hover:bg-rose-600 text-white rounded-lg"
+            >
+              حذف
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

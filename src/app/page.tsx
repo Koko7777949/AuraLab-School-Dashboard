@@ -25,6 +25,7 @@ import TrashSection from '@/components/dashboard/trash-section';
 import SettingsSection from '@/components/dashboard/settings-section';
 import LibrarySection from '@/components/dashboard/library-section';
 import FeesSection from '@/components/dashboard/fees-section';
+import ClassroomCamera from '@/components/dashboard/classroom-camera';
 import KeyboardShortcuts from '@/components/dashboard/keyboard-shortcuts';
 import CommandPalette from '@/components/dashboard/command-palette';
 import FabActions from '@/components/dashboard/fab-actions';
@@ -73,6 +74,8 @@ function SectionRenderer({ section }: { section: ActiveSection }) {
       return <FeesSection />;
     case 'settings':
       return <SettingsSection />;
+    case 'camera':
+      return <ClassroomCamera />;
     default:
       return <DashboardOverview />;
   }
