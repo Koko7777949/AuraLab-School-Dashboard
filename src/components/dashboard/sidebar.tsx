@@ -28,6 +28,7 @@ import {
   Camera,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
+import { t } from '@/lib/i18n';
 import type { ActiveSection } from '@/lib/types';
 
 // ---------------------------------------------------------------------------
@@ -36,6 +37,8 @@ import type { ActiveSection } from '@/lib/types';
 interface NavItem {
   id: ActiveSection;
   label: string;
+  /** i18n key for the label (falls back to label) */
+  labelKey?: string;
   icon: React.ElementType;
   /** If true, shows a numeric count badge */
   showCount?: boolean;
@@ -44,27 +47,27 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'dashboard', label: 'لوحة التحكم', icon: LayoutDashboard },
-  { id: 'students', label: 'الطلاب', icon: GraduationCap, showCount: true },
-  { id: 'teachers', label: 'المعلمون', icon: Users, showCount: true },
-  { id: 'classes', label: 'الصفوف', icon: School, showCount: true },
-  { id: 'exams', label: 'الامتحانات', icon: FileText, showCount: true },
-  { id: 'sessions', label: 'الجلسات', icon: Calendar },
-  { id: 'attendance', label: 'الحضور', icon: ClipboardCheck, showCount: true },
-  { id: 'grades', label: 'الدرجات', icon: Trophy, showCount: true },
-  { id: 'behavior', label: 'سلوك الطلاب', icon: ShieldAlert, showCount: true },
-  { id: 'timetable', label: 'الجدول الدراسي', icon: CalendarRange },
-  { id: 'analytics', label: 'التحليلات', icon: BarChart3 },
-  { id: 'reports', label: 'التقارير', icon: FileBarChart },
-  { id: 'announcements', label: 'الإعلانات', icon: Megaphone, isAlert: true },
-  { id: 'messages', label: 'الرسائل', icon: MessageSquare, isAlert: true },
-  { id: 'notifications', label: 'الإشعارات', icon: Bell, isAlert: true },
-  { id: 'ai-assistant', label: 'المساعد الذكي', icon: Bot },
-  { id: 'trash', label: 'المحذوفات', icon: Trash2, showCount: true },
-  { id: 'library', label: 'المكتبة', icon: BookOpen, showCount: true },
-  { id: 'fees', label: 'الرسوم', icon: Wallet, showCount: true },
-  { id: 'camera', label: 'الكاميرات', icon: Camera },
-  { id: 'settings', label: 'الإعدادات', icon: Settings },
+  { id: 'dashboard', label: 'لوحة التحكم', labelKey: 'nav.dashboard', icon: LayoutDashboard },
+  { id: 'students', label: 'الطلاب', labelKey: 'nav.students', icon: GraduationCap, showCount: true },
+  { id: 'teachers', label: 'المعلمون', labelKey: 'nav.teachers', icon: Users, showCount: true },
+  { id: 'classes', label: 'الصفوف', labelKey: 'nav.classes', icon: School, showCount: true },
+  { id: 'exams', label: 'الامتحانات', labelKey: 'nav.exams', icon: FileText, showCount: true },
+  { id: 'sessions', label: 'الجلسات', labelKey: 'nav.sessions', icon: Calendar },
+  { id: 'attendance', label: 'الحضور', labelKey: 'nav.attendance', icon: ClipboardCheck, showCount: true },
+  { id: 'grades', label: 'الدرجات', labelKey: 'nav.grades', icon: Trophy, showCount: true },
+  { id: 'behavior', label: 'سلوك الطلاب', labelKey: 'nav.behavior', icon: ShieldAlert, showCount: true },
+  { id: 'timetable', label: 'الجدول الدراسي', labelKey: 'nav.timetable', icon: CalendarRange },
+  { id: 'analytics', label: 'التحليلات', labelKey: 'nav.analytics', icon: BarChart3 },
+  { id: 'reports', label: 'التقارير', labelKey: 'nav.reports', icon: FileBarChart },
+  { id: 'announcements', label: 'الإعلانات', labelKey: 'nav.announcements', icon: Megaphone, isAlert: true },
+  { id: 'messages', label: 'الرسائل', labelKey: 'nav.messages', icon: MessageSquare, isAlert: true },
+  { id: 'notifications', label: 'الإشعارات', labelKey: 'nav.notifications', icon: Bell, isAlert: true },
+  { id: 'ai-assistant', label: 'المساعد الذكي', labelKey: 'nav.ai', icon: Bot },
+  { id: 'trash', label: 'المحذوفات', labelKey: 'nav.trash', icon: Trash2, showCount: true },
+  { id: 'library', label: 'المكتبة', labelKey: 'nav.library', icon: BookOpen, showCount: true },
+  { id: 'fees', label: 'الرسوم', labelKey: 'nav.fees', icon: Wallet, showCount: true },
+  { id: 'camera', label: 'كاميرات الفصول', labelKey: 'nav.camera', icon: Camera },
+  { id: 'settings', label: 'الإعدادات', labelKey: 'nav.settings', icon: Settings },
 ];
 
 // ---------------------------------------------------------------------------
@@ -86,6 +89,7 @@ export default function Sidebar() {
     trashItems,
     behaviors,
     libraryBooks,
+    locale,
   } = useAppStore();
 
   // Track mobile state for slide-in animation
@@ -155,7 +159,7 @@ export default function Sidebar() {
         transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
         ${sidebarOpen ? 'w-60' : 'w-[72px]'}
         ${isMobile && sidebarOpen ? 'animate-sidebar-slide-in' : ''}
-        ${isMobile && !sidebarOpen ? '-translate-x-full' : ''}
+        ${isMobile && !sidebarOpen ? 'translate-x-full' : ''}
       `}
       style={{
         background: 'rgba(18, 18, 24, 0.85)',
@@ -207,7 +211,7 @@ export default function Sidebar() {
           {/* Collapse / Expand button */}
           <button
             onClick={toggleSidebar}
-            aria-label={sidebarOpen ? 'طي القائمة' : 'توسيع القائمة'}
+            aria-label={sidebarOpen ? t('nav.collapse', locale) : t('nav.collapse', locale)}
             className={`
               flex h-9 w-9 shrink-0 items-center justify-center rounded-lg
               text-[#8B8B9E] transition-all duration-300 ease-out
@@ -263,7 +267,7 @@ export default function Sidebar() {
                 <button
                   onClick={() => handleNavClick(item.id)}
                   aria-current={isActive ? 'page' : undefined}
-                  title={!sidebarOpen ? item.label : undefined}
+                  title={!sidebarOpen ? (item.labelKey ? t(item.labelKey, locale) : item.label) : undefined}
                   className={`
                     group relative flex w-full items-center gap-3 rounded-xl
                     px-3 py-2.5 text-sm font-medium
@@ -322,7 +326,7 @@ export default function Sidebar() {
                       ${sidebarOpen ? 'opacity-100 w-auto' : 'pointer-events-none absolute opacity-0 w-0'}
                     `}
                   >
-                    {item.label}
+                    {item.labelKey ? t(item.labelKey, locale) : item.label}
                   </span>
 
                   {/* Count / Alert badge (visible only when sidebar open) */}
@@ -414,7 +418,7 @@ export default function Sidebar() {
             <div className="flex flex-col items-center gap-1">
               <div className="flex items-center gap-1 text-[10px] text-[#5A5A6E]">
                 <Sparkles size={10} className="text-[#D4A574]/40" />
-                <span>مدعوم بـ AuraLab</span>
+                <span>{locale === 'ar' ? 'مدعوم بـ AuraLab' : 'Powered by AuraLab'}</span>
                 <Sparkles size={10} className="text-[#D4A574]/40" />
               </div>
               <span className="text-[9px] tracking-widest text-[#3E3E4E]">

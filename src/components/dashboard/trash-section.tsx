@@ -45,7 +45,7 @@ const TYPE_CONFIG: Record<
   TrashItem['itemType'],
   {
     label: string;
-    icon: React.ComponentType<{ className?: string }>;
+    icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
     badgeClass: string;
     iconBg: string;
     color: string;

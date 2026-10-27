@@ -1,0 +1,1349 @@
+     1→'use client';
+     2→
+     3→import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+     4→import {
+     5→  Wallet,
+     6→  DollarSign,
+     7→  AlertCircle,
+     8→  CheckCircle,
+     9→  CreditCard,
+    10→  Eye,
+    11→  Pencil,
+    12→  Trash2,
+    13→  Search,
+    14→  Plus,
+    15→  ChevronLeft,
+    16→  ChevronRight,
+    17→  FileDown,
+    18→  ArrowUpDown,
+    19→  TrendingUp,
+    20→  Receipt,
+    21→  CalendarClock,
+    22→} from 'lucide-react';
+    23→import { useAppStore } from '@/lib/store';
+    24→import { t } from '@/lib/i18n';
+    25→import type { FeeRecord } from '@/lib/types';
+    26→import { cn } from '@/lib/utils';
+    27→import { toast } from 'sonner';
+    28→import { exportToCSV, formatCsvDate } from '@/lib/csv-export';
+    29→
+    30→// shadcn/ui
+    31→import { Button } from '@/components/ui/button';
+    32→import { Input } from '@/components/ui/input';
+    33→import { Label } from '@/components/ui/label';
+    34→import { Badge } from '@/components/ui/badge';
+    35→import { Textarea } from '@/components/ui/textarea';
+    36→import {
+    37→  Table,
+    38→  TableHeader,
+    39→  TableBody,
+    40→  TableHead,
+    41→  TableRow,
+    42→  TableCell,
+    43→} from '@/components/ui/table';
+    44→import {
+    45→  Dialog,
+    46→  DialogContent,
+    47→  DialogDescription,
+    48→  DialogFooter,
+    49→  DialogHeader,
+    50→  DialogTitle,
+    51→} from '@/components/ui/dialog';
+    52→import {
+    53→  AlertDialog,
+    54→  AlertDialogAction,
+    55→  AlertDialogCancel,
+    56→  AlertDialogContent,
+    57→  AlertDialogDescription,
+    58→  AlertDialogFooter,
+    59→  AlertDialogHeader,
+    60→  AlertDialogTitle,
+    61→} from '@/components/ui/alert-dialog';
+    62→import {
+    63→  Select,
+    64→  SelectContent,
+    65→  SelectItem,
+    66→  SelectTrigger,
+    67→  SelectValue,
+    68→} from '@/components/ui/select';
+    69→
+    70→// ---------------------------------------------------------------------------
+    71→// Constants
+    72→// ---------------------------------------------------------------------------
+    73→
+    74→const FEE_TYPE_LABELS: Record<FeeRecord['feeType'], string> = {
+    75→  tuition: 'رسوم دراسية',
+    76→  transportation: 'نقل',
+    77→  books: 'كتب',
+    78→  activities: 'أنشطة',
+    79→  lab: 'مختبر',
+    80→  other: 'أخرى',
+    81→};
+    82→
+    83→const FEE_TYPE_OPTIONS: { value: FeeRecord['feeType']; label: string }[] = [
+    84→  { value: 'tuition', label: 'رسوم دراسية' },
+    85→  { value: 'transportation', label: 'نقل' },
+    86→  { value: 'books', label: 'كتب' },
+    87→  { value: 'activities', label: 'أنشطة' },
+    88→  { value: 'lab', label: 'مختبر' },
+    89→  { value: 'other', label: 'أخرى' },
+    90→];
+    91→
+    92→const STATUS_LABELS: Record<FeeRecord['status'], string> = {
+    93→  paid: 'مدفوع',
+    94→  partial: 'جزئي',
+    95→  unpaid: 'غير مدفوع',
+    96→  overdue: 'متأخر',
+    97→};
+    98→
+    99→const STATUS_COLORS: Record<FeeRecord['status'], string> = {
+   100→  paid: 'bg-emerald-500/15 text-emerald-400 ring-emerald-500/20',
+   101→  partial: 'bg-amber-500/15 text-amber-400 ring-amber-500/20',
+   102→  unpaid: 'bg-sky-500/15 text-sky-400 ring-sky-500/20',
+   103→  overdue: 'bg-rose-500/15 text-rose-400 ring-rose-500/20',
+   104→};
+   105→
+   106→const STATUS_DOT_COLORS: Record<FeeRecord['status'], string> = {
+   107→  paid: 'bg-emerald-400',
+   108→  partial: 'bg-amber-400',
+   109→  unpaid: 'bg-sky-400',
+   110→  overdue: 'bg-rose-400',
+   111→};
+   112→
+   113→const ITEMS_PER_PAGE = 10;
+   114→
+   115→// Sort icon rendered as a function (not a component) to avoid static-component lint rule
+   116→function renderSortIcon(activeField: string, field: string, sortDir: 'asc' | 'desc') {
+   117→  if (activeField !== field) return <ArrowUpDown size={14} className="text-[#6B6B76]" />;
+   118→  return sortDir === 'asc' ? (
+   119→    <ChevronLeft size={14} className="text-[#D4A574]" />
+   120→  ) : (
+   121→    <ChevronRight size={14} className="text-[#D4A574]" />
+   122→  );
+   123→}
+   124→
+   125→const STUDENT_NAMES = [
+   126→  'أحمد محمد العلي',
+   127→  'فاطمة سعيد الحربي',
+   128→  'عبدالله خالد القحطاني',
+   129→  'نورة إبراهيم الشمري',
+   130→  'سعود عبدالرحمن الدوسري',
+   131→  'ريم فهد العتيبي',
+   132→  'محمد ناصر السبيعي',
+   133→  'لمياء عبدالعزيز المطيري',
+   134→  'خالد سلطان الحميدي',
+   135→  'سارة يوسف الغامدي',
+   136→  'عمر حسن الزهراني',
+   137→  'هند ماجد البلوي',
+   138→  'ياسر عايض العنزي',
+   139→  'منيرة صالح الرشيدي',
+   140→  'تركي فصيل العمري',
+   141→  'أمل عطالله السلمي',
+   142→  'بدر فيصل الشهري',
+   143→  'وجدان راشد المالكي',
+   144→];
+   145→
+   146→const CLASS_NAMES = [
+   147→  'الصف الأول - أ',
+   148→  'الصف الثاني - ب',
+   149→  'الصف الثالث - أ',
+   150→  'الصف الرابع - ج',
+   151→  'الصف الخامس - ب',
+   152→  'الصف السادس - أ',
+   153→];
+   154→
+   155→// ---------------------------------------------------------------------------
+   156→// Mock Data
+   157→// ---------------------------------------------------------------------------
+   158→
+   159→function generateMockFees(): FeeRecord[] {
+   160→  const feeTypes: FeeRecord['feeType'][] = ['tuition', 'transportation', 'books', 'activities', 'lab', 'other'];
+   161→  const statuses: FeeRecord['status'][] = ['paid', 'partial', 'unpaid', 'overdue'];
+   162→
+   163→  return [
+   164→    { id: 'fee-001', studentId: 's-01', studentName: STUDENT_NAMES[0], classId: 'c-1', className: CLASS_NAMES[0], feeType: 'tuition', amount: 15000, paidAmount: 15000, status: 'paid', dueDate: '2025-01-15', paidDate: '2025-01-10', notes: 'دفع كامل الفصل الأول', createdAt: '2024-12-20T10:00:00Z' },
+   165→    { id: 'fee-002', studentId: 's-02', studentName: STUDENT_NAMES[1], classId: 'c-1', className: CLASS_NAMES[0], feeType: 'tuition', amount: 15000, paidAmount: 7500, status: 'partial', dueDate: '2025-01-15', paidDate: '2025-01-14', notes: 'القسط الأول', createdAt: '2024-12-20T10:05:00Z' },
+   166→    { id: 'fee-003', studentId: 's-03', studentName: STUDENT_NAMES[2], classId: 'c-2', className: CLASS_NAMES[1], feeType: 'transportation', amount: 3000, paidAmount: 0, status: 'overdue', dueDate: '2024-12-01', paidDate: null, notes: 'رسوم النقل الفصلي', createdAt: '2024-11-15T09:00:00Z' },
+   167→    { id: 'fee-004', studentId: 's-04', studentName: STUDENT_NAMES[3], classId: 'c-2', className: CLASS_NAMES[1], feeType: 'books', amount: 2500, paidAmount: 2500, status: 'paid', dueDate: '2025-02-01', paidDate: '2025-01-28', notes: 'كتب المنهج الجديد', createdAt: '2025-01-10T08:30:00Z' },
+   168→    { id: 'fee-005', studentId: 's-05', studentName: STUDENT_NAMES[4], classId: 'c-3', className: CLASS_NAMES[2], feeType: 'tuition', amount: 18000, paidAmount: 9000, status: 'partial', dueDate: '2025-02-01', paidDate: '2025-01-30', notes: 'رسوم فصلين - القسط الأول', createdAt: '2025-01-05T11:00:00Z' },
+   169→    { id: 'fee-006', studentId: 's-06', studentName: STUDENT_NAMES[5], classId: 'c-3', className: CLASS_NAMES[2], feeType: 'activities', amount: 1200, paidAmount: 0, status: 'unpaid', dueDate: '2025-03-01', paidDate: null, notes: 'أنشطة رياضية وثقافية', createdAt: '2025-02-01T09:15:00Z' },
+   170→    { id: 'fee-007', studentId: 's-07', studentName: STUDENT_NAMES[6], classId: 'c-4', className: CLASS_NAMES[3], feeType: 'lab', amount: 2000, paidAmount: 2000, status: 'paid', dueDate: '2025-01-20', paidDate: '2025-01-18', notes: 'رسوم المختبر العلمي', createdAt: '2025-01-08T14:00:00Z' },
+   171→    { id: 'fee-008', studentId: 's-08', studentName: STUDENT_NAMES[7], classId: 'c-4', className: CLASS_NAMES[3], feeType: 'tuition', amount: 15000, paidAmount: 0, status: 'overdue', dueDate: '2024-11-15', paidDate: null, notes: 'رسوم متأخرة - تم التواصل مع ولي الأمر', createdAt: '2024-10-20T10:30:00Z' },
+   172→    { id: 'fee-009', studentId: 's-09', studentName: STUDENT_NAMES[8], classId: 'c-5', className: CLASS_NAMES[4], feeType: 'transportation', amount: 3000, paidAmount: 3000, status: 'paid', dueDate: '2025-02-15', paidDate: '2025-02-12', notes: 'نقل الفصل الثاني', createdAt: '2025-01-25T08:00:00Z' },
+   173→    { id: 'fee-010', studentId: 's-10', studentName: STUDENT_NAMES[9], classId: 'c-5', className: CLASS_NAMES[4], feeType: 'other', amount: 500, paidAmount: 500, status: 'paid', dueDate: '2025-01-25', paidDate: '2025-01-24', notes: 'رسوم إصدار شهادة', createdAt: '2025-01-20T16:00:00Z' },
+   174→    { id: 'fee-011', studentId: 's-11', studentName: STUDENT_NAMES[10], classId: 'c-6', className: CLASS_NAMES[5], feeType: 'tuition', amount: 16000, paidAmount: 4000, status: 'partial', dueDate: '2025-02-20', paidDate: '2025-02-18', notes: 'دفعات مقسطة', createdAt: '2025-02-01T07:45:00Z' },
+   175→    { id: 'fee-012', studentId: 's-12', studentName: STUDENT_NAMES[11], classId: 'c-1', className: CLASS_NAMES[0], feeType: 'books', amount: 1800, paidAmount: 0, status: 'unpaid', dueDate: '2025-03-15', paidDate: null, notes: 'كتب إضافية للغة الإنجليزية', createdAt: '2025-02-10T12:00:00Z' },
+   176→    { id: 'fee-013', studentId: 's-13', studentName: STUDENT_NAMES[12], classId: 'c-3', className: CLASS_NAMES[2], feeType: 'activities', amount: 2000, paidAmount: 2000, status: 'paid', dueDate: '2025-01-30', paidDate: '2025-01-25', notes: 'رحلة علمية ومصروفات النشاط', createdAt: '2025-01-15T13:30:00Z' },
+   177→    { id: 'fee-014', studentId: 's-14', studentName: STUDENT_NAMES[13], classId: 'c-2', className: CLASS_NAMES[1], feeType: 'tuition', amount: 15000, paidAmount: 0, status: 'overdue', dueDate: '2024-12-20', paidDate: null, notes: 'لم يتم السداد بعد - إرسال إنذار', createdAt: '2024-12-01T10:00:00Z' },
+   178→    { id: 'fee-015', studentId: 's-15', studentName: STUDENT_NAMES[14], classId: 'c-4', className: CLASS_NAMES[3], feeType: 'lab', amount: 1500, paidAmount: 1500, status: 'paid', dueDate: '2025-02-10', paidDate: '2025-02-08', notes: 'مختبر الحاسب الآلي', createdAt: '2025-02-01T09:00:00Z' },
+   179→    { id: 'fee-016', studentId: 's-16', studentName: STUDENT_NAMES[15], classId: 'c-6', className: CLASS_NAMES[5], feeType: 'transportation', amount: 3500, paidAmount: 1750, status: 'partial', dueDate: '2025-02-25', paidDate: '2025-02-23', notes: 'مسار بعيد - رسوم إضافية', createdAt: '2025-02-15T11:00:00Z' },
+   180→    { id: 'fee-017', studentId: 's-01', studentName: STUDENT_NAMES[0], classId: 'c-1', className: CLASS_NAMES[0], feeType: 'tuition', amount: 15000, paidAmount: 0, status: 'unpaid', dueDate: '2025-04-01', paidDate: null, notes: 'رسوم الفصل الثاني', createdAt: '2025-03-01T08:00:00Z' },
+   181→    { id: 'fee-018', studentId: 's-17', studentName: STUDENT_NAMES[16], classId: 'c-5', className: CLASS_NAMES[4], feeType: 'other', amount: 800, paidAmount: 800, status: 'paid', dueDate: '2025-01-28', paidDate: '2025-01-27', notes: 'رسوم زي زي المدرسة', createdAt: '2025-01-22T10:00:00Z' },
+   182→  ];
+   183→}
+   184→
+   185→// ---------------------------------------------------------------------------
+   186→// Helpers
+   187→// ---------------------------------------------------------------------------
+   188→
+   189→const EPS = 1e-9;
+   190→
+   191→function formatCurrency(amount: number): string {
+   192→  return new Intl.NumberFormat('ar-SA', {
+   193→    style: 'currency',
+   194→    currency: 'SAR',
+   195→    minimumFractionDigits: 0,
+   196→    maximumFractionDigits: 0,
+   197→  }).format(amount);
+   198→}
+   199→
+   200→function formatDate(dateStr: string): string {
+   201→  if (!dateStr) return '—';
+   202→  try {
+   203→    return new Date(dateStr).toLocaleDateString('ar-SA', {
+   204→      year: 'numeric',
+   205→      month: 'short',
+   206→      day: 'numeric',
+   207→    });
+   208→  } catch {
+   209→    return dateStr;
+   210→  }
+   211→}
+   212→
+   213→// ---------------------------------------------------------------------------
+   214→// Component
+   215→// ---------------------------------------------------------------------------
+   216→
+   217→export default function FeesSection() {
+   218→  const { fees, setFees, addFee, updateFee, deleteFee, addToTrash, students, classes, locale } = useAppStore();
+   219→
+   220→  // Mock data seeding with useRef guard
+   221→  const seededRef = useRef(false);
+   222→  useEffect(() => {
+   223→    if (!seededRef.current && fees.length === 0) {
+   224→      seededRef.current = true;
+   225→      setFees(generateMockFees());
+   226→    }
+   227→  }, [fees.length, setFees]);
+   228→
+   229→  // ---- Local State ----
+   230→  const [searchQuery, setSearchQuery] = useState('');
+   231→  const [feeTypeFilter, setFeeTypeFilter] = useState<string>('all');
+   232→  const [statusFilter, setStatusFilter] = useState<string>('all');
+   233→  const [classFilter, setClassFilter] = useState<string>('all');
+   234→  const [sortField, setSortField] = useState<'studentName' | 'feeType' | 'amount' | 'paidAmount' | 'status' | 'dueDate'>('dueDate');
+   235→  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+   236→  const [currentPage, setCurrentPage] = useState(1);
+   237→
+   238→  // Dialog states
+   239→  const [showAddDialog, setShowAddDialog] = useState(false);
+   240→  const [showEditDialog, setShowEditDialog] = useState(false);
+   241→  const [showViewDialog, setShowViewDialog] = useState(false);
+   242→  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+   243→  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+   244→  const [selectedFee, setSelectedFee] = useState<FeeRecord | null>(null);
+   245→
+   246→  // Form state
+   247→  const [formData, setFormData] = useState({
+   248→    studentId: '',
+   249→    studentName: '',
+   250→    classId: '',
+   251→    className: '',
+   252→    feeType: 'tuition' as FeeRecord['feeType'],
+   253→    amount: '',
+   254→    paidAmount: '0',
+   255→    status: 'unpaid' as FeeRecord['status'],
+   256→    dueDate: '',
+   257→    notes: '',
+   258→  });
+   259→
+   260→  // Payment form
+   261→  const [paymentAmount, setPaymentAmount] = useState('');
+   262→
+   263→  // ---- Computed values ----
+   264→  const totalFees = useMemo(
+   265→    () => fees.reduce((sum, f) => sum + f.amount, 0),
+   266→    [fees],
+   267→  );
+   268→
+   269→  const totalCollected = useMemo(
+   270→    () => fees.reduce((sum, f) => sum + f.paidAmount, 0),
+   271→    [fees],
+   272→  );
+   273→
+   274→  const totalOutstanding = useMemo(
+   275→    () => Math.max(EPS, totalFees - totalCollected),
+   276→    [totalFees, totalCollected],
+   277→  );
+   278→
+   279→  const overdueCount = useMemo(
+   280→    () => fees.filter((f) => f.status === 'overdue').length,
+   281→    [fees],
+   282→  );
+   283→
+   284→  const collectionPercent = useMemo(
+   285→    () => totalFees > 0 ? Math.round(Math.max(EPS, (totalCollected / Math.max(EPS, totalFees)) * 100) * 100) / 100 : 0,
+   286→    [totalCollected, totalFees],
+   287→  );
+   288→
+   289→  // Unique classes list from fees
+   290→  const uniqueClasses = useMemo(() => {
+   291→    const set = new Set<string>();
+   292→    fees.forEach((f) => { if (f.className) set.add(f.className); });
+   293→    return Array.from(set).sort();
+   294→  }, [fees]);
+   295→
+   296→  // ---- Filtering & Sorting ----
+   297→  const filteredFees = useMemo(() => {
+   298→    let result = [...fees];
+   299→
+   300→    // Search
+   301→    if (searchQuery.trim()) {
+   302→      const q = searchQuery.trim().toLowerCase();
+   303→      result = result.filter(
+   304→        (f) =>
+   305→          f.studentName?.toLowerCase().includes(q) ||
+   306→          f.className?.toLowerCase().includes(q) ||
+   307→          f.notes.toLowerCase().includes(q) ||
+   308→          FEE_TYPE_LABELS[f.feeType].includes(q) ||
+   309→          STATUS_LABELS[f.status].includes(q),
+   310→      );
+   311→    }
+   312→
+   313→    // Fee type filter
+   314→    if (feeTypeFilter !== 'all') {
+   315→      result = result.filter((f) => f.feeType === feeTypeFilter);
+   316→    }
+   317→
+   318→    // Status filter
+   319→    if (statusFilter !== 'all') {
+   320→      result = result.filter((f) => f.status === statusFilter);
+   321→    }
+   322→
+   323→    // Class filter
+   324→    if (classFilter !== 'all') {
+   325→      result = result.filter((f) => f.className === classFilter);
+   326→    }
+   327→
+   328→    // Sorting
+   329→    result.sort((a, b) => {
+   330→      let cmp = 0;
+   331→      switch (sortField) {
+   332→        case 'studentName':
+   333→          cmp = (a.studentName ?? '').localeCompare(b.studentName ?? '', 'ar');
+   334→          break;
+   335→        case 'feeType':
+   336→          cmp = FEE_TYPE_LABELS[a.feeType].localeCompare(FEE_TYPE_LABELS[b.feeType], 'ar');
+   337→          break;
+   338→        case 'amount':
+   339→          cmp = a.amount - b.amount;
+   340→          break;
+   341→        case 'paidAmount':
+   342→          cmp = a.paidAmount - b.paidAmount;
+   343→          break;
+   344→        case 'status':
+   345→          cmp = STATUS_LABELS[a.status].localeCompare(STATUS_LABELS[b.status], 'ar');
+   346→          break;
+   347→        case 'dueDate':
+   348→          cmp = a.dueDate.localeCompare(b.dueDate);
+   349→          break;
+   350→      }
+   351→      return sortDir === 'asc' ? cmp : -cmp;
+   352→    });
+   353→
+   354→    return result;
+   355→  }, [fees, searchQuery, feeTypeFilter, statusFilter, classFilter, sortField, sortDir]);
+   356→
+   357→  const totalPages = Math.max(1, Math.ceil(filteredFees.length / ITEMS_PER_PAGE));
+   358→
+   359→  // Clamp current page if filters reduced result count
+   360→  const effectivePage = Math.min(currentPage, Math.max(1, totalPages));
+   361→
+   362→  const paginatedFees = useMemo(
+   363→    () => filteredFees.slice((effectivePage - 1) * ITEMS_PER_PAGE, effectivePage * ITEMS_PER_PAGE),
+   364→    [filteredFees, effectivePage],
+   365→  );
+   366→
+   367→  // ---- Handlers ----
+   368→  const handleSearchChange = useCallback((q: string) => {
+   369→    setSearchQuery(q);
+   370→    setCurrentPage(1);
+   371→  }, []);
+   372→  const handleFeeTypeChange = useCallback((v: string) => { setFeeTypeFilter(v); setCurrentPage(1); }, []);
+   373→  const handleStatusChange = useCallback((v: string) => { setStatusFilter(v); setCurrentPage(1); }, []);
+   374→  const handleClassChange = useCallback((v: string) => { setClassFilter(v); setCurrentPage(1); }, []);
+   375→  const handleSort = useCallback((field: typeof sortField) => {
+   376→    setSortField((prev) => {
+   377→      if (prev === field) {
+   378→        setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+   379→        return prev;
+   380→      }
+   381→      setSortDir('asc');
+   382→      return field;
+   383→    });
+   384→  }, []);
+   385→
+   386→  const resetForm = useCallback(() => {
+   387→    setFormData({
+   388→      studentId: '',
+   389→      studentName: '',
+   390→      classId: '',
+   391→      className: '',
+   392→      feeType: 'tuition',
+   393→      amount: '',
+   394→      paidAmount: '0',
+   395→      status: 'unpaid',
+   396→      dueDate: '',
+   397→      notes: '',
+   398→    });
+   399→  }, []);
+   400→
+   401→  const openAddDialog = useCallback(() => {
+   402→    resetForm();
+   403→    setShowAddDialog(true);
+   404→  }, [resetForm]);
+   405→
+   406→  const openEditDialog = useCallback((fee: FeeRecord) => {
+   407→    setSelectedFee(fee);
+   408→    setFormData({
+   409→      studentId: fee.studentId,
+   410→      studentName: fee.studentName ?? '',
+   411→      classId: fee.classId ?? '',
+   412→      className: fee.className ?? '',
+   413→      feeType: fee.feeType,
+   414→      amount: String(fee.amount),
+   415→      paidAmount: String(fee.paidAmount),
+   416→      status: fee.status,
+   417→      dueDate: fee.dueDate,
+   418→      notes: fee.notes,
+   419→    });
+   420→    setShowEditDialog(true);
+   421→  }, []);
+   422→
+   423→  const openViewDialog = useCallback((fee: FeeRecord) => {
+   424→    setSelectedFee(fee);
+   425→    setShowViewDialog(true);
+   426→  }, []);
+   427→
+   428→  const openPaymentDialog = useCallback((fee: FeeRecord) => {
+   429→    setSelectedFee(fee);
+   430→    setPaymentAmount('');
+   431→    setShowPaymentDialog(true);
+   432→  }, []);
+   433→
+   434→  const openDeleteDialog = useCallback((fee: FeeRecord) => {
+   435→    setSelectedFee(fee);
+   436→    setShowDeleteDialog(true);
+   437→  }, []);
+   438→
+   439→  const handleAddSubmit = useCallback(() => {
+   440→    const amount = parseFloat(formData.amount);
+   441→    if (!formData.studentName || isNaN(amount) || amount <= 0 || !formData.dueDate) {
+   442→      toast.error('يرجى ملء جميع الحقول المطلوبة');
+   443→      return;
+   444→    }
+   445→    const paidAmt = parseFloat(formData.paidAmount) || 0;
+   446→    const newStatus: FeeRecord['status'] = paidAmt >= amount
+   447→      ? 'paid'
+   448→      : paidAmt > 0
+   449→        ? 'partial'
+   450→        : formData.status === 'overdue'
+   451→          ? 'overdue'
+   452→          : 'unpaid';
+   453→
+   454→    const newFee: FeeRecord = {
+   455→      id: `fee-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+   456→      studentId: formData.studentId || `s-auto-${Date.now()}`,
+   457→      studentName: formData.studentName,
+   458→      classId: formData.classId || undefined,
+   459→      className: formData.className || undefined,
+   460→      feeType: formData.feeType,
+   461→      amount,
+   462→      paidAmount: paidAmt,
+   463→      status: newStatus,
+   464→      dueDate: formData.dueDate,
+   465→      paidDate: paidAmt >= amount ? new Date().toISOString().split('T')[0] : null,
+   466→      notes: formData.notes,
+   467→      createdAt: new Date().toISOString(),
+   468→    };
+   469→    addFee(newFee);
+   470→    setShowAddDialog(false);
+   471→    resetForm();
+   472→    toast.success('تمت إضافة الرسوم بنجاح');
+   473→  }, [formData, addFee, resetForm]);
+   474→
+   475→  const handleEditSubmit = useCallback(() => {
+   476→    if (!selectedFee) return;
+   477→    const amount = parseFloat(formData.amount);
+   478→    if (!formData.studentName || isNaN(amount) || amount <= 0 || !formData.dueDate) {
+   479→      toast.error('يرجى ملء جميع الحقول المطلوبة');
+   480→      return;
+   481→    }
+   482→    const paidAmt = parseFloat(formData.paidAmount) || 0;
+   483→    const newStatus: FeeRecord['status'] = paidAmt >= amount
+   484→      ? 'paid'
+   485→      : paidAmt > 0
+   486→        ? 'partial'
+   487→        : formData.status === 'overdue'
+   488→          ? 'overdue'
+   489→          : 'unpaid';
+   490→
+   491→    updateFee(selectedFee.id, {
+   492→      studentId: formData.studentId,
+   493→      studentName: formData.studentName,
+   494→      classId: formData.classId || undefined,
+   495→      className: formData.className || undefined,
+   496→      feeType: formData.feeType,
+   497→      amount,
+   498→      paidAmount: paidAmt,
+   499→      status: newStatus,
+   500→      dueDate: formData.dueDate,
+   501→      paidDate: paidAmt >= amount ? (selectedFee.paidDate ?? new Date().toISOString().split('T')[0]) : selectedFee.paidDate,
+   502→      notes: formData.notes,
+   503→    });
+   504→    setShowEditDialog(false);
+   505→    setSelectedFee(null);
+   506→    toast.success('تم تحديث الرسوم بنجاح');
+   507→  }, [selectedFee, formData, updateFee]);
+   508→
+   509→  const handlePaymentSubmit = useCallback(() => {
+   510→    if (!selectedFee) return;
+   511→    const payment = parseFloat(paymentAmount);
+   512→    if (isNaN(payment) || payment <= 0) {
+   513→      toast.error('يرجى إدخال مبلغ صحيح');
+   514→      return;
+   515→    }
+   516→    const remaining = selectedFee.amount - selectedFee.paidAmount;
+   517→    if (payment > remaining + 0.01) {
+   518→      toast.error(`المبلغ أكبر من المتبقي (${formatCurrency(remaining)})`);
+   519→      return;
+   520→    }
+   521→    const newPaid = selectedFee.paidAmount + payment;
+   522→    const newStatus: FeeRecord['status'] = newPaid >= selectedFee.amount
+   523→      ? 'paid'
+   524→      : 'partial';
+   525→
+   526→    updateFee(selectedFee.id, {
+   527→      paidAmount: newPaid,
+   528→      status: newStatus,
+   529→      paidDate: newStatus === 'paid' ? new Date().toISOString().split('T')[0] : (selectedFee.paidDate ?? new Date().toISOString().split('T')[0]),
+   530→    });
+   531→    setShowPaymentDialog(false);
+   532→    setSelectedFee(null);
+   533→    setPaymentAmount('');
+   534→    toast.success(`تم تسجيل دفعة بقيمة ${formatCurrency(payment)} بنجاح`);
+   535→  }, [selectedFee, paymentAmount, updateFee]);
+   536→
+   537→  const handleDelete = useCallback(() => {
+   538→    if (!selectedFee) return;
+   539→    addToTrash({
+   540→      id: `trash-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+   541→      itemType: 'library-book',
+   542→      itemId: selectedFee.id,
+   543→      itemName: selectedFee.studentName ?? 'رسوم',
+   544→      deletedBy: 'المدير',
+   545→      dataJson: JSON.stringify(selectedFee),
+   546→      restoredAt: null,
+   547→      createdAt: new Date().toISOString(),
+   548→    });
+   549→    deleteFee(selectedFee.id);
+   550→    setShowDeleteDialog(false);
+   551→    setSelectedFee(null);
+   552→    toast.success('تم حذف الرسوم بنجاح');
+   553→  }, [selectedFee, deleteFee, addToTrash]);
+   554→
+   555→  const handleExportCSV = useCallback(() => {
+   556→    exportToCSV(
+   557→      fees.map((f) => ({
+   558→        studentName: f.studentName ?? '',
+   559→        className: f.className ?? '',
+   560→        feeType: FEE_TYPE_LABELS[f.feeType],
+   561→        amount: f.amount,
+   562→        paidAmount: f.paidAmount,
+   563→        remaining: Math.max(0, f.amount - f.paidAmount),
+   564→        status: STATUS_LABELS[f.status],
+   565→        dueDate: f.dueDate,
+   566→        paidDate: f.paidDate ?? '—',
+   567→        notes: f.notes,
+   568→      })),
+   569→      'fees-export',
+   570→      [
+   571→        { key: 'studentName', label: 'اسم الطالب' },
+   572→        { key: 'className', label: 'الصف' },
+   573→        { key: 'feeType', label: 'نوع الرسوم' },
+   574→        { key: 'amount', label: 'المبلغ' },
+   575→        { key: 'paidAmount', label: 'المدفوع' },
+   576→        { key: 'remaining', label: 'المتبقي' },
+   577→        { key: 'status', label: 'الحالة' },
+   578→        { key: 'dueDate', label: 'تاريخ الاستحقاق' },
+   579→        { key: 'paidDate', label: 'تاريخ الدفع' },
+   580→        { key: 'notes', label: 'ملاحظات' },
+   581→      ],
+   582→    );
+   583→    toast.success('تم تصدير بيانات الرسوم بنجاح');
+   584→  }, [fees]);
+   585→
+   586→  // ---- Render ----
+   587→  return (
+   588→    <div dir="rtl" className="space-y-6">
+   589→      {/* ===== Section Header ===== */}
+   590→      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+   591→        <div>
+   592→          <h1 className="text-2xl font-bold text-[#E8E8ED] flex items-center gap-3">
+   593→            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#D4A574]/10 text-[#D4A574]">
+   594→              <Wallet size={22} />
+   595→            </span>
+   596→            {t('fees.management', locale)}
+   597→          </h1>
+   598→          <p className="mt-1 text-sm text-[#6B6B76]">{t('fees.managementDesc', locale)}</p>
+   599→        </div>
+   600→        <div className="flex items-center gap-2">
+   601→          <Button
+   602→            variant="outline"
+   603→            size="sm"
+   604→            className="border-[#D4A574]/30 text-[#D4A574] hover:bg-[#D4A574]/10 gap-2"
+   605→            onClick={handleExportCSV}
+   606→          >
+   607→            <FileDown size={16} />
+   608→            تصدير CSV
+   609→          </Button>
+   610→          <Button
+   611→            size="sm"
+   612→            className="btn-amber-glow gap-2 bg-[#D4A574] text-[#121218] hover:bg-[#C49564] font-semibold"
+   613→            onClick={openAddDialog}
+   614→          >
+   615→            <Plus size={16} />
+   616→            إضافة رسوم جديدة
+   617→          </Button>
+   618→        </div>
+   619→      </div>
+   620→
+   621→      {/* ===== Summary Stat Cards ===== */}
+   622→      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+   623→        {/* Total Fees */}
+   624→        <div className="glass-card-elevated rounded-2xl p-5 card-interactive animate-fade-in-up" style={{ animationDelay: '0ms' }}>
+   625→          <div className="flex items-center justify-between mb-3">
+   626→            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#D4A574]/10 text-[#D4A574]">
+   627→              <DollarSign size={20} />
+   628→            </span>
+   629→            <span className="text-xs text-[#6B6B76] bg-[#1A1A24] px-2 py-0.5 rounded-full">إجمالي</span>
+   630→          </div>
+   631→          <p className="text-sm text-[#6B6B76] mb-1">إجمالي الرسوم</p>
+   632→          <p className="text-xl font-bold text-[#E8E8ED]">{formatCurrency(totalFees)}</p>
+   633→        </div>
+   634→
+   635→        {/* Collected */}
+   636→        <div className="glass-card-elevated rounded-2xl p-5 card-interactive animate-fade-in-up" style={{ animationDelay: '60ms' }}>
+   637→          <div className="flex items-center justify-between mb-3">
+   638→            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400">
+   639→              <CheckCircle size={20} />
+   640→            </span>
+   641→            <span className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+   642→              {collectionPercent}%
+   643→            </span>
+   644→          </div>
+   645→          <p className="text-sm text-[#6B6B76] mb-1">المحصل</p>
+   646→          <p className="text-xl font-bold text-emerald-400">{formatCurrency(totalCollected)}</p>
+   647→        </div>
+   648→
+   649→        {/* Outstanding */}
+   650→        <div className="glass-card-elevated rounded-2xl p-5 card-interactive animate-fade-in-up" style={{ animationDelay: '120ms' }}>
+   651→          <div className="flex items-center justify-between mb-3">
+   652→            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-400">
+   653→              <CreditCard size={20} />
+   654→            </span>
+   655→            <span className="text-xs text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">متبقي</span>
+   656→          </div>
+   657→          <p className="text-sm text-[#6B6B76] mb-1">غير المحصل</p>
+   658→          <p className="text-xl font-bold text-amber-400">{formatCurrency(totalOutstanding)}</p>
+   659→        </div>
+   660→
+   661→        {/* Overdue */}
+   662→        <div className="glass-card-elevated rounded-2xl p-5 card-interactive animate-fade-in-up" style={{ animationDelay: '180ms' }}>
+   663→          <div className="flex items-center justify-between mb-3">
+   664→            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500/10 text-rose-400">
+   665→              <AlertCircle size={20} />
+   666→            </span>
+   667→            <span className="text-xs text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full">تنبيه</span>
+   668→          </div>
+   669→          <p className="text-sm text-[#6B6B76] mb-1">متأخرات</p>
+   670→          <p className="text-xl font-bold text-rose-400">{overdueCount} <span className="text-sm font-normal text-[#6B6B76]">سجل</span></p>
+   671→        </div>
+   672→      </div>
+   673→
+   674→      {/* ===== Collection Progress Bar ===== */}
+   675→      <div className="glass-card-elevated rounded-2xl p-5 corner-accent">
+   676→        <div className="flex items-center justify-between mb-3">
+   677→          <div className="flex items-center gap-2">
+   678→            <TrendingUp size={18} className="text-[#D4A574]" />
+   679→            <span className="text-sm font-semibold text-[#E8E8ED]">نسبة التحصيل</span>
+   680→          </div>
+   681→          <span className="text-sm font-bold text-[#D4A574]">{collectionPercent}%</span>
+   682→        </div>
+   683→        <div className="relative h-4 w-full overflow-hidden rounded-full bg-[#121218]">
+   684→          <div
+   685→            className="absolute inset-y-0 right-0 rounded-full transition-all duration-700 ease-out"
+   686→            style={{
+   687→              width: `${Math.min(100, collectionPercent)}%`,
+   688→              background: 'linear-gradient(to left, #D4A574, #E8C9A8, #D4A574)',
+   689→              boxShadow: '0 0 12px rgba(212, 165, 116, 0.3)',
+   690→            }}
+   691→          />
+   692→          {/* Shimmer effect */}
+   693→          <div
+   694→            className="absolute inset-y-0 right-0 rounded-full opacity-30"
+   695→            style={{
+   696→              width: `${Math.min(100, collectionPercent)}%`,
+   697→              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
+   698→              backgroundSize: '200% 100%',
+   699→              animation: 'shimmer 2s infinite',
+   700→            }}
+   701→          />
+   702→        </div>
+   703→        <div className="flex items-center justify-between mt-2 text-xs text-[#6B6B76]">
+   704→          <span>المحصل: {formatCurrency(totalCollected)}</span>
+   705→          <span>الإجمالي: {formatCurrency(totalFees)}</span>
+   706→        </div>
+   707→      </div>
+   708→
+   709→      {/* ===== Filter Bar ===== */}
+   710→      <div className="glass-card-elevated rounded-2xl p-4">
+   711→        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+   712→          {/* Search */}
+   713→          <div className="relative">
+   714→            <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B6B76] pointer-events-none" />
+   715→            <input
+   716→              type="text"
+   717→              placeholder="بحث عن طالب أو صف..."
+   718→              value={searchQuery}
+   719→              onChange={(e) => handleSearchChange(e.target.value)}
+   720→              className="w-full rounded-xl border border-[rgba(255,255,255,0.06)] bg-[#121218] py-2.5 pr-10 pl-4 text-sm text-[#E8E8ED] placeholder:text-[#6B6B76] outline-none transition-all focus:border-[#D4A574]/40 focus:ring-2 focus:ring-[#D4A574]/15"
+   721→            />
+   722→          </div>
+   723→
+   724→          {/* Fee Type Filter */}
+   725→          <Select value={feeTypeFilter} onValueChange={handleFeeTypeChange}>
+   726→            <SelectTrigger className="rounded-xl border-[rgba(255,255,255,0.06)] bg-[#121218] text-sm text-[#E8E8ED]">
+   727→              <SelectValue placeholder="نوع الرسوم" />
+   728→            </SelectTrigger>
+   729→            <SelectContent className="bg-[#1A1A24] border-[rgba(255,255,255,0.08)]">
+   730→              <SelectItem value="all">كل الأنواع</SelectItem>
+   731→              {FEE_TYPE_OPTIONS.map((opt) => (
+   732→                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+   733→              ))}
+   734→            </SelectContent>
+   735→          </Select>
+   736→
+   737→          {/* Status Filter */}
+   738→          <Select value={statusFilter} onValueChange={handleStatusChange}>
+   739→            <SelectTrigger className="rounded-xl border-[rgba(255,255,255,0.06)] bg-[#121218] text-sm text-[#E8E8ED]">
+   740→              <SelectValue placeholder="الحالة" />
+   741→            </SelectTrigger>
+   742→            <SelectContent className="bg-[#1A1A24] border-[rgba(255,255,255,0.08)]">
+   743→              <SelectItem value="all">كل الحالات</SelectItem>
+   744→              {(Object.keys(STATUS_LABELS) as FeeRecord['status'][]).map((s) => (
+   745→                <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
+   746→              ))}
+   747→            </SelectContent>
+   748→          </Select>
+   749→
+   750→          {/* Class Filter */}
+   751→          <Select value={classFilter} onValueChange={handleClassChange}>
+   752→            <SelectTrigger className="rounded-xl border-[rgba(255,255,255,0.06)] bg-[#121218] text-sm text-[#E8E8ED]">
+   753→              <SelectValue placeholder="الصف" />
+   754→            </SelectTrigger>
+   755→            <SelectContent className="bg-[#1A1A24] border-[rgba(255,255,255,0.08)]">
+   756→              <SelectItem value="all">كل الصفوف</SelectItem>
+   757→              {uniqueClasses.map((cls) => (
+   758→                <SelectItem key={cls} value={cls}>{cls}</SelectItem>
+   759→              ))}
+   760→            </SelectContent>
+   761→          </Select>
+   762→        </div>
+   763→      </div>
+   764→
+   765→      {/* ===== Fees Table ===== */}
+   766→      <div className="glass-card-elevated rounded-2xl overflow-hidden">
+   767→        <div className="overflow-x-auto">
+   768→          <Table>
+   769→            <TableHeader>
+   770→              <TableRow className="border-b border-[rgba(255,255,255,0.06)] hover:bg-transparent">
+   771→                <TableHead className="text-[#6B6B76] font-semibold text-xs">
+   772→                  <button className="flex items-center gap-1.5 hover:text-[#D4A574] transition-colors" onClick={() => handleSort('studentName')}>
+   773→                    {t('fees.student', locale)} {renderSortIcon(sortField, 'studentName', sortDir)}
+   774→                  </button>
+   775→                </TableHead>
+   776→                <TableHead className="text-[#6B6B76] font-semibold text-xs">
+   777→                  <button className="flex items-center gap-1.5 hover:text-[#D4A574] transition-colors" onClick={() => handleSort('feeType')}>
+   778→                    {t('fees.feeType', locale)} {renderSortIcon(sortField, 'feeType', sortDir)}
+   779→                  </button>
+   780→                </TableHead>
+   781→                <TableHead className="text-[#6B6B76] font-semibold text-xs">
+   782→                  <button className="flex items-center gap-1.5 hover:text-[#D4A574] transition-colors" onClick={() => handleSort('amount')}>
+   783→                    {t('fees.amount', locale)} {renderSortIcon(sortField, 'amount', sortDir)}
+   784→                  </button>
+   785→                </TableHead>
+   786→                <TableHead className="text-[#6B6B76] font-semibold text-xs">
+   787→                  <button className="flex items-center gap-1.5 hover:text-[#D4A574] transition-colors" onClick={() => handleSort('paidAmount')}>
+   788→                    المدفوع {renderSortIcon(sortField, 'paidAmount', sortDir)}
+   789→                  </button>
+   790→                </TableHead>
+   791→                <TableHead className="text-[#6B6B76] font-semibold text-xs">
+   792→                  <button className="flex items-center gap-1.5 hover:text-[#D4A574] transition-colors" onClick={() => handleSort('status')}>
+   793→                    {t('fees.status', locale)} {renderSortIcon(sortField, 'status', sortDir)}
+   794→                  </button>
+   795→                </TableHead>
+   796→                <TableHead className="text-[#6B6B76] font-semibold text-xs">
+   797→                  <button className="flex items-center gap-1.5 hover:text-[#D4A574] transition-colors" onClick={() => handleSort('dueDate')}>
+   798→                    الاستحقاق {renderSortIcon(sortField, 'dueDate', sortDir)}
+   799→                  </button>
+   800→                </TableHead>
+   801→                <TableHead className="text-[#6B6B76] font-semibold text-xs text-center">إجراءات</TableHead>
+   802→              </TableRow>
+   803→            </TableHeader>
+   804→            <TableBody>
+   805→              {paginatedFees.length === 0 ? (
+   806→                <TableRow>
+   807→                  <TableCell colSpan={7} className="text-center py-16">
+   808→                    <div className="data-empty-state">
+   809→                      <div className="data-empty-state-icon">
+   810→                        <Receipt size={48} strokeWidth={1.2} />
+   811→                      </div>
+   812→                      <h3 className="data-empty-state-title">لا توجد سجلات رسوم</h3>
+   813→                      <p className="data-empty-state-desc">لم يتم العثور على سجلات تطابق معايير البحث</p>
+   814→                      <button
+   815→                        className="data-empty-state-btn mt-2"
+   816→                        onClick={() => { handleSearchChange(''); handleFeeTypeChange('all'); handleStatusChange('all'); handleClassChange('all'); }}
+   817→                      >
+   818→                        إعادة تعيين الفلاتر
+   819→                      </button>
+   820→                    </div>
+   821→                  </TableCell>
+   822→                </TableRow>
+   823→              ) : (
+   824→                paginatedFees.map((fee) => {
+   825→                  const remaining = Math.max(0, fee.amount - fee.paidAmount);
+   826→                  const payPercent = fee.amount > 0 ? Math.round(Math.max(EPS, (fee.paidAmount / Math.max(EPS, fee.amount)) * 100)) : 0;
+   827→                  return (
+   828→                    <TableRow key={fee.id} className="data-row-hover border-b border-[rgba(255,255,255,0.03)]">
+   829→                      <TableCell className="py-3.5">
+   830→                        <div>
+   831→                          <p className="text-sm font-medium text-[#E8E8ED]">{fee.studentName ?? '—'}</p>
+   832→                          <p className="text-xs text-[#6B6B76]">{fee.className ?? '—'}</p>
+   833→                        </div>
+   834→                      </TableCell>
+   835→                      <TableCell className="py-3.5">
+   836→                        <span className="text-sm text-[#C4C4D4]">{FEE_TYPE_LABELS[fee.feeType]}</span>
+   837→                      </TableCell>
+   838→                      <TableCell className="py-3.5">
+   839→                        <span className="text-sm font-semibold text-[#E8E8ED]">{formatCurrency(fee.amount)}</span>
+   840→                      </TableCell>
+   841→                      <TableCell className="py-3.5">
+   842→                        <div className="space-y-1">
+   843→                          <span className={cn(
+   844→                            'text-sm font-medium',
+   845→                            fee.status === 'paid' ? 'text-emerald-400' : fee.status === 'partial' ? 'text-amber-400' : 'text-[#6B6B76]',
+   846→                          )}>
+   847→                            {formatCurrency(fee.paidAmount)}
+   848→                          </span>
+   849→                          {fee.status === 'partial' && (
+   850→                            <div className="flex items-center gap-1.5">
+   851→                              <div className="h-1 w-16 rounded-full bg-[#121218] overflow-hidden">
+   852→                                <div className="h-full rounded-full bg-amber-400/60" style={{ width: `${payPercent}%` }} />
+   853→                              </div>
+   854→                              <span className="text-[10px] text-[#6B6B76]">{payPercent}%</span>
+   855→                            </div>
+   856→                          )}
+   857→                        </div>
+   858→                      </TableCell>
+   859→                      <TableCell className="py-3.5">
+   860→                        <Badge variant="outline" className={cn('text-xs font-medium px-2.5 py-0.5 rounded-full gap-1.5', STATUS_COLORS[fee.status])}>
+   861→                          <span className={cn('inline-block h-1.5 w-1.5 rounded-full', STATUS_DOT_COLORS[fee.status])} />
+   862→                          {STATUS_LABELS[fee.status]}
+   863→                        </Badge>
+   864→                      </TableCell>
+   865→                      <TableCell className="py-3.5">
+   866→                        <div className="flex items-center gap-1.5 text-sm text-[#C4C4D4]">
+   867→                          <CalendarClock size={14} className="text-[#6B6B76]" />
+   868→                          {formatDate(fee.dueDate)}
+   869→                        </div>
+   870→                      </TableCell>
+   871→                      <TableCell className="py-3.5">
+   872→                        <div className="flex items-center justify-center gap-1">
+   873→                          {/* Status toggle quick action */}
+   874→                          {fee.status !== 'paid' && (
+   875→                            <button
+   876→                              onClick={() => {
+   877→                                const newStatus: FeeRecord['status'] = fee.status === 'overdue' ? 'unpaid' : fee.status === 'unpaid' ? 'partial' : 'paid';
+   878→                                const newPaid = newStatus === 'paid' ? fee.amount : newStatus === 'partial' ? Math.ceil(fee.amount / 2) : fee.paidAmount;
+   879→                                updateFee(fee.id, {
+   880→                                  status: newStatus,
+   881→                                  paidAmount: newPaid,
+   882→                                  paidDate: newStatus === 'paid' ? new Date().toISOString().split('T')[0] : fee.paidDate,
+   883→                                });
+   884→                                toast.success(newStatus === 'paid' ? 'تم تسديد الرسوم بالكامل' : newStatus === 'partial' ? 'تم تسجيل دفعة جزئية' : 'تم تحديث الحالة');
+   885→                              }}
+   886→                              title={fee.status === 'overdue' ? 'تحويل إلى غير مدفوع' : fee.status === 'unpaid' ? 'تحويل إلى جزئي' : 'تسديد كامل'}
+   887→                              className="flex h-8 w-8 items-center justify-center rounded-lg text-[#6B6B76] hover:text-emerald-400 hover:bg-emerald-500/10 transition-all"
+   888→                            >
+   889→                              <CheckCircle size={15} />
+   890→                            </button>
+   891→                          )}
+   892→                          <button
+   893→                            onClick={() => openViewDialog(fee)}
+   894→                            title="عرض"
+   895→                            className="flex h-8 w-8 items-center justify-center rounded-lg text-[#6B6B76] hover:text-sky-400 hover:bg-sky-500/10 transition-all"
+   896→                          >
+   897→                            <Eye size={15} />
+   898→                          </button>
+   899→                          {(fee.status === 'unpaid' || fee.status === 'partial' || fee.status === 'overdue') && (
+   900→                            <button
+   901→                              onClick={() => openPaymentDialog(fee)}
+   902→                              title="تسجيل دفعة"
+   903→                              className="flex h-8 w-8 items-center justify-center rounded-lg text-[#6B6B76] hover:text-emerald-400 hover:bg-emerald-500/10 transition-all"
+   904→                            >
+   905→                              <CreditCard size={15} />
+   906→                            </button>
+   907→                          )}
+   908→                          <button
+   909→                            onClick={() => openEditDialog(fee)}
+   910→                            title="تعديل"
+   911→                            className="flex h-8 w-8 items-center justify-center rounded-lg text-[#6B6B76] hover:text-[#D4A574] hover:bg-[#D4A574]/10 transition-all"
+   912→                          >
+   913→                            <Pencil size={15} />
+   914→                          </button>
+   915→                          <button
+   916→                            onClick={() => openDeleteDialog(fee)}
+   917→                            title="حذف"
+   918→                            className="flex h-8 w-8 items-center justify-center rounded-lg text-[#6B6B76] hover:text-rose-400 hover:bg-rose-500/10 transition-all"
+   919→                          >
+   920→                            <Trash2 size={15} />
+   921→                          </button>
+   922→                        </div>
+   923→                      </TableCell>
+   924→                    </TableRow>
+   925→                  );
+   926→                })
+   927→              )}
+   928→            </TableBody>
+   929→          </Table>
+   930→        </div>
+   931→
+   932→        {/* ===== Pagination ===== */}
+   933→        {filteredFees.length > ITEMS_PER_PAGE && (
+   934→          <div className="flex items-center justify-between px-5 py-3 border-t border-[rgba(255,255,255,0.06)]">
+   935→            <span className="text-xs text-[#6B6B76]">
+   936→              عرض {((effectivePage - 1) * ITEMS_PER_PAGE) + 1}–{Math.min(effectivePage * ITEMS_PER_PAGE, filteredFees.length)} من {filteredFees.length}
+   937→            </span>
+   938→            <div className="flex items-center gap-1">
+   939→              <button
+   940→                disabled={effectivePage <= 1}
+   941→                onClick={() => setCurrentPage((p) => p - 1)}
+   942→                className="flex h-8 w-8 items-center justify-center rounded-lg text-[#6B6B76] hover:text-[#E8E8ED] hover:bg-[rgba(255,255,255,0.04)] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+   943→              >
+   944→                <ChevronRight size={16} />
+   945→              </button>
+   946→              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+   947→                <button
+   948→                  key={page}
+   949→                  onClick={() => setCurrentPage(page)}
+   950→                  className={cn(
+   951→                    'flex h-8 w-8 items-center justify-center rounded-lg text-sm font-medium transition-all',
+   952→                    effectivePage === page
+   953→                      ? 'bg-[#D4A574] text-[#121218]'
+   954→                      : 'text-[#6B6B76] hover:text-[#E8E8ED] hover:bg-[rgba(255,255,255,0.04)]',
+   955→                  )}
+   956→                >
+   957→                  {page}
+   958→                </button>
+   959→              ))}
+   960→              <button
+   961→                disabled={effectivePage >= totalPages}
+   962→                onClick={() => setCurrentPage((p) => p + 1)}
+   963→                className="flex h-8 w-8 items-center justify-center rounded-lg text-[#6B6B76] hover:text-[#E8E8ED] hover:bg-[rgba(255,255,255,0.04)] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+   964→              >
+   965→                <ChevronLeft size={16} />
+   966→              </button>
+   967→            </div>
+   968→          </div>
+   969→        )}
+   970→      </div>
+   971→
+   972→      {/* ===== Add/Edit Fee Dialog ===== */}
+   973→      <Dialog open={showAddDialog || showEditDialog} onOpenChange={(open) => {
+   974→        if (!open) { setShowAddDialog(false); setShowEditDialog(false); setSelectedFee(null); resetForm(); }
+   975→      }}>
+   976→        <DialogContent className="bg-[#1A1A24] border-[rgba(255,255,255,0.08)] text-[#E8E8ED] max-w-lg" dir="rtl">
+   977→          <DialogHeader>
+   978→            <DialogTitle className="text-lg font-bold text-[#E8E8ED] flex items-center gap-2">
+   979→              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#D4A574]/10 text-[#D4A574]">
+   980→                <Wallet size={18} />
+   981→              </span>
+   982→              {showEditDialog ? 'تعديل الرسوم' : 'إضافة رسوم جديدة'}
+   983→            </DialogTitle>
+   984→            <DialogDescription className="text-[#6B6B76]">
+   985→              {showEditDialog ? 'قم بتعديل بيانات الرسوم' : 'أدخل بيانات الرسوم الجديدة'}
+   986→            </DialogDescription>
+   987→          </DialogHeader>
+   988→
+   989→          <div className="space-y-4 py-2">
+   990→            {/* Student Name */}
+   991→            <div className="space-y-2">
+   992→              <Label className="text-sm text-[#C4C4D4]">اسم الطالب *</Label>
+   993→              <Input
+   994→                value={formData.studentName}
+   995→                onChange={(e) => setFormData((prev) => ({ ...prev, studentName: e.target.value }))}
+   996→                placeholder="أدخل اسم الطالب"
+   997→                className="border-[rgba(255,255,255,0.06)] bg-[#121218] text-[#E8E8ED] placeholder:text-[#6B6B76] rounded-xl"
+   998→              />
+   999→            </div>
+  1000→
+  1001→            {/* Class */}
+  1002→            <div className="space-y-2">
+  1003→              <Label className="text-sm text-[#C4C4D4]">الصف</Label>
+  1004→              <Input
+  1005→                value={formData.className}
+  1006→                onChange={(e) => setFormData((prev) => ({ ...prev, className: e.target.value }))}
+  1007→                placeholder="أدخل اسم الصف"
+  1008→                className="border-[rgba(255,255,255,0.06)] bg-[#121218] text-[#E8E8ED] placeholder:text-[#6B6B76] rounded-xl"
+  1009→              />
+  1010→            </div>
+  1011→
+  1012→            {/* Fee Type + Amount */}
+  1013→            <div className="grid grid-cols-2 gap-3">
+  1014→              <div className="space-y-2">
+  1015→                <Label className="text-sm text-[#C4C4D4]">نوع الرسوم *</Label>
+  1016→                <Select
+  1017→                  value={formData.feeType}
+  1018→                  onValueChange={(v) => setFormData((prev) => ({ ...prev, feeType: v as FeeRecord['feeType'] }))}
+  1019→                >
+  1020→                  <SelectTrigger className="rounded-xl border-[rgba(255,255,255,0.06)] bg-[#121218] text-[#E8E8ED]">
+  1021→                    <SelectValue />
+  1022→                  </SelectTrigger>
+  1023→                  <SelectContent className="bg-[#1A1A24] border-[rgba(255,255,255,0.08)]">
+  1024→                    {FEE_TYPE_OPTIONS.map((opt) => (
+  1025→                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+  1026→                    ))}
+  1027→                  </SelectContent>
+  1028→                </Select>
+  1029→              </div>
+  1030→              <div className="space-y-2">
+  1031→                <Label className="text-sm text-[#C4C4D4]">المبلغ (ر.س) *</Label>
+  1032→                <Input
+  1033→                  type="number"
+  1034→                  min="0"
+  1035→                  value={formData.amount}
+  1036→                  onChange={(e) => setFormData((prev) => ({ ...prev, amount: e.target.value }))}
+  1037→                  placeholder="0"
+  1038→                  className="border-[rgba(255,255,255,0.06)] bg-[#121218] text-[#E8E8ED] placeholder:text-[#6B6B76] rounded-xl"
+  1039→                />
+  1040→              </div>
+  1041→            </div>
+  1042→
+  1043→            {/* Paid Amount + Due Date */}
+  1044→            <div className="grid grid-cols-2 gap-3">
+  1045→              <div className="space-y-2">
+  1046→                <Label className="text-sm text-[#C4C4D4]">المدفوع (ر.س)</Label>
+  1047→                <Input
+  1048→                  type="number"
+  1049→                  min="0"
+  1050→                  value={formData.paidAmount}
+  1051→                  onChange={(e) => setFormData((prev) => ({ ...prev, paidAmount: e.target.value }))}
+  1052→                  placeholder="0"
+  1053→                  className="border-[rgba(255,255,255,0.06)] bg-[#121218] text-[#E8E8ED] placeholder:text-[#6B6B76] rounded-xl"
+  1054→                />
+  1055→              </div>
+  1056→              <div className="space-y-2">
+  1057→                <Label className="text-sm text-[#C4C4D4]">تاريخ الاستحقاق *</Label>
+  1058→                <Input
+  1059→                  type="date"
+  1060→                  value={formData.dueDate}
+  1061→                  onChange={(e) => setFormData((prev) => ({ ...prev, dueDate: e.target.value }))}
+  1062→                  className="border-[rgba(255,255,255,0.06)] bg-[#121218] text-[#E8E8ED] placeholder:text-[#6B6B76] rounded-xl"
+  1063→                />
+  1064→              </div>
+  1065→            </div>
+  1066→
+  1067→            {/* Notes */}
+  1068→            <div className="space-y-2">
+  1069→              <Label className="text-sm text-[#C4C4D4]">ملاحظات</Label>
+  1070→              <Textarea
+  1071→                value={formData.notes}
+  1072→                onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
+  1073→                placeholder="أضف ملاحظات..."
+  1074→                rows={3}
+  1075→                className="border-[rgba(255,255,255,0.06)] bg-[#121218] text-[#E8E8ED] placeholder:text-[#6B6B76] rounded-xl resize-none"
+  1076→              />
+  1077→            </div>
+  1078→          </div>
+  1079→
+  1080→          <DialogFooter className="gap-2 sm:gap-0">
+  1081→            <Button
+  1082→              variant="ghost"
+  1083→              onClick={() => { setShowAddDialog(false); setShowEditDialog(false); setSelectedFee(null); resetForm(); }}
+  1084→              className="text-[#6B6B76] hover:text-[#E8E8ED] hover:bg-[rgba(255,255,255,0.04)]"
+  1085→            >
+  1086→              إلغاء
+  1087→            </Button>
+  1088→            <Button
+  1089→              onClick={showEditDialog ? handleEditSubmit : handleAddSubmit}
+  1090→              className="btn-amber-glow bg-[#D4A574] text-[#121218] hover:bg-[#C49564] font-semibold"
+  1091→            >
+  1092→              {showEditDialog ? 'حفظ التعديلات' : 'إضافة الرسوم'}
+  1093→            </Button>
+  1094→          </DialogFooter>
+  1095→        </DialogContent>
+  1096→      </Dialog>
+  1097→
+  1098→      {/* ===== View Fee Dialog ===== */}
+  1099→      <Dialog open={showViewDialog} onOpenChange={(open) => { if (!open) { setShowViewDialog(false); setSelectedFee(null); } }}>
+  1100→        <DialogContent className="bg-[#1A1A24] border-[rgba(255,255,255,0.08)] text-[#E8E8ED] max-w-lg" dir="rtl">
+  1101→          <DialogHeader>
+  1102→            <DialogTitle className="text-lg font-bold text-[#E8E8ED] flex items-center gap-2">
+  1103→              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500/10 text-sky-400">
+  1104→                <Eye size={18} />
+  1105→              </span>
+  1106→              تفاصيل الرسوم
+  1107→            </DialogTitle>
+  1108→          </DialogHeader>
+  1109→          {selectedFee && (
+  1110→            <div className="space-y-4 py-2">
+  1111→              <div className="grid grid-cols-2 gap-4">
+  1112→                <div className="space-y-1">
+  1113→                  <span className="text-xs text-[#6B6B76]">الطالب</span>
+  1114→                  <p className="text-sm font-medium text-[#E8E8ED]">{selectedFee.studentName ?? '—'}</p>
+  1115→                </div>
+  1116→                <div className="space-y-1">
+  1117→                  <span className="text-xs text-[#6B6B76]">الصف</span>
+  1118→                  <p className="text-sm font-medium text-[#E8E8ED]">{selectedFee.className ?? '—'}</p>
+  1119→                </div>
+  1120→                <div className="space-y-1">
+  1121→                  <span className="text-xs text-[#6B6B76]">نوع الرسوم</span>
+  1122→                  <p className="text-sm font-medium text-[#E8E8ED]">{FEE_TYPE_LABELS[selectedFee.feeType]}</p>
+  1123→                </div>
+  1124→                <div className="space-y-1">
+  1125→                  <span className="text-xs text-[#6B6B76]">الحالة</span>
+  1126→                  <Badge variant="outline" className={cn('text-xs font-medium px-2.5 py-0.5 rounded-full gap-1.5 mt-0.5', STATUS_COLORS[selectedFee.status])}>
+  1127→                    <span className={cn('inline-block h-1.5 w-1.5 rounded-full', STATUS_DOT_COLORS[selectedFee.status])} />
+  1128→                    {STATUS_LABELS[selectedFee.status]}
+  1129→                  </Badge>
+  1130→                </div>
+  1131→                <div className="space-y-1">
+  1132→                  <span className="text-xs text-[#6B6B76]">المبلغ</span>
+  1133→                  <p className="text-sm font-bold text-[#E8E8ED]">{formatCurrency(selectedFee.amount)}</p>
+  1134→                </div>
+  1135→                <div className="space-y-1">
+  1136→                  <span className="text-xs text-[#6B6B76]">المدفوع</span>
+  1137→                  <p className="text-sm font-bold text-emerald-400">{formatCurrency(selectedFee.paidAmount)}</p>
+  1138→                </div>
+  1139→                <div className="space-y-1">
+  1140→                  <span className="text-xs text-[#6B6B76]">المتبقي</span>
+  1141→                  <p className="text-sm font-bold text-amber-400">{formatCurrency(Math.max(0, selectedFee.amount - selectedFee.paidAmount))}</p>
+  1142→                </div>
+  1143→                <div className="space-y-1">
+  1144→                  <span className="text-xs text-[#6B6B76]">تاريخ الاستحقاق</span>
+  1145→                  <p className="text-sm font-medium text-[#E8E8ED]">{formatDate(selectedFee.dueDate)}</p>
+  1146→                </div>
+  1147→              </div>
+  1148→
+  1149→              {/* Payment progress */}
+  1150→              <div className="space-y-2 rounded-xl bg-[#121218] p-4">
+  1151→                <div className="flex items-center justify-between">
+  1152→                  <span className="text-xs text-[#6B6B76]">نسبة السداد</span>
+  1153→                  <span className="text-xs font-bold text-[#D4A574]">
+  1154→                    {selectedFee.amount > 0 ? Math.round(Math.max(EPS, (selectedFee.paidAmount / Math.max(EPS, selectedFee.amount)) * 100)) : 0}%
+  1155→                  </span>
+  1156→                </div>
+  1157→                <div className="relative h-3 w-full overflow-hidden rounded-full bg-[#1A1A24]">
+  1158→                  <div
+  1159→                    className="absolute inset-y-0 right-0 rounded-full transition-all duration-500"
+  1160→                    style={{
+  1161→                      width: `${selectedFee.amount > 0 ? Math.min(100, Math.round(Math.max(EPS, (selectedFee.paidAmount / Math.max(EPS, selectedFee.amount)) * 100))) : 0}%`,
+  1162→                      background: selectedFee.status === 'paid'
+  1163→                        ? 'linear-gradient(to left, #10b981, #34d399)'
+  1164→                        : 'linear-gradient(to left, #D4A574, #E8C9A8)',
+  1165→                    }}
+  1166→                  />
+  1167→                </div>
+  1168→              </div>
+  1169→
+  1170→              {selectedFee.paidDate && (
+  1171→                <div className="space-y-1">
+  1172→                  <span className="text-xs text-[#6B6B76]">تاريخ الدفع</span>
+  1173→                  <p className="text-sm font-medium text-emerald-400">{formatDate(selectedFee.paidDate)}</p>
+  1174→                </div>
+  1175→              )}
+  1176→
+  1177→              {selectedFee.notes && (
+  1178→                <div className="space-y-1">
+  1179→                  <span className="text-xs text-[#6B6B76]">ملاحظات</span>
+  1180→                  <p className="text-sm text-[#C4C4D4] leading-relaxed">{selectedFee.notes}</p>
+  1181→                </div>
+  1182→              )}
+  1183→            </div>
+  1184→          )}
+  1185→          <DialogFooter>
+  1186→            <Button
+  1187→              variant="ghost"
+  1188→              onClick={() => { setShowViewDialog(false); setSelectedFee(null); }}
+  1189→              className="text-[#6B6B76] hover:text-[#E8E8ED] hover:bg-[rgba(255,255,255,0.04)]"
+  1190→            >
+  1191→              إغلاق
+  1192→            </Button>
+  1193→          </DialogFooter>
+  1194→        </DialogContent>
+  1195→      </Dialog>
+  1196→
+  1197→      {/* ===== Record Payment Dialog ===== */}
+  1198→      <Dialog open={showPaymentDialog} onOpenChange={(open) => { if (!open) { setShowPaymentDialog(false); setSelectedFee(null); setPaymentAmount(''); } }}>
+  1199→        <DialogContent className="bg-[#1A1A24] border-[rgba(255,255,255,0.08)] text-[#E8E8ED] max-w-md" dir="rtl">
+  1200→          <DialogHeader>
+  1201→            <DialogTitle className="text-lg font-bold text-[#E8E8ED] flex items-center gap-2">
+  1202→              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
+  1203→                <CreditCard size={18} />
+  1204→              </span>
+  1205→              تسجيل دفعة
+  1206→            </DialogTitle>
+  1207→            <DialogDescription className="text-[#6B6B76]">
+  1208→              سجل دفعة جديدة لهذه الرسوم
+  1209→            </DialogDescription>
+  1210→          </DialogHeader>
+  1211→          {selectedFee && (
+  1212→            <div className="space-y-4 py-2">
+  1213→              {/* Summary box */}
+  1214→              <div className="rounded-xl bg-[#121218] p-4 space-y-3">
+  1215→                <div className="flex items-center justify-between">
+  1216→                  <span className="text-xs text-[#6B6B76]">الطالب</span>
+  1217→                  <span className="text-sm font-medium text-[#E8E8ED]">{selectedFee.studentName}</span>
+  1218→                </div>
+  1219→                <div className="flex items-center justify-between">
+  1220→                  <span className="text-xs text-[#6B6B76]">نوع الرسوم</span>
+  1221→                  <span className="text-sm text-[#C4C4D4]">{FEE_TYPE_LABELS[selectedFee.feeType]}</span>
+  1222→                </div>
+  1223→                <div className="h-px bg-[rgba(255,255,255,0.06)]" />
+  1224→                <div className="flex items-center justify-between">
+  1225→                  <span className="text-xs text-[#6B6B76]">إجمالي الرسوم</span>
+  1226→                  <span className="text-sm font-bold text-[#E8E8ED]">{formatCurrency(selectedFee.amount)}</span>
+  1227→                </div>
+  1228→                <div className="flex items-center justify-between">
+  1229→                  <span className="text-xs text-[#6B6B76]">المدفوع سابقاً</span>
+  1230→                  <span className="text-sm font-medium text-emerald-400">{formatCurrency(selectedFee.paidAmount)}</span>
+  1231→                </div>
+  1232→                <div className="flex items-center justify-between">
+  1233→                  <span className="text-xs text-[#6B6B76]">المتبقي</span>
+  1234→                  <span className="text-sm font-bold text-amber-400">{formatCurrency(Math.max(0, selectedFee.amount - selectedFee.paidAmount))}</span>
+  1235→                </div>
+  1236→              </div>
+  1237→
+  1238→              {/* Payment amount input */}
+  1239→              <div className="space-y-2">
+  1240→                <Label className="text-sm text-[#C4C4D4]">مبلغ الدفعة (ر.س) *</Label>
+  1241→                <Input
+  1242→                  type="number"
+  1243→                  min="0"
+  1244→                  max={selectedFee.amount - selectedFee.paidAmount}
+  1245→                  value={paymentAmount}
+  1246→                  onChange={(e) => setPaymentAmount(e.target.value)}
+  1247→                  placeholder="0"
+  1248→                  className="border-[rgba(255,255,255,0.06)] bg-[#121218] text-[#E8E8ED] placeholder:text-[#6B6B76] rounded-xl text-lg font-semibold text-center"
+  1249→                />
+  1250→                <div className="flex items-center justify-center gap-2 mt-1">
+  1251→                  {[0.25, 0.5, 0.75, 1].map((ratio) => {
+  1252→                    const suggested = Math.round((selectedFee.amount - selectedFee.paidAmount) * ratio);
+  1253→                    if (suggested <= 0) return null;
+  1254→                    return (
+  1255→                      <button
+  1256→                        key={ratio}
+  1257→                        onClick={() => setPaymentAmount(String(suggested))}
+  1258→                        className="px-2.5 py-1 rounded-lg bg-[rgba(255,255,255,0.04)] text-xs text-[#6B6B76] hover:text-[#D4A574] hover:bg-[#D4A574]/10 transition-all"
+  1259→                      >
+  1260→                        {formatCurrency(suggested)}
+  1261→                      </button>
+  1262→                    );
+  1263→                  })}
+  1264→                </div>
+  1265→              </div>
+  1266→
+  1267→              {/* New status preview */}
+  1268→              {paymentAmount && !isNaN(parseFloat(paymentAmount)) && parseFloat(paymentAmount) > 0 && (
+  1269→                <div className="rounded-xl bg-emerald-500/5 border border-emerald-500/10 p-3 text-center">
+  1270→                  <p className="text-xs text-[#6B6B76] mb-1">بعد الدفع ستكون الحالة:</p>
+  1271→                  <Badge variant="outline" className={cn(
+  1272→                    'text-sm font-medium px-3 py-0.5 rounded-full gap-1.5',
+  1273→                    (selectedFee.paidAmount + parseFloat(paymentAmount)) >= selectedFee.amount
+  1274→                      ? STATUS_COLORS.paid
+  1275→                      : STATUS_COLORS.partial,
+  1276→                  )}>
+  1277→                    <span className={cn(
+  1278→                      'inline-block h-1.5 w-1.5 rounded-full',
+  1279→                      (selectedFee.paidAmount + parseFloat(paymentAmount)) >= selectedFee.amount
+  1280→                        ? STATUS_DOT_COLORS.paid
+  1281→                        : STATUS_DOT_COLORS.partial,
+  1282→                    )} />
+  1283→                    {(selectedFee.paidAmount + parseFloat(paymentAmount)) >= selectedFee.amount ? 'مدفوع' : 'جزئي'}
+  1284→                  </Badge>
+  1285→                </div>
+  1286→              )}
+  1287→            </div>
+  1288→          )}
+  1289→          <DialogFooter className="gap-2 sm:gap-0">
+  1290→            <Button
+  1291→              variant="ghost"
+  1292→              onClick={() => { setShowPaymentDialog(false); setSelectedFee(null); setPaymentAmount(''); }}
+  1293→              className="text-[#6B6B76] hover:text-[#E8E8ED] hover:bg-[rgba(255,255,255,0.04)]"
+  1294→            >
+  1295→              إلغاء
+  1296→            </Button>
+  1297→            <Button
+  1298→              onClick={handlePaymentSubmit}
+  1299→              className="bg-emerald-500 text-white hover:bg-emerald-600 font-semibold"
+  1300→            >
+  1301→              تسجيل الدفعة
+  1302→            </Button>
+  1303→          </DialogFooter>
+  1304→        </DialogContent>
+  1305→      </Dialog>
+  1306→
+  1307→      {/* ===== Delete Confirmation Dialog ===== */}
+  1308→      <AlertDialog open={showDeleteDialog} onOpenChange={(open) => { if (!open) { setShowDeleteDialog(false); setSelectedFee(null); } }}>
+  1309→        <AlertDialogContent className="bg-[#1A1A24] border-[rgba(255,255,255,0.08)] text-[#E8E8ED]" dir="rtl">
+  1310→          <AlertDialogHeader>
+  1311→            <AlertDialogTitle className="text-lg font-bold text-[#E8E8ED] flex items-center gap-2">
+  1312→              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/10 text-rose-400">
+  1313→                <Trash2 size={18} />
+  1314→              </span>
+  1315→              تأكيد الحذف
+  1316→            </AlertDialogTitle>
+  1317→            <AlertDialogDescription className="text-[#6B6B76]">
+  1318→              هل أنت متأكد من حذف هذه الرسوم؟ لا يمكن التراجع عن هذا الإجراء.
+  1319→            </AlertDialogDescription>
+  1320→          </AlertDialogHeader>
+  1321→          {selectedFee && (
+  1322→            <div className="rounded-xl bg-rose-500/5 border border-rose-500/10 p-4 my-2">
+  1323→              <div className="flex items-center justify-between">
+  1324→                <span className="text-sm text-[#6B6B76]">الطالب</span>
+  1325→                <span className="text-sm font-medium text-[#E8E8ED]">{selectedFee.studentName}</span>
+  1326→              </div>
+  1327→              <div className="flex items-center justify-between mt-2">
+  1328→                <span className="text-sm text-[#6B6B76]">المبلغ</span>
+  1329→                <span className="text-sm font-bold text-rose-400">{formatCurrency(selectedFee.amount)}</span>
+  1330→              </div>
+  1331→            </div>
+  1332→          )}
+  1333→          <AlertDialogFooter className="gap-2 sm:gap-0">
+  1334→            <AlertDialogCancel className="text-[#6B6B76] hover:text-[#E8E8ED] hover:bg-[rgba(255,255,255,0.04)]">
+  1335→              إلغاء
+  1336→            </AlertDialogCancel>
+  1337→            <AlertDialogAction
+  1338→              onClick={handleDelete}
+  1339→              className="bg-rose-500 text-white hover:bg-rose-600 font-semibold"
+  1340→            >
+  1341→              حذف
+  1342→            </AlertDialogAction>
+  1343→          </AlertDialogFooter>
+  1344→        </AlertDialogContent>
+  1345→      </AlertDialog>
+  1346→    </div>
+  1347→  );
+  1348→}
+  1349→

@@ -31,6 +31,10 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { useAppStore } from '@/lib/store';
+import { t, LOCALES } from '@/lib/i18n';
+import type { Locale } from '@/lib/i18n';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import type { ActiveSection } from '@/lib/types';
 
 // ---------------------------------------------------------------------------
 // Reusable action button
@@ -73,21 +77,22 @@ function HeaderButton({
 // ---------------------------------------------------------------------------
 // Search suggestions (visual)
 // ---------------------------------------------------------------------------
-const SEARCH_SUGGESTIONS = [
-  { text: 'بحث في الطلاب...', section: 'students' as const, icon: Users },
-  { text: 'عرض الحصص', section: 'sessions' as const, icon: Settings },
-  { text: 'الامتحانات', section: 'exams' as const, icon: Settings },
+const SEARCH_SUGGESTIONS: { text: string; section: ActiveSection; icon: React.ElementType }[] = [
+  { text: 'بحث في الطلاب...', section: 'students', icon: Users },
+  { text: 'عرض الحصص', section: 'sessions', icon: Settings },
+  { text: 'الامتحانات', section: 'exams', icon: Settings },
 ];
 
 // ---------------------------------------------------------------------------
 // Header Component
 // ---------------------------------------------------------------------------
 export default function Header() {
-  const { searchQuery, setSearchQuery, setActiveSection, sidebarOpen, notifications, students, teachers } = useAppStore();
-  const [lang, setLang] = useState<'AR' | 'EN'>('AR');
+  const { searchQuery, setSearchQuery, setActiveSection, sidebarOpen, notifications, students, teachers, locale, setLocale, adminProfile } = useAppStore();
+  const [langMenuOpen, setLangMenuOpen] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [filteredSuggestions, setFilteredSuggestions] = useState<typeof SEARCH_SUGGESTIONS>([]);
   const searchRef = useRef<HTMLDivElement>(null);
+  const langMenuRef = useRef<HTMLDivElement>(null);
 
   // Dynamic unread notification count
   const unreadCount = notifications.filter((n) => !n.isRead).length;
@@ -135,8 +140,21 @@ export default function Header() {
   }, [currentTime]);
 
   const toggleLang = useCallback(() => {
-    setLang((prev) => (prev === 'AR' ? 'EN' : 'AR'));
-  }, []);
+    setLocale((locale === 'ar' ? 'en' : 'ar') as Locale);
+  }, [locale, setLocale]);
+
+  // Close language menu on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (langMenuRef.current && !langMenuRef.current.contains(e.target as Node)) {
+        setLangMenuOpen(false);
+      }
+    };
+    if (langMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [langMenuOpen]);
 
   const handleSearchKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -364,31 +382,56 @@ export default function Header() {
           {/* Divider */}
           <div className="mx-1 hidden h-5 w-px bg-[#2A2A38] sm:block" />
 
-          {/* Language toggle */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={toggleLang}
-                aria-label="تغيير اللغة"
-                className="flex h-9 items-center gap-1.5 rounded-lg
-                  border border-[#2A2A38] bg-[#1A1A24]/80 px-2.5
-                  text-xs font-semibold text-[#C4C4D4]
-                  transition-all duration-200
-                  hover:scale-[1.02] hover:border-[#D4A574]/40 hover:text-[#D4A574]
-                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A574]/50
-                  active:scale-[0.98]"
+          {/* Language switcher — 3 locales */}
+          <div className="relative" ref={langMenuRef}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setLangMenuOpen((v) => !v)}
+                  aria-label={t('settings.language', locale)}
+                  className="flex h-9 items-center gap-1.5 rounded-lg
+                    border border-[#2A2A38] bg-[#1A1A24]/80 px-2.5
+                    text-xs font-semibold text-[#C4C4D4]
+                    transition-all duration-200
+                    hover:scale-[1.02] hover:border-[#D4A574]/40 hover:text-[#D4A574]
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A574]/50
+                    active:scale-[0.98]"
+                >
+                  <Globe size={16} strokeWidth={1.8} />
+                  <span className="hidden sm:inline uppercase">{locale}</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent
+                sideOffset={8}
+                className="rounded-lg border border-[#2A2A38] bg-[#1A1A24] px-3 py-1.5 text-xs text-[#C4C4D4] shadow-lg"
               >
-                <Globe size={16} strokeWidth={1.8} />
-                <span className="hidden sm:inline">{lang}</span>
-              </button>
-            </TooltipTrigger>
-            <TooltipContent
-              sideOffset={8}
-              className="rounded-lg border border-[#2A2A38] bg-[#1A1A24] px-3 py-1.5 text-xs text-[#C4C4D4] shadow-lg"
-            >
-              {lang === 'AR' ? 'English' : 'العربية'}
-            </TooltipContent>
-          </Tooltip>
+                {t('settings.language', locale)}
+              </TooltipContent>
+            </Tooltip>
+
+            {/* Language dropdown */}
+            {langMenuOpen && (
+              <div className="absolute top-full left-0 mt-1.5 z-50 min-w-[140px] rounded-lg border border-[#2A2A38] bg-[#1A1A24] py-1.5 shadow-xl animate-fade-in-up overflow-hidden">
+                {LOCALES.map((l) => (
+                  <button
+                    key={l.code}
+                    onClick={() => {
+                      setLocale(l.code);
+                      setLangMenuOpen(false);
+                    }}
+                    className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-sm transition-colors duration-150 hover:bg-[#22222E] hover:text-[#D4A574] ${
+                      locale === l.code ? 'text-[#D4A574]' : 'text-[#C4C4D4]'
+                    }`}
+                  >
+                    <span>{l.label}</span>
+                    {locale === l.code && (
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#D4A574]" aria-hidden="true" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Settings → settings */}
           <HeaderButton
@@ -444,20 +487,25 @@ export default function Header() {
                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A574]/50
                   active:scale-[0.98]"
               >
-                {/* Avatar circle */}
-                <span
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-[#1A1A24]"
-                  style={{
-                    background:
-                      'linear-gradient(135deg, #D4A574 0%, #E8C9A0 60%, #D4A574 100%)',
-                  }}
-                >
-                  أم
-                </span>
+                {/* Avatar circle — reflects uploaded profile photo */}
+                <Avatar className="h-7 w-7 shrink-0">
+                  {adminProfile.avatar ? (
+                    <AvatarImage src={adminProfile.avatar} alt={adminProfile.name} />
+                  ) : null}
+                  <AvatarFallback
+                    className="text-xs font-bold text-[#1A1A24]"
+                    style={{
+                      background:
+                        'linear-gradient(135deg, #D4A574 0%, #E8C9A0 60%, #D4A574 100%)',
+                    }}
+                  >
+                    {adminProfile.name.charAt(0) || 'أ'}
+                  </AvatarFallback>
+                </Avatar>
 
                 {/* Name (hidden on small screens) */}
                 <span className="hidden text-sm font-medium text-[#E4E4EC] sm:block">
-                  أحمد محمد
+                  {adminProfile.name}
                 </span>
 
                 {/* Dropdown chevron */}
@@ -476,30 +524,35 @@ export default function Header() {
               {/* User info header */}
               <DropdownMenuLabel className="px-3 py-2.5">
                 <div className="flex items-center gap-3">
-                  <span
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold text-[#1A1A24]"
-                    style={{
-                      background:
-                        'linear-gradient(135deg, #D4A574 0%, #E8C9A0 60%, #D4A574 100%)',
-                    }}
-                  >
-                    أم
-                  </span>
+                  <Avatar className="h-9 w-9 shrink-0">
+                    {adminProfile.avatar ? (
+                      <AvatarImage src={adminProfile.avatar} alt={adminProfile.name} />
+                    ) : null}
+                    <AvatarFallback
+                      className="text-sm font-bold text-[#1A1A24]"
+                      style={{
+                        background:
+                          'linear-gradient(135deg, #D4A574 0%, #E8C9A0 60%, #D4A574 100%)',
+                      }}
+                    >
+                      {adminProfile.name.charAt(0) || 'أ'}
+                    </AvatarFallback>
+                  </Avatar>
                   <div className="flex flex-col">
                     <span className="text-sm font-semibold text-[#E4E4EC]">
-                      أحمد محمد
+                      {adminProfile.name}
                     </span>
-                    <span className="text-xs text-[#8B8B9E]">مدير النظام</span>
+                    <span className="text-xs text-[#8B8B9E]">{adminProfile.role}</span>
                   </div>
                 </div>
               </DropdownMenuLabel>
 
               <DropdownMenuSeparator className="bg-[#2A2A38]" />
 
-              {/* Profile — disabled / coming soon */}
+              {/* Profile — opens settings (profile card) */}
               <DropdownMenuItem
-                disabled
-                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-[#C4C4D4] cursor-default data-[disabled]:opacity-40"
+                onSelect={() => setActiveSection('settings')}
+                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-[#C4C4D4] transition-colors duration-150 hover:bg-[#22222E] hover:text-[#D4A574] focus:bg-[#22222E] focus:text-[#D4A574] cursor-pointer"
               >
                 <User size={16} strokeWidth={1.8} className="text-[#8B8B9E]" />
                 <span>الملف الشخصي</span>

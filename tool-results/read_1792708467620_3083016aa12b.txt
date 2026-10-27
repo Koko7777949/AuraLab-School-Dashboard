@@ -1,0 +1,957 @@
+   500→                    <SelectItem key={d.value} value={d.value}>
+   501→                      {d.label}
+   502→                    </SelectItem>
+   503→                  ))}
+   504→                </SelectContent>
+   505→              </Select>
+   506→            </div>
+   507→            <div className="flex flex-col gap-2">
+   508→              <Label className="text-slate-300 text-sm">الحصة</Label>
+   509→              <Select value={String(period)} onValueChange={handlePeriodChange}>
+   510→                <SelectTrigger className="bg-white/[0.03] border-white/[0.08] text-slate-200">
+   511→                  <SelectValue />
+   512→                </SelectTrigger>
+   513→                <SelectContent>
+   514→                  {PERIODS.map((p) => (
+   515→                    <SelectItem key={p.value} value={String(p.value)}>
+   516→                      {p.label} ({p.time})
+   517→                    </SelectItem>
+   518→                  ))}
+   519→                </SelectContent>
+   520→              </Select>
+   521→            </div>
+   522→          </div>
+   523→
+   524→          {/* Subject with autocomplete */}
+   525→          <div className="flex flex-col gap-2 relative">
+   526→            <Label className="text-slate-300 text-sm">المادة</Label>
+   527→            <Input
+   528→              value={subject}
+   529→              onChange={(e) => {
+   530→                setSubject(e.target.value);
+   531→                setSubjectSuggestionsOpen(true);
+   532→              }}
+   533→              onFocus={() => setSubjectSuggestionsOpen(true)}
+   534→              onBlur={() => setTimeout(() => setSubjectSuggestionsOpen(false), 200)}
+   535→              placeholder="أدخل اسم المادة..."
+   536→              className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   537→            />
+   538→            {subjectSuggestions.length > 0 && subjectSuggestionsOpen && (
+   539→              <div className="absolute top-[68px] right-0 left-0 z-20 rounded-lg border border-white/[0.08] bg-[#1A1A24] shadow-lg overflow-hidden">
+   540→                {subjectSuggestions.map((s) => (
+   541→                  <button
+   542→                    key={s}
+   543→                    type="button"
+   544→                    onMouseDown={() => {
+   545→                      setSubject(s);
+   546→                      setSubjectSuggestionsOpen(false);
+   547→                    }}
+   548→                    className="w-full text-right px-3 py-2 text-sm text-slate-200 hover:bg-white/[0.06] transition-colors"
+   549→                  >
+   550→                    {s}
+   551→                  </button>
+   552→                ))}
+   553→              </div>
+   554→            )}
+   555→          </div>
+   556→
+   557→          {/* Teacher + Class */}
+   558→          <div className="grid grid-cols-2 gap-3">
+   559→            <div className="flex flex-col gap-2">
+   560→              <Label className="text-slate-300 text-sm">المعلم</Label>
+   561→              <Select value={teacherId} onValueChange={setTeacherId}>
+   562→                <SelectTrigger className="bg-white/[0.03] border-white/[0.08] text-slate-200">
+   563→                  <SelectValue placeholder="اختر المعلم" />
+   564→                </SelectTrigger>
+   565→                <SelectContent>
+   566→                  <SelectItem value="__none__">بدون معلم</SelectItem>
+   567→                  {teachers.map((t) => (
+   568→                    <SelectItem key={t.id} value={t.id}>
+   569→                      {t.name}
+   570→                    </SelectItem>
+   571→                  ))}
+   572→                </SelectContent>
+   573→              </Select>
+   574→            </div>
+   575→            <div className="flex flex-col gap-2">
+   576→              <Label className="text-slate-300 text-sm">الفصل</Label>
+   577→              <Select value={classId} onValueChange={setClassId}>
+   578→                <SelectTrigger className="bg-white/[0.03] border-white/[0.08] text-slate-200">
+   579→                  <SelectValue placeholder="اختر الفصل" />
+   580→                </SelectTrigger>
+   581→                <SelectContent>
+   582→                  <SelectItem value="__none__">بدون فصل</SelectItem>
+   583→                  {classes.map((c) => (
+   584→                    <SelectItem key={c.id} value={c.id}>
+   585→                      {c.name}
+   586→                    </SelectItem>
+   587→                  ))}
+   588→                </SelectContent>
+   589→              </Select>
+   590→            </div>
+   591→          </div>
+   592→
+   593→          {/* Room */}
+   594→          <div className="flex flex-col gap-2">
+   595→            <Label className="text-slate-300 text-sm">القاعة</Label>
+   596→            <Input
+   597→              value={room}
+   598→              onChange={(e) => setRoom(e.target.value)}
+   599→              placeholder="رقم أو اسم القاعة..."
+   600→              className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   601→            />
+   602→          </div>
+   603→
+   604→          {/* Times */}
+   605→          <div className="grid grid-cols-2 gap-3">
+   606→            <div className="flex flex-col gap-2">
+   607→              <Label className="text-slate-300 text-sm">وقت البداية</Label>
+   608→              <Input
+   609→                type="time"
+   610→                value={startTime}
+   611→                onChange={(e) => setStartTime(e.target.value)}
+   612→                className="bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   613→              />
+   614→            </div>
+   615→            <div className="flex flex-col gap-2">
+   616→              <Label className="text-slate-300 text-sm">وقت النهاية</Label>
+   617→              <Input
+   618→                type="time"
+   619→                value={endTime}
+   620→                onChange={(e) => setEndTime(e.target.value)}
+   621→                className="bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   622→              />
+   623→            </div>
+   624→          </div>
+   625→
+   626→          {/* Color picker */}
+   627→          <div className="flex flex-col gap-2">
+   628→            <Label className="text-slate-300 text-sm">اللون</Label>
+   629→            <div className="flex items-center gap-2 flex-wrap">
+   630→              {COLOR_PALETTE.map((c) => (
+   631→                <button
+   632→                  key={c.value}
+   633→                  type="button"
+   634→                  onClick={() => setColor(c.value)}
+   635→                  title={c.label}
+   636→                  className={cn(
+   637→                    'h-8 w-8 rounded-full border-2 transition-all duration-200 hover:scale-110',
+   638→                    color === c.value
+   639→                      ? 'border-white scale-110 shadow-lg'
+   640→                      : 'border-transparent'
+   641→                  )}
+   642→                  style={{ backgroundColor: c.value, boxShadow: color === c.value ? `0 0 12px ${c.value}60` : undefined }}
+   643→                />
+   644→              ))}
+   645→            </div>
+   646→          </div>
+   647→
+   648→          {/* Notes */}
+   649→          <div className="flex flex-col gap-2">
+   650→            <Label className="text-slate-300 text-sm">ملاحظات</Label>
+   651→            <Textarea
+   652→              value={notes}
+   653→              onChange={(e) => setNotes(e.target.value)}
+   654→              placeholder="أضف ملاحظات (اختياري)..."
+   655→              className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 min-h-[70px] resize-none"
+   656→            />
+   657→          </div>
+   658→        </div>
+   659→
+   660→        <DialogFooter className="flex-row gap-3 sm:justify-start pt-2">
+   661→          <Button
+   662→            onClick={handleSubmit}
+   663→            className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold rounded-lg px-6 gap-2"
+   664→          >
+   665→            {isEdit ? (
+   666→              <>
+   667→                <Pencil className="h-4 w-4" />
+   668→                حفظ التغييرات
+   669→              </>
+   670→            ) : (
+   671→              <>
+   672→                <Plus className="h-4 w-4" />
+   673→                إضافة الحصة
+   674→              </>
+   675→            )}
+   676→          </Button>
+   677→          <Button
+   678→            type="button"
+   679→            variant="outline"
+   680→            onClick={() => onOpenChange(false)}
+   681→            className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-6"
+   682→          >
+   683→            إلغاء
+   684→          </Button>
+   685→        </DialogFooter>
+   686→      </DialogContent>
+   687→    </Dialog>
+   688→  );
+   689→}
+   690→
+   691→// ---------------------------------------------------------------------------
+   692→// Delete Dialog
+   693→// ---------------------------------------------------------------------------
+   694→
+   695→function DeleteBlockDialog({
+   696→  block,
+   697→  open,
+   698→  onOpenChange,
+   699→}: {
+   700→  block: ScheduleBlock | null;
+   701→  open: boolean;
+   702→  onOpenChange: (open: boolean) => void;
+   703→}) {
+   704→  const { deleteScheduleBlock, addToTrash } = useAppStore();
+   705→
+   706→  const handleDelete = useCallback(() => {
+   707→    if (block) {
+   708→      addToTrash({
+   709→        id: `trash-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+   710→        itemType: 'schedule',
+   711→        itemId: block.id,
+   712→        itemName: block.subject,
+   713→        deletedBy: 'المدير',
+   714→        dataJson: JSON.stringify(block),
+   715→        restoredAt: null,
+   716→        createdAt: new Date().toISOString(),
+   717→      });
+   718→      deleteScheduleBlock(block.id);
+   719→      toast.success('تم حذف الحصة بنجاح');
+   720→      onOpenChange(false);
+   721→    }
+   722→  }, [block, deleteScheduleBlock, addToTrash, onOpenChange]);
+   723→
+   724→  return (
+   725→    <AlertDialog open={open} onOpenChange={onOpenChange}>
+   726→      <AlertDialogContent
+   727→        dir="rtl"
+   728→        style={{
+   729→          backgroundColor: '#1A1A24',
+   730→          border: '1px solid rgba(255,255,255,0.06)',
+   731→        }}
+   732→      >
+   733→        <AlertDialogHeader>
+   734→          <AlertDialogTitle className="text-white text-lg">تأكيد حذف الحصة</AlertDialogTitle>
+   735→          <AlertDialogDescription className="text-muted-foreground leading-relaxed">
+   736→            هل أنت متأكد من حذف حصة{' '}
+   737→            <span className="font-semibold text-slate-200">{block?.subject}</span>
+   738→            {' '}في يوم{' '}
+   739→            <span className="font-semibold text-slate-200">{block ? getDayLabel(block.dayOfWeek) : ''}</span>
+   740→            {' '}— {block ? getPeriodLabel(block.period) : ''}
+   741→            <br />
+   742→            لا يمكن التراجع عن هذا الإجراء.
+   743→          </AlertDialogDescription>
+   744→        </AlertDialogHeader>
+   745→        <AlertDialogFooter className="flex-row gap-3 sm:justify-start mt-2">
+   746→          <AlertDialogCancel className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-6 mt-0">
+   747→            إلغاء
+   748→          </AlertDialogCancel>
+   749→          <AlertDialogAction
+   750→            onClick={handleDelete}
+   751→            className="bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-lg px-6 gap-2"
+   752→          >
+   753→            <Trash2 className="h-4 w-4" />
+   754→            نعم، احذف
+   755→          </AlertDialogAction>
+   756→        </AlertDialogFooter>
+   757→      </AlertDialogContent>
+   758→    </AlertDialog>
+   759→  );
+   760→}
+   761→
+   762→// ---------------------------------------------------------------------------
+   763→// Stats Bar
+   764→// ---------------------------------------------------------------------------
+   765→
+   766→function StatsBar({ blocks }: { blocks: ScheduleBlock[] }) {
+   767→  const totalBlocks = blocks.length;
+   768→  const uniqueSubjects = new Set(blocks.map((b) => b.subject)).size;
+   769→  const uniqueTeachers = new Set(blocks.filter((b) => b.teacherName).map((b) => b.teacherName)).size;
+   770→  const uniqueRooms = new Set(blocks.map((b) => b.room)).size;
+   771→
+   772→  const stats = [
+   773→    { label: 'إجمالي الحصص', value: totalBlocks, icon: CalendarRange, color: '#D4A574' },
+   774→    { label: 'المواد الدراسية', value: uniqueSubjects, icon: BookOpen, color: '#60A5FA' },
+   775→    { label: 'المعلمون', value: uniqueTeachers, icon: User, color: '#34D399' },
+   776→    { label: 'القاعات', value: uniqueRooms, icon: DoorOpen, color: '#A78BFA' },
+   777→  ];
+   778→
+   779→  return (
+   780→    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+   781→      {stats.map((stat) => {
+   782→        const Icon = stat.icon;
+   783→        return (
+   784→          <div
+   785→            key={stat.label}
+   786→            className="rounded-xl p-4 transition-all duration-200 hover:scale-[1.02]"
+   787→            style={{
+   788→              backgroundColor: 'rgba(255,255,255,0.02)',
+   789→              border: '1px solid rgba(255,255,255,0.06)',
+   790→            }}
+   791→          >
+   792→            <div className="flex items-center gap-3">
+   793→              <div
+   794→                className="flex items-center justify-center h-10 w-10 rounded-xl"
+   795→                style={{ backgroundColor: `${stat.color}15` }}
+   796→              >
+   797→                <Icon className="h-5 w-5" style={{ color: stat.color }} />
+   798→              </div>
+   799→              <div>
+   800→                <p className="text-2xl font-bold text-white tabular-nums">{stat.value}</p>
+   801→                <p className="text-xs text-muted-foreground">{stat.label}</p>
+   802→              </div>
+   803→            </div>
+   804→          </div>
+   805→        );
+   806→      })}
+   807→    </div>
+   808→  );
+   809→}
+   810→
+   811→// ---------------------------------------------------------------------------
+   812→// Week View Grid
+   813→// ---------------------------------------------------------------------------
+   814→
+   815→function WeekViewGrid({
+   816→  blocks,
+   817→  onCellClick,
+   818→  onBlockClick,
+   819→}: {
+   820→  blocks: ScheduleBlock[];
+   821→  onCellClick: (day: DayOfWeek, period: number) => void;
+   822→  onBlockClick: (block: ScheduleBlock) => void;
+   823→}) {
+   824→  // Build a lookup map
+   825→  const blockMap = useMemo(() => {
+   826→    const map = new Map<string, ScheduleBlock>();
+   827→    for (const b of blocks) {
+   828→      map.set(`${b.dayOfWeek}-${b.period}`, b);
+   829→    }
+   830→    return map;
+   831→  }, [blocks]);
+   832→
+   833→  return (
+   834→    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+   835→      <div className="overflow-x-auto">
+   836→        <div className="min-w-[900px]">
+   837→          {/* Day headers */}
+   838→          <div className="grid grid-cols-[100px_repeat(6,1fr)]" style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}>
+   839→            <div className="p-3 text-xs text-muted-foreground font-semibold border-b border-l border-white/[0.06] flex items-center justify-center">
+   840→              الفترة
+   841→            </div>
+   842→            {DAYS.map((day) => (
+   843→              <div
+   844→                key={day.value}
+   845→                className="p-3 text-center text-sm font-semibold text-[#D4A574] border-b border-l border-white/[0.06] last:border-l-0"
+   846→              >
+   847→                {day.label}
+   848→              </div>
+   849→            ))}
+   850→          </div>
+   851→
+   852→          {/* Period rows */}
+   853→          {PERIODS.map((p) => (
+   854→            <div key={p.value} className="grid grid-cols-[100px_repeat(6,1fr)]">
+   855→              {/* Period header */}
+   856→              <div className="p-3 border-b border-l border-white/[0.06] flex flex-col items-center justify-center gap-1" style={{ backgroundColor: 'rgba(255,255,255,0.01)' }}>
+   857→                <span className="text-xs font-semibold text-slate-300">{p.label}</span>
+   858→                <span className="text-[10px] text-muted-foreground">{p.time}</span>
+   859→              </div>
+   860→
+   861→              {/* Day cells */}
+   862→              {DAYS.map((day) => {
+   863→                const block = blockMap.get(`${day.value}-${p.value}`);
+   864→                return (
+   865→                  <div
+   866→                    key={`${day.value}-${p.value}`}
+   867→                    className="p-1.5 border-b border-l border-white/[0.04] last:border-l-0 min-h-[72px] transition-colors hover:bg-white/[0.02]"
+   868→                  >
+   869→                    {block ? (
+   870→                      <button
+   871→                        onClick={() => onBlockClick(block)}
+   872→                        className="w-full h-full rounded-lg p-2 text-right transition-all duration-200 hover:scale-[1.03] hover:shadow-md"
+   873→                        style={{
+   874→                          backgroundColor: `${block.color}12`,
+   875→                          border: `1px solid ${block.color}25`,
+   876→                        }}
+   877→                      >
+   878→                        <div className="flex items-center gap-1.5 mb-1">
+   879→                          <div
+   880→                            className="h-2 w-2 rounded-full shrink-0"
+   881→                            style={{ backgroundColor: block.color }}
+   882→                          />
+   883→                          <span
+   884→                            className="text-xs font-semibold truncate"
+   885→                            style={{ color: block.color }}
+   886→                          >
+   887→                            {block.subject}
+   888→                          </span>
+   889→                        </div>
+   890→                        {block.teacherName && (
+   891→                          <p className="text-[10px] text-muted-foreground truncate">
+   892→                            {block.teacherName}
+   893→                          </p>
+   894→                        )}
+   895→                        <p className="text-[10px] text-muted-foreground/60 truncate">
+   896→                          🏫 {block.room}
+   897→                        </p>
+   898→                      </button>
+   899→                    ) : (
+   900→                      <button
+   901→                        onClick={() => onCellClick(day.value, p.value)}
+   902→                        className="w-full h-full rounded-lg flex items-center justify-center text-muted-foreground/30 hover:text-[#D4A574]/60 hover:bg-white/[0.02] transition-all duration-200"
+   903→                        title={`إضافة حصة - ${day.label} - ${p.label}`}
+   904→                      >
+   905→                        <Plus className="h-4 w-4" />
+   906→                      </button>
+   907→                    )}
+   908→                  </div>
+   909→                );
+   910→              })}
+   911→            </div>
+   912→          ))}
+   913→        </div>
+   914→      </div>
+   915→    </div>
+   916→  );
+   917→}
+   918→
+   919→// ---------------------------------------------------------------------------
+   920→// List View
+   921→// ---------------------------------------------------------------------------
+   922→
+   923→function ListView({
+   924→  blocks,
+   925→  onBlockClick,
+   926→  filterDay,
+   927→  setFilterDay,
+   928→  filterSubject,
+   929→  setFilterSubject,
+   930→}: {
+   931→  blocks: ScheduleBlock[];
+   932→  onBlockClick: (block: ScheduleBlock) => void;
+   933→  filterDay: string;
+   934→  setFilterDay: (d: string) => void;
+   935→  filterSubject: string;
+   936→  setFilterSubject: (s: string) => void;
+   937→}) {
+   938→  const uniqueSubjects = useMemo(() => {
+   939→    return Array.from(new Set(blocks.map((b) => b.subject))).sort();
+   940→  }, [blocks]);
+   941→
+   942→  const filteredBlocks = useMemo(() => {
+   943→    let result = [...blocks];
+   944→    if (filterDay !== 'all') {
+   945→      result = result.filter((b) => b.dayOfWeek === filterDay);
+   946→    }
+   947→    if (filterSubject !== 'all') {
+   948→      result = result.filter((b) => b.subject === filterSubject);
+   949→    }
+   950→    // Sort by day then period
+   951→    const dayOrder: Record<string, number> = { sat: 0, sun: 1, mon: 2, tue: 3, wed: 4, thu: 5 };
+   952→    result.sort((a, b) => {
+   953→      const dayDiff = (dayOrder[a.dayOfWeek] ?? 0) - (dayOrder[b.dayOfWeek] ?? 0);
+   954→      if (dayDiff !== 0) return dayDiff;
+   955→      return a.period - b.period;
+   956→    });
+   957→    return result;
+   958→  }, [blocks, filterDay, filterSubject]);
+   959→
+   960→  // Group by day
+   961→  const groupedByDay = useMemo(() => {
+   962→    const groups: Record<string, ScheduleBlock[]> = {};
+   963→    for (const b of filteredBlocks) {
+   964→      const dayLabel = getDayLabel(b.dayOfWeek);
+   965→      if (!groups[dayLabel]) groups[dayLabel] = [];
+   966→      groups[dayLabel].push(b);
+   967→    }
+   968→    return groups;
+   969→  }, [filteredBlocks]);
+   970→
+   971→  return (
+   972→    <div className="flex flex-col gap-4">
+   973→      {/* Filters */}
+   974→      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+   975→        <div className="flex flex-col gap-2">
+   976→          <Label className="text-slate-300 text-sm">تصفية حسب اليوم</Label>
+   977→          <Select value={filterDay} onValueChange={setFilterDay}>
+   978→            <SelectTrigger className="bg-white/[0.03] border-white/[0.08] text-slate-200">
+   979→              <SelectValue />
+   980→            </SelectTrigger>
+   981→            <SelectContent>
+   982→              <SelectItem value="all">جميع الأيام</SelectItem>
+   983→              {DAYS.map((d) => (
+   984→                <SelectItem key={d.value} value={d.value}>
+   985→                  {d.label}
+   986→                </SelectItem>
+   987→              ))}
+   988→            </SelectContent>
+   989→          </Select>
+   990→        </div>
+   991→        <div className="flex flex-col gap-2">
+   992→          <Label className="text-slate-300 text-sm">تصفية حسب المادة</Label>
+   993→          <Select value={filterSubject} onValueChange={setFilterSubject}>
+   994→            <SelectTrigger className="bg-white/[0.03] border-white/[0.08] text-slate-200">
+   995→              <SelectValue />
+   996→            </SelectTrigger>
+   997→            <SelectContent>
+   998→              <SelectItem value="all">جميع المواد</SelectItem>
+   999→              {uniqueSubjects.map((s) => (
+  1000→                <SelectItem key={s} value={s}>
+  1001→                  {s}
+  1002→                </SelectItem>
+  1003→              ))}
+  1004→            </SelectContent>
+  1005→          </Select>
+  1006→        </div>
+  1007→      </div>
+  1008→
+  1009→      {/* Grouped list */}
+  1010→      <div className="flex flex-col gap-4 max-h-[600px] overflow-y-auto custom-scrollbar">
+  1011→        {Object.entries(groupedByDay).map(([dayLabel, dayBlocks]) => (
+  1012→          <div key={dayLabel}>
+  1013→            <div className="flex items-center gap-2 mb-2">
+  1014→              <CalendarRange className="h-4 w-4 text-[#D4A574]" />
+  1015→              <h3 className="text-sm font-semibold text-[#D4A574]">{dayLabel}</h3>
+  1016→              <Badge variant="outline" className="text-[10px] border-[#D4A574]/20 text-[#D4A574]">
+  1017→                {dayBlocks.length} حصة
+  1018→              </Badge>
+  1019→            </div>
+  1020→            <div className="flex flex-col gap-2">
+  1021→              {dayBlocks.map((block) => (
+  1022→                <button
+  1023→                  key={block.id}
+  1024→                  onClick={() => onBlockClick(block)}
+  1025→                  className="w-full text-right rounded-xl p-3 transition-all duration-200 hover:scale-[1.01] hover:shadow-md"
+  1026→                  style={{
+  1027→                    backgroundColor: 'rgba(255,255,255,0.02)',
+  1028→                    border: '1px solid rgba(255,255,255,0.06)',
+  1029→                  }}
+  1030→                >
+  1031→                  <div className="flex items-center justify-between gap-3">
+  1032→                    <div className="flex items-center gap-3 min-w-0 flex-1">
+  1033→                      <div
+  1034→                        className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
+  1035→                        style={{ backgroundColor: `${block.color}15` }}
+  1036→                      >
+  1037→                        <BookOpen className="h-5 w-5" style={{ color: block.color }} />
+  1038→                      </div>
+  1039→                      <div className="min-w-0 flex-1">
+  1040→                        <div className="flex items-center gap-2 mb-0.5">
+  1041→                          <span className="text-sm font-semibold text-slate-200 truncate">{block.subject}</span>
+  1042→                          <Badge
+  1043→                            variant="outline"
+  1044→                            className="text-[10px] shrink-0"
+  1045→                            style={{
+  1046→                              borderColor: `${block.color}30`,
+  1047→                              color: block.color,
+  1048→                              backgroundColor: `${block.color}10`,
+  1049→                            }}
+  1050→                          >
+  1051→                            {getPeriodTime(block.period)}
+  1052→                          </Badge>
+  1053→                        </div>
+  1054→                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+  1055→                          {block.teacherName && <span>👨‍🏫 {block.teacherName}</span>}
+  1056→                          {block.className && <span>🏫 {block.className}</span>}
+  1057→                          <span>📍 {block.room}</span>
+  1058→                        </div>
+  1059→                      </div>
+  1060→                    </div>
+  1061→                    <div className="flex items-center gap-1 shrink-0">
+  1062→                      <Eye className="h-4 w-4 text-muted-foreground/40" />
+  1063→                    </div>
+  1064→                  </div>
+  1065→                </button>
+  1066→              ))}
+  1067→            </div>
+  1068→          </div>
+  1069→        ))}
+  1070→
+  1071→        {filteredBlocks.length === 0 && (
+  1072→          <div className="flex flex-col items-center justify-center py-12">
+  1073→            <Info className="h-10 w-10 text-muted-foreground/30 mb-3" />
+  1074→            <p className="text-sm text-muted-foreground">لا توجد حصص مطابقة للتصفية</p>
+  1075→          </div>
+  1076→        )}
+  1077→      </div>
+  1078→    </div>
+  1079→  );
+  1080→}
+  1081→
+  1082→// ---------------------------------------------------------------------------
+  1083→// Main Component
+  1084→// ---------------------------------------------------------------------------
+  1085→
+  1086→export default function TimetableSection() {
+  1087→  const { scheduleBlocks, setScheduleBlocks } = useAppStore();
+  1088→
+  1089→  // View mode
+  1090→  const [viewMode, setViewMode] = useState<'week' | 'list'>('week');
+  1091→
+  1092→  // List view filters
+  1093→  const [filterDay, setFilterDay] = useState('all');
+  1094→  const [filterSubject, setFilterSubject] = useState('all');
+  1095→
+  1096→  // Dialogs
+  1097→  const [addEditOpen, setAddEditOpen] = useState(false);
+  1098→  const [viewOpen, setViewOpen] = useState(false);
+  1099→  const [deleteOpen, setDeleteOpen] = useState(false);
+  1100→  const [selectedBlock, setSelectedBlock] = useState<ScheduleBlock | null>(null);
+  1101→  const [prefillDay, setPrefillDay] = useState<DayOfWeek | undefined>();
+  1102→  const [prefillPeriod, setPrefillPeriod] = useState<number | undefined>();
+  1103→
+  1104→  // Initialize mock data
+  1105→  const initialized = useRef(false);
+  1106→  useEffect(() => {
+  1107→    if (!initialized.current && scheduleBlocks.length === 0) {
+  1108→      initialized.current = true;
+  1109→      const mock = generateMockSchedule();
+  1110→      requestAnimationFrame(() => setScheduleBlocks(mock));
+  1111→    }
+  1112→  }, []);
+  1113→
+  1114→  // Handlers
+  1115→  const handleCellClick = useCallback((day: DayOfWeek, period: number) => {
+  1116→    setPrefillDay(day);
+  1117→    setPrefillPeriod(period);
+  1118→    setSelectedBlock(null);
+  1119→    setAddEditOpen(true);
+  1120→  }, []);
+  1121→
+  1122→  const handleBlockClick = useCallback((block: ScheduleBlock) => {
+  1123→    setSelectedBlock(block);
+  1124→    setViewOpen(true);
+  1125→  }, []);
+  1126→
+  1127→  const handleEditFromView = useCallback(() => {
+  1128→    setViewOpen(false);
+  1129→    setTimeout(() => {
+  1130→      setAddEditOpen(true);
+  1131→    }, 200);
+  1132→  }, []);
+  1133→
+  1134→  const handleDeleteFromView = useCallback(() => {
+  1135→    setViewOpen(false);
+  1136→    setTimeout(() => {
+  1137→      setDeleteOpen(true);
+  1138→    }, 200);
+  1139→  }, []);
+  1140→
+  1141→  const handlePrint = useCallback(() => {
+  1142→    window.print();
+  1143→  }, []);
+  1144→
+  1145→  const handleAddManual = useCallback(() => {
+  1146→    setSelectedBlock(null);
+  1147→    setPrefillDay(undefined);
+  1148→    setPrefillPeriod(undefined);
+  1149→    setAddEditOpen(true);
+  1150→  }, []);
+  1151→
+  1152→  return (
+  1153→    <section className="flex flex-col gap-6" dir="rtl">
+  1154→      {/* Header */}
+  1155→      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+  1156→        <div className="flex items-center gap-3">
+  1157→          <div
+  1158→            className="flex items-center justify-center h-12 w-12 rounded-xl"
+  1159→            style={{ backgroundColor: 'rgba(212,165,116,0.1)' }}
+  1160→          >
+  1161→            <CalendarRange className="h-6 w-6 text-[#D4A574]" />
+  1162→          </div>
+  1163→          <div>
+  1164→            <h1 className="text-2xl font-bold text-white">الجدول الدراسي</h1>
+  1165→            <p className="text-sm text-muted-foreground">إدارة الجدول الأسبوعي للحصص الدراسية</p>
+  1166→          </div>
+  1167→        </div>
+  1168→        <div className="flex items-center gap-2 flex-wrap">
+  1169→          {/* View toggle */}
+  1170→          <div
+  1171→            className="flex items-center rounded-lg overflow-hidden"
+  1172→            style={{ border: '1px solid rgba(255,255,255,0.08)' }}
+  1173→          >
+  1174→            <button
+  1175→              onClick={() => setViewMode('week')}
+  1176→              className={cn(
+  1177→                'flex items-center gap-2 px-3 py-2 text-sm font-medium transition-all duration-200',
+  1178→                viewMode === 'week'
+  1179→                  ? 'bg-[#D4A574]/15 text-[#D4A574]'
+  1180→                  : 'text-slate-400 hover:text-slate-300 hover:bg-white/[0.03]'
+  1181→              )}
+  1182→            >
+  1183→              <LayoutGrid className="h-4 w-4" />
+  1184→              أسبوعي
+  1185→            </button>
+  1186→            <button
+  1187→              onClick={() => setViewMode('list')}
+  1188→              className={cn(
+  1189→                'flex items-center gap-2 px-3 py-2 text-sm font-medium transition-all duration-200',
+  1190→                viewMode === 'list'
+  1191→                  ? 'bg-[#D4A574]/15 text-[#D4A574]'
+  1192→                  : 'text-slate-400 hover:text-slate-300 hover:bg-white/[0.03]'
+  1193→              )}
+  1194→            >
+  1195→              <List className="h-4 w-4" />
+  1196→              قائمة
+  1197→            </button>
+  1198→          </div>
+  1199→
+  1200→          {/* Add button */}
+  1201→          <Button
+  1202→            onClick={handleAddManual}
+  1203→            className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold rounded-lg gap-2"
+  1204→          >
+  1205→            <Plus className="h-4 w-4" />
+  1206→            <span className="hidden sm:inline">إضافة حصة</span>
+  1207→          </Button>
+  1208→
+  1209→          {/* Print button */}
+  1210→          <Button
+  1211→            onClick={handlePrint}
+  1212→            variant="outline"
+  1213→            className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg gap-2"
+  1214→          >
+  1215→            <Printer className="h-4 w-4" />
+  1216→            <span className="hidden sm:inline">طباعة</span>
+  1217→          </Button>
+  1218→        </div>
+  1219→      </div>
+  1220→
+  1221→      {/* Stats Bar */}
+  1222→      <StatsBar blocks={scheduleBlocks} />
+  1223→
+  1224→      {/* Content */}
+  1225→      {viewMode === 'week' ? (
+  1226→        <WeekViewGrid
+  1227→          blocks={scheduleBlocks}
+  1228→          onCellClick={handleCellClick}
+  1229→          onBlockClick={handleBlockClick}
+  1230→        />
+  1231→      ) : (
+  1232→        <ListView
+  1233→          blocks={scheduleBlocks}
+  1234→          onBlockClick={handleBlockClick}
+  1235→          filterDay={filterDay}
+  1236→          setFilterDay={setFilterDay}
+  1237→          filterSubject={filterSubject}
+  1238→          setFilterSubject={setFilterSubject}
+  1239→        />
+  1240→      )}
+  1241→
+  1242→      {/* Empty state */}
+  1243→      {scheduleBlocks.length === 0 && (
+  1244→        <div className="flex flex-col items-center justify-center py-16 px-4">
+  1245→          <div
+  1246→            className="flex items-center justify-center h-20 w-20 rounded-2xl mb-6"
+  1247→            style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+  1248→          >
+  1249→            <CalendarRange className="h-10 w-10 text-slate-500" />
+  1250→          </div>
+  1251→          <h3 className="text-lg font-semibold text-slate-300 mb-2">
+  1252→            لا توجد حصص في الجدول
+  1253→          </h3>
+  1254→          <p className="text-sm text-muted-foreground mb-6 text-center max-w-sm">
+  1255→            ابدأ بإضافة حصص دراسية لبناء الجدول الأسبوعي
+  1256→          </p>
+  1257→          <Button
+  1258→            onClick={handleAddManual}
+  1259→            className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold gap-2 rounded-lg px-6"
+  1260→          >
+  1261→            <Plus className="h-4 w-4" />
+  1262→            إضافة حصة
+  1263→          </Button>
+  1264→        </div>
+  1265→      )}
+  1266→
+  1267→      {/* View Dialog */}
+  1268→      <Dialog open={viewOpen} onOpenChange={setViewOpen}>
+  1269→        <DialogContent
+  1270→          className="sm:max-w-lg"
+  1271→          dir="rtl"
+  1272→          style={{
+  1273→            backgroundColor: '#1A1A24',
+  1274→            border: '1px solid rgba(255,255,255,0.06)',
+  1275→          }}
+  1276→        >
+  1277→          <DialogHeader>
+  1278→            <DialogTitle className="text-white text-xl flex items-center gap-2">
+  1279→              <div
+  1280→                className="h-8 w-8 rounded-lg flex items-center justify-center"
+  1281→                style={{ backgroundColor: `${selectedBlock?.color ?? '#D4A574'}20` }}
+  1282→              >
+  1283→                <BookOpen className="h-4 w-4" style={{ color: selectedBlock?.color ?? '#D4A574' }} />
+  1284→              </div>
+  1285→              {selectedBlock?.subject ?? 'تفاصيل الحصة'}
+  1286→            </DialogTitle>
+  1287→            <DialogDescription className="text-muted-foreground">
+  1288→              {selectedBlock
+  1289→                ? `${getDayLabel(selectedBlock.dayOfWeek)} — ${getPeriodLabel(selectedBlock.period)}`
+  1290→                : ''}
+  1291→            </DialogDescription>
+  1292→          </DialogHeader>
+  1293→
+  1294→          {selectedBlock && (
+  1295→            <div className="flex flex-col gap-4 mt-2">
+  1296→              <div
+  1297→                className="rounded-xl p-4"
+  1298→                style={{
+  1299→                  backgroundColor: 'rgba(255,255,255,0.02)',
+  1300→                  border: '1px solid rgba(255,255,255,0.04)',
+  1301→                }}
+  1302→              >
+  1303→                <div className="grid grid-cols-1 gap-3">
+  1304→                  {/* Subject with color badge */}
+  1305→                  <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04]">
+  1306→                    <div className="flex items-center gap-3">
+  1307→                      <div
+  1308→                        className="flex items-center justify-center h-8 w-8 rounded-lg"
+  1309→                        style={{ backgroundColor: `${selectedBlock.color}15` }}
+  1310→                      >
+  1311→                        <BookOpen className="h-4 w-4" style={{ color: selectedBlock.color }} />
+  1312→                      </div>
+  1313→                      <span className="text-sm text-muted-foreground">المادة</span>
+  1314→                    </div>
+  1315→                    <div className="flex items-center gap-2">
+  1316→                      <div className="h-3 w-3 rounded-full" style={{ backgroundColor: selectedBlock.color }} />
+  1317→                      <span className="text-sm font-medium text-slate-200">{selectedBlock.subject}</span>
+  1318→                    </div>
+  1319→                  </div>
+  1320→
+  1321→                  {/* Day */}
+  1322→                  <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04]">
+  1323→                    <div className="flex items-center gap-3">
+  1324→                      <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#60A5FA]/10">
+  1325→                        <CalendarRange className="h-4 w-4 text-[#60A5FA]" />
+  1326→                      </div>
+  1327→                      <span className="text-sm text-muted-foreground">اليوم</span>
+  1328→                    </div>
+  1329→                    <span className="text-sm font-medium text-slate-200">{getDayLabel(selectedBlock.dayOfWeek)}</span>
+  1330→                  </div>
+  1331→
+  1332→                  {/* Period */}
+  1333→                  <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04]">
+  1334→                    <div className="flex items-center gap-3">
+  1335→                      <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#34D399]/10">
+  1336→                        <Clock className="h-4 w-4 text-[#34D399]" />
+  1337→                      </div>
+  1338→                      <span className="text-sm text-muted-foreground">الحصة</span>
+  1339→                    </div>
+  1340→                    <span className="text-sm font-medium text-slate-200">{getPeriodLabel(selectedBlock.period)}</span>
+  1341→                  </div>
+  1342→
+  1343→                  {/* Teacher */}
+  1344→                  <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04]">
+  1345→                    <div className="flex items-center gap-3">
+  1346→                      <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#A78BFA]/10">
+  1347→                        <User className="h-4 w-4 text-[#A78BFA]" />
+  1348→                      </div>
+  1349→                      <span className="text-sm text-muted-foreground">المعلم</span>
+  1350→                    </div>
+  1351→                    <span className="text-sm font-medium text-slate-200">{selectedBlock.teacherName ?? '—'}</span>
+  1352→                  </div>
+  1353→
+  1354→                  {/* Class */}
+  1355→                  <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04]">
+  1356→                    <div className="flex items-center gap-3">
+  1357→                      <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#FBBF24]/10">
+  1358→                        <DoorOpen className="h-4 w-4 text-[#FBBF24]" />
+  1359→                      </div>
+  1360→                      <span className="text-sm text-muted-foreground">الفصل</span>
+  1361→                    </div>
+  1362→                    <span className="text-sm font-medium text-slate-200">{selectedBlock.className ?? '—'}</span>
+  1363→                  </div>
+  1364→
+  1365→                  {/* Room */}
+  1366→                  <div className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04]">
+  1367→                    <div className="flex items-center gap-3">
+  1368→                      <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#F472B6]/10">
+  1369→                        <DoorOpen className="h-4 w-4 text-[#F472B6]" />
+  1370→                      </div>
+  1371→                      <span className="text-sm text-muted-foreground">القاعة</span>
+  1372→                    </div>
+  1373→                    <span className="text-sm font-medium text-slate-200">{selectedBlock.room}</span>
+  1374→                  </div>
+  1375→
+  1376→                  {/* Time */}
+  1377→                  <div className="flex items-center justify-between gap-3 py-2">
+  1378→                    <div className="flex items-center gap-3">
+  1379→                      <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#2DD4BF]/10">
+  1380→                        <Clock className="h-4 w-4 text-[#2DD4BF]" />
+  1381→                      </div>
+  1382→                      <span className="text-sm text-muted-foreground">الوقت</span>
+  1383→                    </div>
+  1384→                    <span className="text-sm font-medium text-slate-200">
+  1385→                      {selectedBlock.startTime} — {selectedBlock.endTime}
+  1386→                    </span>
+  1387→                  </div>
+  1388→                </div>
+  1389→              </div>
+  1390→
+  1391→              {/* Notes */}
+  1392→              {selectedBlock.notes && (
+  1393→                <div
+  1394→                  className="rounded-xl p-4"
+  1395→                  style={{
+  1396→                    backgroundColor: 'rgba(255,255,255,0.02)',
+  1397→                    border: '1px solid rgba(255,255,255,0.04)',
+  1398→                  }}
+  1399→                >
+  1400→                  <h4 className="text-sm font-semibold text-slate-300 mb-2 flex items-center gap-2">
+  1401→                    <FileText className="h-4 w-4 text-[#D4A574]" />
+  1402→                    ملاحظات
+  1403→                  </h4>
+  1404→                  <p className="text-sm text-muted-foreground leading-relaxed">{selectedBlock.notes}</p>
+  1405→                </div>
+  1406→              )}
+  1407→            </div>
+  1408→          )}
+  1409→
+  1410→          <DialogFooter className="flex-row gap-3 sm:justify-start pt-2">
+  1411→            <Button
+  1412→              onClick={handleEditFromView}
+  1413→              className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold rounded-lg px-6 gap-2"
+  1414→            >
+  1415→              <Pencil className="h-4 w-4" />
+  1416→              تعديل
+  1417→            </Button>
+  1418→            <Button
+  1419→              onClick={handleDeleteFromView}
+  1420→              variant="outline"
+  1421→              className="border-rose-500/30 text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 rounded-lg px-6 gap-2"
+  1422→            >
+  1423→              <Trash2 className="h-4 w-4" />
+  1424→              حذف
+  1425→            </Button>
+  1426→            <Button
+  1427→              type="button"
+  1428→              variant="outline"
+  1429→              onClick={() => setViewOpen(false)}
+  1430→              className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-6"
+  1431→            >
+  1432→              إغلاق
+  1433→            </Button>
+  1434→          </DialogFooter>
+  1435→        </DialogContent>
+  1436→      </Dialog>
+  1437→
+  1438→      {/* Add/Edit Dialog */}
+  1439→      <AddEditBlockDialog
+  1440→        block={selectedBlock}
+  1441→        open={addEditOpen}
+  1442→        onOpenChange={setAddEditOpen}
+  1443→        defaultDay={prefillDay}
+  1444→        defaultPeriod={prefillPeriod}
+  1445→      />
+  1446→
+  1447→      {/* Delete Dialog */}
+  1448→      <DeleteBlockDialog
+  1449→        block={selectedBlock}
+  1450→        open={deleteOpen}
+  1451→        onOpenChange={setDeleteOpen}
+  1452→      />
+  1453→    </section>
+  1454→  );
+  1455→}
+  1456→

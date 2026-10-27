@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
           },
         ],
         thinking: { type: 'disabled' },
-      });
+      } as Parameters<typeof zai.chat.completions.createVision>[0]);
 
       const analysis = completion.choices[0]?.message?.content;
 
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
           },
         ],
         thinking: { type: 'disabled' },
-      });
+      } as Parameters<typeof zai.chat.completions.createVision>[0]);
 
       const analysis = completion.choices[0]?.message?.content;
 

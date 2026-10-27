@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
 أجب باللغة العربية دائماً. كن مهنياً ومفيداً. قدم إجابات منظمة ومحددة.
 إذا طُلب منك تحليل، استخدم البيانات المتاحة لتقديم رؤى عملية.`;
 
-    const messages: Array<{ role: string; content: string }> = [
+    const messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> = [
       { role: 'system', content: systemPrompt },
     ];
 
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Add current message
-    messages.push({ role: 'user', content: message });
+    messages.push({ role: 'user' as const, content: message });
 
     const completion = await zai.chat.completions.create({
       messages,

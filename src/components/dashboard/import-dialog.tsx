@@ -290,7 +290,7 @@ export default function ImportDialog({
       const end = Math.min(imported + batchSize, totalItems);
 
       for (let i = imported; i < end; i++) {
-        onImport(parseResult.data[i]);
+        onImport([parseResult.data[i]]);
       }
 
       imported = end;

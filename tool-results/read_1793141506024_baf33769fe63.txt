@@ -1,0 +1,1767 @@
+     1→'use client';
+     2→
+     3→import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+     4→import { Button } from '@/components/ui/button';
+     5→import { Badge } from '@/components/ui/badge';
+     6→import { Input } from '@/components/ui/input';
+     7→import { Textarea } from '@/components/ui/textarea';
+     8→import {
+     9→  Dialog,
+    10→  DialogContent,
+    11→  DialogHeader,
+    12→  DialogTitle,
+    13→  DialogFooter,
+    14→} from '@/components/ui/dialog';
+    15→import {
+    16→  Select,
+    17→  SelectContent,
+    18→  SelectItem,
+    19→  SelectTrigger,
+    20→  SelectValue,
+    21→} from '@/components/ui/select';
+    22→import { cn } from '@/lib/utils';
+    23→import { useAppStore } from '@/lib/store';
+    24→import type { Message } from '@/lib/types';
+    25→import { toast } from 'sonner';
+    26→import {
+    27→  MessageSquare,
+    28→  Send,
+    29→  Star,
+    30→  Archive,
+    31→  Trash2,
+    32→  Reply,
+    33→  Forward,
+    34→  Paperclip,
+    35→  Search,
+    36→  Plus,
+    37→  Mail,
+    38→  Clock,
+    39→  X,
+    40→  Inbox,
+    41→  Loader2,
+    42→} from 'lucide-react';
+    43→
+    44→/* ------------------------------------------------------------------ */
+    45→/*  Helpers                                                            */
+    46→/* ------------------------------------------------------------------ */
+    47→
+    48→const ROLE_CONFIG: Record<
+    49→  Message['senderRole'],
+    50→  { label: string; color: string; bgColor: string; gradient: string }
+    51→> = {
+    52→  admin: {
+    53→    label: 'مدير',
+    54→    color: 'text-[#D4A574]',
+    55→    bgColor: 'bg-[#D4A574]/10',
+    56→    gradient: 'linear-gradient(135deg, #D4A574, #B07D4F)',
+    57→  },
+    58→  teacher: {
+    59→    label: 'معلم',
+    60→    color: 'text-emerald-400',
+    61→    bgColor: 'bg-emerald-400/10',
+    62→    gradient: 'linear-gradient(135deg, #34d399, #059669)',
+    63→  },
+    64→  parent: {
+    65→    label: 'ولي أمر',
+    66→    color: 'text-sky-400',
+    67→    bgColor: 'bg-sky-400/10',
+    68→    gradient: 'linear-gradient(135deg, #38bdf8, #0284c7)',
+    69→  },
+    70→  student: {
+    71→    label: 'طالب',
+    72→    color: 'text-violet-400',
+    73→    bgColor: 'bg-violet-400/10',
+    74→    gradient: 'linear-gradient(135deg, #a78bfa, #7c3aed)',
+    75→  },
+    76→};
+    77→
+    78→const PRIORITY_CONFIG: Record<
+    79→  Message['priority'],
+    80→  { label: string; color: string; bgColor: string; dotColor: string }
+    81→> = {
+    82→  urgent: {
+    83→    label: 'عاجل',
+    84→    color: 'text-rose-400',
+    85→    bgColor: 'bg-rose-400/10',
+    86→    dotColor: 'bg-rose-500',
+    87→  },
+    88→  high: {
+    89→    label: 'مهم',
+    90→    color: 'text-amber-400',
+    91→    bgColor: 'bg-amber-400/10',
+    92→    dotColor: 'bg-amber-500',
+    93→  },
+    94→  normal: {
+    95→    label: 'عادي',
+    96→    color: 'text-sky-400',
+    97→    bgColor: 'bg-sky-400/10',
+    98→    dotColor: 'bg-sky-500',
+    99→  },
+   100→  low: {
+   101→    label: 'منخفض',
+   102→    color: 'text-slate-400',
+   103→    bgColor: 'bg-slate-400/10',
+   104→    dotColor: 'bg-slate-500',
+   105→  },
+   106→};
+   107→
+   108→type FilterTab = 'all' | 'unread' | 'starred' | 'sent' | 'archived';
+   109→
+   110→const FILTER_TABS: { value: FilterTab; label: string }[] = [
+   111→  { value: 'all', label: 'الكل' },
+   112→  { value: 'unread', label: 'غير مقروءة' },
+   113→  { value: 'starred', label: 'النجوم' },
+   114→  { value: 'sent', label: 'المرسلة' },
+   115→  { value: 'archived', label: 'الأرشيف' },
+   116→];
+   117→
+   118→/** Simple relative-time formatter for Arabic */
+   119→function relativeTime(dateStr: string): string {
+   120→  const now = Date.now();
+   121→  const then = new Date(dateStr).getTime();
+   122→  const diffMs = now - then;
+   123→  const seconds = Math.floor(diffMs / 1000);
+   124→  const minutes = Math.floor(seconds / 60);
+   125→  const hours = Math.floor(minutes / 60);
+   126→  const days = Math.floor(hours / 24);
+   127→
+   128→  if (seconds < 60) return 'الآن';
+   129→  if (minutes < 60) return `منذ ${minutes} دقيقة`;
+   130→  if (hours < 24) return `منذ ${hours} ساعة`;
+   131→  if (days < 7) return `منذ ${days} يوم`;
+   132→  return new Date(dateStr).toLocaleDateString('ar-EG');
+   133→}
+   134→
+   135→function getInitials(name: string): string {
+   136→  const parts = name.trim().split(/\s+/);
+   137→  if (parts.length >= 2) return parts[0][0] + parts[1][0];
+   138→  return parts[0].slice(0, 2);
+   139→}
+   140→
+   141→/* ------------------------------------------------------------------ */
+   142→/*  Recipient options for compose dialog                                */
+   143→/* ------------------------------------------------------------------ */
+   144→const RECIPIENT_OPTIONS = [
+   145→  { id: 'r1', name: 'أحمد الغامدي', role: 'teacher' },
+   146→  { id: 'r2', name: 'سارة الأحمدي', role: 'teacher' },
+   147→  { id: 'r3', name: 'خالد العتيبي', role: 'admin' },
+   148→  { id: 'r4', name: 'فاطمة الزهراني', role: 'parent' },
+   149→  { id: 'r5', name: 'محمد القحطاني', role: 'parent' },
+   150→  { id: 'r6', name: 'نورة السبيعي', role: 'teacher' },
+   151→  { id: 'r7', name: 'عبدالله المطيري', role: 'parent' },
+   152→  { id: 'r8', name: 'مريم الحربي', role: 'parent' },
+   153→];
+   154→
+   155→const GROUP_RECIPIENT_OPTIONS = [
+   156→  { id: 'all-teachers', name: 'جميع المعلمين', role: 'teacher' as const, isGroup: true },
+   157→  { id: 'all-parents', name: 'جميع أولياء الأمور', role: 'parent' as const, isGroup: true },
+   158→  { id: 'class-1a', name: 'فصل الأول أ', role: 'student' as const, isGroup: true },
+   159→  { id: 'class-1b', name: 'فصل الأول ب', role: 'student' as const, isGroup: true },
+   160→  { id: 'class-2a', name: 'فصل الثاني أ', role: 'student' as const, isGroup: true },
+   161→  { id: 'class-3a', name: 'فصل الثالث أ', role: 'student' as const, isGroup: true },
+   162→  { id: 'class-4a', name: 'فصل الرابع أ', role: 'student' as const, isGroup: true },
+   163→  { id: 'class-5a', name: 'فصل الخامس أ', role: 'student' as const, isGroup: true },
+   164→];
+   165→
+   166→type RecipientOption = {
+   167→  id: string;
+   168→  name: string;
+   169→  role: string;
+   170→  isGroup?: boolean;
+   171→};
+   172→
+   173→function formatFullDate(dateStr: string): string {
+   174→  const d = new Date(dateStr);
+   175→  return d.toLocaleDateString('ar-SA', {
+   176→    weekday: 'long',
+   177→    year: 'numeric',
+   178→    month: 'long',
+   179→    day: 'numeric',
+   180→    hour: '2-digit',
+   181→    minute: '2-digit',
+   182→  });
+   183→}
+   184→
+   185→/* ------------------------------------------------------------------ */
+   186→/*  Mock data                                                          */
+   187→/* ------------------------------------------------------------------ */
+   188→const MOCK_MESSAGES: Message[] = [
+   189→  {
+   190→    id: 'msg1',
+   191→    senderId: 'r4',
+   192→    senderName: 'فاطمة الزهراني',
+   193→    senderRole: 'parent',
+   194→    recipientId: 'admin',
+   195→    recipientName: 'المدير',
+   196→    recipientRole: 'admin',
+   197→    subject: 'طلب موعد مع المعلمة',
+   198→    content: 'السلام عليكم ورحمة الله وبركاته،\n\nأود طلب موعد مع معلمة الرياضيات الأستاذة سارة لمناقشة مستوى ابني أحمد في المادة. لاحظت تراجعاً في درجاته الأخيرة وأريد التعرف على سبل المساعدة.\n\nهل يمكن تحديد موعد مناسب خلال الأسبوع القادم؟\n\nشكراً لكم.',
+   199→    isRead: false,
+   200→    isStarred: false,
+   201→    hasAttachment: false,
+   202→    priority: 'normal',
+   203→    parentId: null,
+   204→    isArchived: false,
+   205→    createdAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+   206→  },
+   207→  {
+   208→    id: 'msg2',
+   209→    senderId: 'r1',
+   210→    senderName: 'أحمد الغامدي',
+   211→    senderRole: 'teacher',
+   212→    recipientId: 'admin',
+   213→    recipientName: 'المدير',
+   214→    recipientRole: 'admin',
+   215→    subject: 'تقرير الحضور الأسبوعي',
+   216→    content: 'السلام عليكم،\n\nمرفق تقرير الحضور الأسبوعي لفصل الصف الثالث:\n\n- إجمالي الطلاب: 32 طالب\n- نسبة الحضور: 87%\n- حالات الغياب المتكرر: 3 طلاب\n- حالات التأخير: 5 طلاب\n\nأرجو مراجعة حالات الغياب المتكرر واتخاذ الإجراءات المناسبة.\n\nمع خالص التقدير.',
+   217→    isRead: false,
+   218→    isStarred: true,
+   219→    hasAttachment: true,
+   220→    priority: 'high',
+   221→    parentId: null,
+   222→    isArchived: false,
+   223→    createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+   224→  },
+   225→  {
+   226→    id: 'msg3',
+   227→    senderId: 'r5',
+   228→    senderName: 'محمد القحطاني',
+   229→    senderRole: 'parent',
+   230→    recipientId: 'admin',
+   231→    recipientName: 'المدير',
+   232→    recipientRole: 'admin',
+   233→    subject: 'استفسار عن موعد التسجيل',
+   234→    content: 'السلام عليكم،\n\nأريد الاستفسار عن موعد بدء التسجيل للفصل الدراسي القادم وهل هناك أوراق مطلوبة إضافية هذا العام؟\n\nجزاكم الله خيراً.',
+   235→    isRead: false,
+   236→    isStarred: false,
+   237→    hasAttachment: false,
+   238→    priority: 'normal',
+   239→    parentId: null,
+   240→    isArchived: false,
+   241→    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+   242→  },
+   243→  {
+   244→    id: 'msg4',
+   245→    senderId: 'r3',
+   246→    senderName: 'خالد العتيبي',
+   247→    senderRole: 'admin',
+   248→    recipientId: 'all-teachers',
+   249→    recipientName: 'جميع المعلمين',
+   250→    recipientRole: 'teacher',
+   251→    subject: 'اجتماع المعلمين الأسبوعي',
+   252→    content: 'بسم الله الرحمن الرحيم،\n\nأود تذكيركم بأن اجتماع المعلمين الأسبوعي سيُعقد يوم الأربعاء القادم في تمام الساعة العاشرة صباحاً في قاعة الاجتماعات الكبرى.\n\nجدول الأعمال:\n1. مراجعة نتائج الاختبارات النهائية\n2. مناقشة الخطة الدراسية الجديدة\n3. ترتيبات نهاية العام الدراسي\n\nالحضور إلزامي.\n\nمع التحية،\nخالد العتيبي - مدير المدرسة',
+   253→    isRead: true,
+   254→    isStarred: false,
+   255→    hasAttachment: false,
+   256→    priority: 'high',
+   257→    parentId: null,
+   258→    isArchived: false,
+   259→    createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+   260→  },
+   261→  {
+   262→    id: 'msg5',
+   263→    senderId: 'r2',
+   264→    senderName: 'سارة الأحمدي',
+   265→    senderRole: 'teacher',
+   266→    recipientId: 'admin',
+   267→    recipientName: 'المدير',
+   268→    recipientRole: 'admin',
+   269→    subject: 'طلب تجهيزات للمعمل',
+   270→    content: 'السلام عليكم ورحمة الله،\n\nأحتاج إلى تجهيزات إضافية لمعمل العلوم لتنفيذ التجارب العملية المقررة:\n\n1. 10 مجموعات أدوات كهربائية\n2. مواد كيميائية للتجارب (قائمة مرفقة)\n3. مجاهر إضافية\n4. شاشات عرض\n\nالميزانية المقدرة: ٥,٠٠٠ ريال\n\nأرجو الموافقة في أقرب وقت ممكن.\n\nجزاكم الله خيراً.',
+   271→    isRead: true,
+   272→    isStarred: true,
+   273→    hasAttachment: true,
+   274→    priority: 'normal',
+   275→    parentId: null,
+   276→    isArchived: false,
+   277→    createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+   278→  },
+   279→  {
+   280→    id: 'msg6',
+   281→    senderId: 'r7',
+   282→    senderName: 'عبدالله المطيري',
+   283→    senderRole: 'parent',
+   284→    recipientId: 'admin',
+   285→    recipientName: 'المدير',
+   286→    recipientRole: 'admin',
+   287→    subject: 'شكوى حول النقل المدرسي',
+   288→    content: 'السلام عليكم،\n\nأود تقديم شكوى بخصوص الحافل المدرسي رقم ٣. الحافل يتأخر يومياً عن موعده بحوالي ١٥ دقيقة مما يتسبب في تأخير ابنتي عن بداية الحصة الأولى.\n\nأرجو اتخاذ الإجراءات اللازمة لحل هذه المشكلة.\n\nمع التقدير.',
+   289→    isRead: false,
+   290→    isStarred: false,
+   291→    hasAttachment: false,
+   292→    priority: 'urgent',
+   293→    parentId: null,
+   294→    isArchived: false,
+   295→    createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+   296→  },
+   297→  {
+   298→    id: 'msg7',
+   299→    senderId: 'admin',
+   300→    senderName: 'المدير',
+   301→    senderRole: 'admin',
+   302→    recipientId: 'r4',
+   303→    recipientName: 'فاطمة الزهراني',
+   304→    recipientRole: 'parent',
+   305→    subject: 'رد: طلب موعد مع المعلمة',
+   306→    content: 'وعليكم السلام ورحمة الله وبركاته،\n\nأهلاً بك أخت فاطمة،\n\nتم تنسيق موعد مع الأستاذة سارة يوم الثلاثاء القادم في الساعة الحادية عشرة صباحاً. يرجى الحضور إلى مكتب المرشد الطلابي.\n\nمع خالص التحية.',
+   307→    isRead: true,
+   308→    isStarred: false,
+   309→    hasAttachment: false,
+   310→    priority: 'normal',
+   311→    parentId: 'msg1',
+   312→    createdAt: new Date(Date.now() - 50 * 60 * 1000).toISOString(),
+   313→  },
+   314→  {
+   315→    id: 'msg8',
+   316→    senderId: 'r6',
+   317→    senderName: 'نورة السبيعي',
+   318→    senderRole: 'teacher',
+   319→    recipientId: 'admin',
+   320→    recipientName: 'المدير',
+   321→    recipientRole: 'admin',
+   322→    subject: 'اقتراح نشاط رياضي',
+   323→    content: 'السلام عليكم،\n\nأقترح تنظيم بطولة رياضية بين الصفوف في نهاية الفصل الدراسي تتضمن:\n\n- كرة قدم\n- كرة سلة\n- سباق تتابع\n- مسابقات قفز\n\nهذا سيعزز الروح التنافسية بين الطلاب ويحسن بيئة المدرسة.\n\nما رأيكم؟',
+   324→    isRead: true,
+   325→    isStarred: false,
+   326→    hasAttachment: false,
+   327→    priority: 'low',
+   328→    parentId: null,
+   329→    isArchived: false,
+   330→    createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
+   331→  },
+   332→  {
+   333→    id: 'msg9',
+   334→    senderId: 'r8',
+   335→    senderName: 'مريم الحربي',
+   336→    senderRole: 'parent',
+   337→    recipientId: 'admin',
+   338→    recipientName: 'المدير',
+   339→    recipientRole: 'admin',
+   340→    subject: 'استفسار عن النتائج',
+   341→    content: 'السلام عليكم،\n\nمتى ستكون نتائج اختبارات نهاية الفصل متاحة؟ وما هي طريقة الاطلاع عليها؟\n\nجزاكم الله خيراً.',
+   342→    isRead: false,
+   343→    isStarred: false,
+   344→    hasAttachment: false,
+   345→    priority: 'normal',
+   346→    parentId: null,
+   347→    isArchived: false,
+   348→    createdAt: new Date(Date.now() - 10 * 60 * 60 * 1000).toISOString(),
+   349→  },
+   350→  {
+   351→    id: 'msg10',
+   352→    senderId: 'admin',
+   353→    senderName: 'المدير',
+   354→    senderRole: 'admin',
+   355→    recipientId: 'r1',
+   356→    recipientName: 'أحمد الغامدي',
+   357→    recipientRole: 'teacher',
+   358→    subject: 'تقييم الأداء السنوي',
+   359→    content: 'السلام عليكم ورحمة الله،\n\nنود إبلاغك بأنه تم الانتهاء من تقييم الأداء السنوي ونتائجك ممتازة. شكراً على مجهوداتك الكبيرة خلال العام الدراسي.\n\nسيتم توزيع شهادات التقدير يوم الأحد القادم.\n\nمع التحية والتقدير.',
+   360→    isRead: true,
+   361→    isStarred: true,
+   362→    hasAttachment: false,
+   363→    priority: 'normal',
+   364→    parentId: null,
+   365→    isArchived: false,
+   366→    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+   367→  },
+   368→  {
+   369→    id: 'msg11',
+   370→    senderId: 'r1',
+   371→    senderName: 'أحمد الغامدي',
+   372→    senderRole: 'teacher',
+   373→    recipientId: 'admin',
+   374→    recipientName: 'المدير',
+   375→    recipientRole: 'admin',
+   376→    subject: 'مشكلة في جهاز العرض',
+   377→    content: 'السلام عليكم،\n\nجهاز العرض في قاعة الصف الرابع لا يعمل بشكل صحيح. الشاشة تومض بشكل متكرر مما يؤثر على سير الدروس.\n\nأرجو إرسال فريق الصيانة في أقرب فرصة.\n\nشكراً.',
+   378→    isRead: true,
+   379→    isStarred: false,
+   380→    hasAttachment: false,
+   381→    priority: 'high',
+   382→    parentId: null,
+   383→    isArchived: false,
+   384→    createdAt: new Date(Date.now() - 1.5 * 24 * 60 * 60 * 1000).toISOString(),
+   385→  },
+   386→  {
+   387→    id: 'msg12',
+   388→    senderId: 'r4',
+   389→    senderName: 'فاطمة الزهراني',
+   390→    senderRole: 'parent',
+   391→    recipientId: 'admin',
+   392→    recipientName: 'المدير',
+   393→    recipientRole: 'admin',
+   394→    subject: 'شكر وتقدير',
+   395→    content: 'السلام عليكم ورحمة الله،\n\nأتقدم بشكري الجزيل لكم وللمعلمين على الجهود المبذولة في توجيه أبنائنا. لقد لاحظت تحسناً واضحاً في مستوى ابني منذ بداية الفصل.\n\nجزاكم الله خيراً ونفع بعلمكم.',
+   396→    isRead: true,
+   397→    isStarred: false,
+   398→    hasAttachment: false,
+   399→    priority: 'low',
+   400→    parentId: null,
+   401→    isArchived: false,
+   402→    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+   403→  },
+   404→  {
+   405→    id: 'msg13',
+   406→    senderId: 'admin',
+   407→    senderName: 'المدير',
+   408→    senderRole: 'admin',
+   409→    recipientId: 'r7',
+   410→    recipientName: 'عبدالله المطيري',
+   411→    recipientRole: 'parent',
+   412→    subject: 'رد: شكوى حول النقل المدرسي',
+   413→    content: 'وعليكم السلام ورحمة الله،\n\nنشكرك على تواصلك معنا. تم إحالة الشكوى لشركة النقل وسيتم حل المشكلة خلال يومين إن شاء الله.\n\nسنقوم بإبلاغك بالتحديثات.\n\nمع التقدير.',
+   414→    isRead: true,
+   415→    isStarred: false,
+   416→    hasAttachment: false,
+   417→    priority: 'urgent',
+   418→    parentId: 'msg6',
+   419→    createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+   420→  },
+   421→  {
+   422→    id: 'msg14',
+   423→    senderId: 'r5',
+   424→    senderName: 'محمد القحطاني',
+   425→    senderRole: 'parent',
+   426→    recipientId: 'admin',
+   427→    recipientName: 'المدير',
+   428→    recipientRole: 'admin',
+   429→    subject: 'طلب إعفاء من الرسوم',
+   430→    content: 'السلام عليكم،\n\nأود التقدم بطلب إعفاء من الرسوم الدراسية لبنتي لظروف مالية خاصة. مرفق المستندات المطلوبة.\n\nأرجو النظر في الطلب.\n\nجزاكم الله خيراً.',
+   431→    isRead: false,
+   432→    isStarred: false,
+   433→    hasAttachment: true,
+   434→    priority: 'high',
+   435→    parentId: null,
+   436→    isArchived: false,
+   437→    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+   438→  },
+   439→  {
+   440→    id: 'msg15',
+   441→    senderId: 'admin',
+   442→    senderName: 'المدير',
+   443→    senderRole: 'admin',
+   444→    recipientId: 'r2',
+   445→    recipientName: 'سارة الأحمدي',
+   446→    recipientRole: 'teacher',
+   447→    subject: 'موافقة على طلب التجهيزات',
+   448→    content: 'السلام عليكم ورحمة الله،\n\nتمت الموافقة على طلب التجهيزات للمعمل بقيمة ٤,٥٠٠ ريال. يرجى التنسيق مع قسم المشتريات لبدء الإجراءات.\n\nمع التحية.',
+   449→    isRead: true,
+   450→    isStarred: false,
+   451→    hasAttachment: false,
+   452→    priority: 'normal',
+   453→    parentId: 'msg5',
+   454→    createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+   455→  },
+   456→  {
+   457→    id: 'msg16',
+   458→    senderId: 'r6',
+   459→    senderName: 'نورة السبيعي',
+   460→    senderRole: 'teacher',
+   461→    recipientId: 'admin',
+   462→    recipientName: 'المدير',
+   463→    recipientRole: 'admin',
+   464→    subject: 'تقرير الزيارة الميدانية',
+   465→    content: 'السلام عليكم،\n\nمرفق تقرير الزيارة الميدانية لمتحف العلوم والتقنية التي نظمناها لطلاب الصف الخامس يوم الخميس الماضي.\n\nعدد المشاركين: 28 طالب\nالمدة: 4 ساعات\nالتكلفة الإجمالية: 1,400 ريال\n\nالتغذية الراجعة من الطلاب كانت إيجابية جداً.\n\nمع خالص التقدير.',
+   466→    isRead: true,
+   467→    isStarred: true,
+   468→    hasAttachment: true,
+   469→    priority: 'normal',
+   470→    parentId: null,
+   471→    isArchived: false,
+   472→    createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+   473→  },
+   474→];
+   475→
+   476→/* ------------------------------------------------------------------ */
+   477→/*  Stats card                                                         */
+   478→/* ------------------------------------------------------------------ */
+   479→function StatsCard({
+   480→  icon: Icon,
+   481→  label,
+   482→  value,
+   483→  subtext,
+   484→  glowColor,
+   485→}: {
+   486→  icon: React.ElementType;
+   487→  label: string;
+   488→  value: string | number;
+   489→  subtext?: string;
+   490→  glowColor: string;
+   491→}) {
+   492→  return (
+   493→    <div
+   494→      className="glass-card rounded-xl p-5 relative overflow-hidden animate-fade-in-up"
+   495→      style={{ animationDelay: '0ms' }}
+   496→    >
+   497→      {/* Glow effect */}
+   498→      <div
+   499→        className="absolute -top-6 -left-6 w-24 h-24 rounded-full blur-3xl opacity-20 pointer-events-none"
+   500→        style={{ background: glowColor }}
+   501→      />
+   502→      <div className="relative flex items-center gap-4">
+   503→        <div
+   504→          className="flex items-center justify-center h-12 w-12 rounded-xl shrink-0"
+   505→          style={{ background: `${glowColor}15` }}
+   506→        >
+   507→          <Icon className="h-5 w-5" style={{ color: glowColor }} />
+   508→        </div>
+   509→        <div className="flex-1 min-w-0">
+   510→          <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
+   511→          <p className="text-2xl font-bold text-white tabular-nums">{value}</p>
+   512→          {subtext && (
+   513→            <p className="text-[11px] text-muted-foreground mt-0.5">{subtext}</p>
+   514→          )}
+   515→        </div>
+   516→      </div>
+   517→    </div>
+   518→  );
+   519→}
+   520→
+   521→/* ------------------------------------------------------------------ */
+   522→/*  Message list item                                                  */
+   523→/* ------------------------------------------------------------------ */
+   524→function MessageListItem({
+   525→  message,
+   526→  isSelected,
+   527→  onSelect,
+   528→  onStarToggle,
+   529→  staggerIndex,
+   530→}: {
+   531→  message: Message;
+   532→  isSelected: boolean;
+   533→  onSelect: () => void;
+   534→  onStarToggle: (e: React.MouseEvent) => void;
+   535→  staggerIndex: number;
+   536→}) {
+   537→  const roleConfig = ROLE_CONFIG[message.senderRole];
+   538→  const priorityConfig = PRIORITY_CONFIG[message.priority];
+   539→  const isUnread = !message.isRead;
+   540→
+   541→  return (
+   542→    <button
+   543→      type="button"
+   544→      onClick={onSelect}
+   545→      className={cn(
+   546→        'w-full text-right rounded-xl p-3.5 transition-all duration-200 group relative animate-fade-in-up',
+   547→        isSelected
+   548→          ? 'bg-[rgba(212,165,116,0.08)]'
+   549→          : 'hover:bg-[rgba(212,165,116,0.04)]',
+   550→      )}
+   551→      style={{
+   552→        border: isSelected
+   553→          ? '1px solid rgba(212,165,116,0.25)'
+   554→          : '1px solid rgba(255,255,255,0.04)',
+   555→        borderRight: isUnread
+   556→          ? '3px solid #D4A574'
+   557→          : isSelected
+   558→            ? '3px solid rgba(212,165,116,0.3)'
+   559→            : '3px solid transparent',
+   560→        animationDelay: `${staggerIndex * 40}ms`,
+   561→      }}
+   562→      onMouseEnter={(e) => {
+   563→        if (!isSelected) {
+   564→          e.currentTarget.style.backgroundColor = 'rgba(212,165,116,0.06)';
+   565→        }
+   566→      }}
+   567→      onMouseLeave={(e) => {
+   568→        if (!isSelected) {
+   569→          e.currentTarget.style.backgroundColor = 'transparent';
+   570→        }
+   571→      }}
+   572→    >
+   573→      <div className="flex items-start gap-3">
+   574→        {/* Avatar */}
+   575→        <div
+   576→          className="shrink-0 h-10 w-10 rounded-full flex items-center justify-center text-white text-xs font-bold mt-0.5 shadow-md"
+   577→          style={{ background: roleConfig.gradient }}
+   578→        >
+   579→          {getInitials(message.senderName)}
+   580→        </div>
+   581→
+   582→        {/* Content */}
+   583→        <div className="flex-1 min-w-0 space-y-1">
+   584→          <div className="flex items-center justify-between gap-2">
+   585→            <span
+   586→              className={cn(
+   587→                'text-sm truncate',
+   588→                isUnread ? 'font-bold text-white' : 'font-medium text-slate-300',
+   589→              )}
+   590→            >
+   591→              {message.senderName}
+   592→            </span>
+   593→            <div className="flex items-center gap-1.5 shrink-0">
+   594→              {message.priority === 'urgent' && (
+   595→                <span className="status-dot h-2 w-2 rounded-full bg-rose-500" />
+   596→              )}
+   597→              {message.hasAttachment && (
+   598→                <Paperclip className="h-3 w-3 text-slate-500" />
+   599→              )}
+   600→            </div>
+   601→          </div>
+   602→
+   603→          <p
+   604→            className={cn(
+   605→              'text-xs truncate',
+   606→              isUnread ? 'text-slate-200 font-medium' : 'text-slate-400',
+   607→            )}
+   608→          >
+   609→            {message.subject}
+   610→          </p>
+   611→
+   612→          <div className="flex items-center justify-between gap-2">
+   613→            <p className="text-[11px] text-slate-500 truncate flex-1">
+   614→              {message.content.slice(0, 50)}...
+   615→            </p>
+   616→            <span className="text-[10px] text-slate-600 shrink-0 tabular-nums">
+   617→              {relativeTime(message.createdAt)}
+   618→            </span>
+   619→          </div>
+   620→        </div>
+   621→
+   622→        {/* Star toggle */}
+   623→        <button
+   624→          type="button"
+   625→          onClick={onStarToggle}
+   626→          className={cn(
+   627→            'shrink-0 mt-1 transition-all duration-200 active:scale-75',
+   628→            message.isStarred
+   629→              ? 'text-[#D4A574] hover:text-[#E8C9A8]'
+   630→              : 'text-slate-600 hover:text-slate-400',
+   631→          )}
+   632→          style={{
+   633→            transform: message.isStarred ? 'scale(1.1)' : 'scale(1)',
+   634→          }}
+   635→        >
+   636→          {message.isStarred ? (
+   637→            <Star className="h-4 w-4 fill-[#D4A574]" />
+   638→          ) : (
+   639→            <Star className="h-4 w-4" />
+   640→          )}
+   641→        </button>
+   642→      </div>
+   643→    </button>
+   644→  );
+   645→}
+   646→
+   647→/* ------------------------------------------------------------------ */
+   648→/*  Message detail view                                                */
+   649→/* ------------------------------------------------------------------ */
+   650→function MessageDetail({
+   651→  message,
+   652→  threadMessages,
+   653→  onReply,
+   654→  onDelete,
+   655→  onArchive,
+   656→  onForward,
+   657→  onReplyViaDialog,
+   658→  onStarToggle,
+   659→}: {
+   660→  message: Message;
+   661→  threadMessages: Message[];
+   662→  onReply: (content: string) => void;
+   663→  onDelete: () => void;
+   664→  onArchive: () => void;
+   665→  onForward: () => void;
+   666→  onReplyViaDialog: () => void;
+   667→  onStarToggle: () => void;
+   668→}) {
+   669→  const [replyText, setReplyText] = useState('');
+   670→  const senderConfig = ROLE_CONFIG[message.senderRole];
+   671→  const recipientConfig = ROLE_CONFIG[message.recipientRole];
+   672→  const priorityConfig = PRIORITY_CONFIG[message.priority];
+   673→
+   674→  const handleSendReply = useCallback(() => {
+   675→    if (replyText.trim()) {
+   676→      onReply(replyText.trim());
+   677→      setReplyText('');
+   678→    }
+   679→  }, [replyText, onReply]);
+   680→
+   681→  return (
+   682→    <div className="flex flex-col h-full animate-fade-in-up">
+   683→      {/* Header with action buttons row */}
+   684→      <div className="flex-shrink-0 p-5 border-b border-white/[0.06]">
+   685→        {/* Top action bar */}
+   686→        <div className="flex items-center justify-between gap-2 mb-4">
+   687→          <div className="flex items-center gap-1.5">
+   688→            <Button
+   689→              variant="outline"
+   690→              size="sm"
+   691→              className="gap-1.5 text-xs text-slate-300 border-white/[0.08] hover:bg-[#D4A574]/10 hover:text-[#D4A574] hover:border-[#D4A574]/40 rounded-lg"
+   692→              onClick={onReplyViaDialog}
+   693→            >
+   694→              <Reply className="h-3.5 w-3.5" />
+   695→              رد
+   696→            </Button>
+   697→            <Button
+   698→              variant="outline"
+   699→              size="sm"
+   700→              className="gap-1.5 text-xs text-slate-300 border-white/[0.08] hover:bg-white/[0.05] hover:text-slate-200 rounded-lg"
+   701→              onClick={onForward}
+   702→            >
+   703→              <Forward className="h-3.5 w-3.5" />
+   704→              إعادة توجيه
+   705→            </Button>
+   706→            <Button
+   707→              variant="outline"
+   708→              size="sm"
+   709→              className="gap-1.5 text-xs text-slate-300 border-white/[0.08] hover:bg-white/[0.05] hover:text-slate-200 rounded-lg"
+   710→              onClick={onArchive}
+   711→            >
+   712→              <Archive className="h-3.5 w-3.5" />
+   713→              أرشفة
+   714→            </Button>
+   715→            <Button
+   716→              variant="outline"
+   717→              size="sm"
+   718→              className="gap-1.5 text-xs text-red-400 border-red-400/20 hover:bg-red-400/10 hover:text-red-300 hover:border-red-400/40 rounded-lg"
+   719→              onClick={onDelete}
+   720→            >
+   721→              <Trash2 className="h-3.5 w-3.5" />
+   722→              حذف
+   723→            </Button>
+   724→          </div>
+   725→          <div className="flex items-center gap-1">
+   726→            <button
+   727→              onClick={onStarToggle}
+   728→              className={cn(
+   729→                'p-2 rounded-lg transition-all duration-200',
+   730→                message.isStarred
+   731→                  ? 'text-[#D4A574] hover:bg-[#D4A574]/10'
+   732→                  : 'text-slate-500 hover:text-slate-300 hover:bg-white/[0.05]',
+   733→              )}
+   734→              title={message.isStarred ? 'إزالة النجمة' : 'تمييز بنجمة'}
+   735→            >
+   736→              {message.isStarred ? (
+   737→                <Star className="h-4 w-4 fill-[#D4A574]" />
+   738→              ) : (
+   739→                <Star className="h-4 w-4" />
+   740→              )}
+   741→            </button>
+   742→          </div>
+   743→        </div>
+   744→
+   745→        {/* Sender info */}
+   746→        <div className="flex items-start gap-3 min-w-0">
+   747→          {/* Avatar */}
+   748→          <div
+   749→            className="shrink-0 h-12 w-12 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-lg mt-0.5"
+   750→            style={{ background: senderConfig.gradient }}
+   751→          >
+   752→            {getInitials(message.senderName)}
+   753→          </div>
+   754→          <div className="min-w-0 space-y-1 flex-1">
+   755→            <div className="flex items-center gap-2 flex-wrap">
+   756→              <span className="font-bold text-white text-base">
+   757→                {message.senderName}
+   758→              </span>
+   759→              <span
+   760→                className={cn(
+   761→                  'text-[11px] font-medium px-2 py-0.5 rounded-full',
+   762→                  senderConfig.color,
+   763→                  senderConfig.bgColor,
+   764→                )}
+   765→              >
+   766→                {senderConfig.label}
+   767→              </span>
+   768→            </div>
+   769→            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+   770→              <span>إلى: {message.recipientName}</span>
+   771→              <span
+   772→                className={cn(
+   773→                  'text-[10px] font-medium px-1.5 py-0 rounded-full',
+   774→                  recipientConfig.color,
+   775→                  recipientConfig.bgColor,
+   776→                )}
+   777→              >
+   778→                {recipientConfig.label}
+   779→              </span>
+   780→            </div>
+   781→          </div>
+   782→        </div>
+   783→
+   784→        {/* Subject + metadata row */}
+   785→        <div className="mt-3 flex items-start justify-between gap-3">
+   786→          <h2 className="text-lg font-bold text-white leading-snug">{message.subject}</h2>
+   787→          <div className="flex items-center gap-2 shrink-0 mt-1">
+   788→            <span
+   789→              className={cn(
+   790→                'text-[11px] font-medium px-2 py-0.5 rounded-full',
+   791→                priorityConfig.color,
+   792→                priorityConfig.bgColor,
+   793→              )}
+   794→            >
+   795→              {priorityConfig.label}
+   796→            </span>
+   797→            {message.hasAttachment && (
+   798→              <span className="flex items-center gap-1 text-[11px] text-slate-500">
+   799→                <Paperclip className="h-3 w-3" />
+   800→                مرفقات
+   801→              </span>
+   802→            )}
+   803→          </div>
+   804→        </div>
+   805→
+   806→        {/* Date/time */}
+   807→        <div className="mt-1.5 flex items-center gap-1 text-[11px] text-slate-500">
+   808→          <Clock className="h-3 w-3" />
+   809→          <span>{formatFullDate(message.createdAt)}</span>
+   810→          <span className="text-slate-700 mr-1">({relativeTime(message.createdAt)})</span>
+   811→        </div>
+   812→      </div>
+   813→
+   814→      {/* Thread + Content */}
+   815→      <div className="flex-1 overflow-y-auto p-5 space-y-4 sidebar-scroll">
+   816→        {/* Thread messages (replies before this message) */}
+   817→        {threadMessages.length > 0 && (
+   818→          <div className="space-y-3 mb-4">
+   819→            {threadMessages
+   820→              .filter((m) => m.createdAt < message.createdAt)
+   821→              .map((m) => {
+   822→                const mConfig = ROLE_CONFIG[m.senderRole];
+   823→                return (
+   824→                  <div
+   825→                    key={m.id}
+   826→                    className="rounded-lg p-3 text-sm"
+   827→                    style={{
+   828→                      backgroundColor: 'rgba(255,255,255,0.02)',
+   829→                      border: '1px solid rgba(255,255,255,0.04)',
+   830→                    }}
+   831→                  >
+   832→                    <div className="flex items-center gap-2 mb-2">
+   833→                      <span className="text-xs font-medium text-slate-300">
+   834→                        {m.senderName}
+   835→                      </span>
+   836→                      <span
+   837→                        className={cn(
+   838→                          'text-[10px] px-1.5 py-0 rounded-full',
+   839→                          mConfig.color,
+   840→                          mConfig.bgColor,
+   841→                        )}
+   842→                      >
+   843→                        {mConfig.label}
+   844→                      </span>
+   845→                      <span className="text-[10px] text-slate-600">
+   846→                        {relativeTime(m.createdAt)}
+   847→                      </span>
+   848→                    </div>
+   849→                    <p className="text-slate-400 whitespace-pre-wrap leading-relaxed">
+   850→                      {m.content}
+   851→                    </p>
+   852→                  </div>
+   853→                );
+   854→              })}
+   855→          </div>
+   856→        )}
+   857→
+   858→        {/* Main content */}
+   859→        <div
+   860→          className="rounded-xl p-5 text-sm leading-[1.9] whitespace-pre-wrap text-slate-200"
+   861→          style={{
+   862→            backgroundColor: 'rgba(255,255,255,0.02)',
+   863→            border: '1px solid rgba(255,255,255,0.05)',
+   864→          }}
+   865→        >
+   866→          {message.content}
+   867→        </div>
+   868→
+   869→        {/* Thread messages (replies after this message) */}
+   870→        {threadMessages.length > 0 && (
+   871→          <div className="space-y-3 mt-4">
+   872→            {threadMessages
+   873→              .filter((m) => m.createdAt > message.createdAt)
+   874→              .map((m) => {
+   875→                const mConfig = ROLE_CONFIG[m.senderRole];
+   876→                return (
+   877→                  <div
+   878→                    key={m.id}
+   879→                    className="rounded-lg p-3 text-sm"
+   880→                    style={{
+   881→                      backgroundColor: 'rgba(212,165,116,0.03)',
+   882→                      border: '1px solid rgba(212,165,116,0.1)',
+   883→                      borderRight: '3px solid rgba(212,165,116,0.3)',
+   884→                    }}
+   885→                  >
+   886→                    <div className="flex items-center gap-2 mb-2">
+   887→                      <span className="text-xs font-medium text-slate-300">
+   888→                        {m.senderName}
+   889→                      </span>
+   890→                      <span
+   891→                        className={cn(
+   892→                          'text-[10px] px-1.5 py-0 rounded-full',
+   893→                          mConfig.color,
+   894→                          mConfig.bgColor,
+   895→                        )}
+   896→                      >
+   897→                        {mConfig.label}
+   898→                      </span>
+   899→                      <span className="text-[10px] text-slate-600">
+   900→                        {relativeTime(m.createdAt)}
+   901→                      </span>
+   902→                    </div>
+   903→                    <p className="text-slate-400 whitespace-pre-wrap leading-relaxed">
+   904→                      {m.content}
+   905→                    </p>
+   906→                  </div>
+   907→                );
+   908→              })}
+   909→          </div>
+   910→        )}
+   911→      </div>
+   912→
+   913→      {/* Quick reply area */}
+   914→      <div className="flex-shrink-0 p-4 border-t border-white/[0.06]">
+   915→        <div className="flex items-end gap-2">
+   916→          <div className="flex-1 relative">
+   917→            <Textarea
+   918→              id="reply-textarea"
+   919→              value={replyText}
+   920→              onChange={(e) => setReplyText(e.target.value)}
+   921→              placeholder="اكتب رد سريع هنا..."
+   922→              className="min-h-[60px] max-h-[120px] resize-none rounded-lg text-sm bg-white/[0.03] border-white/[0.08] text-white placeholder:text-slate-600 focus-visible:ring-[#D4A574]/40 focus-visible:border-[#D4A574]/30"
+   923→              dir="rtl"
+   924→            />
+   925→          </div>
+   926→          <button
+   927→            type="button"
+   928→            onClick={() => {
+   929→              if (replyText.trim()) handleSendReply();
+   930→            }}
+   931→            className="shrink-0 flex items-center justify-center h-[60px] w-[60px] rounded-xl transition-all duration-200 active:scale-95 disabled:opacity-40"
+   932→            disabled={!replyText.trim()}
+   933→            style={{
+   934→              background:
+   935→                'linear-gradient(135deg, #D4A574 0%, #B07D4F 100%)',
+   936→              boxShadow: replyText.trim()
+   937→                ? '0 4px 20px rgba(212, 165, 116, 0.3)'
+   938→                : 'none',
+   939→            }}
+   940→          >
+   941→            <Send className="h-4 w-4 text-white" />
+   942→          </button>
+   943→        </div>
+   944→      </div>
+   945→    </div>
+   946→  );
+   947→}
+   948→
+   949→/* ------------------------------------------------------------------ */
+   950→/*  Compose dialog                                                     */
+   951→/* ------------------------------------------------------------------ */
+   952→
+   953→type ComposeInitialValues = {
+   954→  recipientId?: string;
+   955→  subject?: string;
+   956→  content?: string;
+   957→  priority?: Message['priority'];
+   958→};
+   959→
+   960→function ComposeDialog({
+   961→  open,
+   962→  onOpenChange,
+   963→  onSend,
+   964→  initialValues,
+   965→}: {
+   966→  open: boolean;
+   967→  onOpenChange: (open: boolean) => void;
+   968→  onSend: (data: {
+   969→    recipientId: string;
+   970→    recipientName: string;
+   971→    recipientRole: Message['recipientRole'];
+   972→    subject: string;
+   973→    content: string;
+   974→    priority: Message['priority'];
+   975→  }) => void;
+   976→  initialValues?: ComposeInitialValues;
+   977→}) {
+   978→  /* Derive initial state from initialValues */
+   979→  const initRecipientId = initialValues?.recipientId ?? '';
+   980→  const initRecipientSearch = (() => {
+   981→    if (initialValues?.recipientId) {
+   982→      const found = RECIPIENT_OPTIONS.find((r) => r.id === initialValues.recipientId)
+   983→        ?? GROUP_RECIPIENT_OPTIONS.find((r) => r.id === initialValues.recipientId);
+   984→      return found ? found.name : '';
+   985→    }
+   986→    return '';
+   987→  })();
+   988→
+   989→  const [recipientId, setRecipientId] = useState(initRecipientId);
+   990→  const [subject, setSubject] = useState(initialValues?.subject ?? '');
+   991→  const [content, setContent] = useState(initialValues?.content ?? '');
+   992→  const [priority, setPriority] = useState<Message['priority']>(initialValues?.priority ?? 'normal');
+   993→  const [isSending, setIsSending] = useState(false);
+   994→  const [recipientSearch, setRecipientSearch] = useState(initRecipientSearch);
+   995→  const [showGroupSelector, setShowGroupSelector] = useState(false);
+   996→
+   997→  const allRecipients = useMemo<RecipientOption[]>(
+   998→    () => [...GROUP_RECIPIENT_OPTIONS, ...RECIPIENT_OPTIONS.map((r) => ({ ...r, isGroup: false }))],
+   999→    [],
+  1000→  );
+  1001→
+  1002→  const filteredRecipients = useMemo(() => {
+  1003→    if (!recipientSearch.trim()) {
+  1004→      return showGroupSelector ? GROUP_RECIPIENT_OPTIONS : RECIPIENT_OPTIONS.map((r) => ({ ...r, isGroup: false }));
+  1005→    }
+  1006→    const q = recipientSearch.trim();
+  1007→    return allRecipients.filter((r) => r.name.includes(q));
+  1008→  }, [recipientSearch, showGroupSelector, allRecipients]);
+  1009→
+  1010→  const selectedRecipient = allRecipients.find(
+  1011→    (r) => r.id === recipientId,
+  1012→  );
+  1013→
+  1014→  const handleSend = useCallback(() => {
+  1015→    if (!recipientId || !subject.trim() || !content.trim()) return;
+  1016→
+  1017→    setIsSending(true);
+  1018→
+  1019→    // Simulate send delay
+  1020→    setTimeout(() => {
+  1021→      const recipient = allRecipients.find((r) => r.id === recipientId);
+  1022→      if (recipient) {
+  1023→        onSend({
+  1024→          recipientId,
+  1025→          recipientName: recipient.name,
+  1026→          recipientRole: recipient.role as Message['recipientRole'],
+  1027→          subject: subject.trim(),
+  1028→          content: content.trim(),
+  1029→          priority,
+  1030→        });
+  1031→      }
+  1032→      setIsSending(false);
+  1033→      setRecipientId('');
+  1034→      setSubject('');
+  1035→      setContent('');
+  1036→      setPriority('normal');
+  1037→      setRecipientSearch('');
+  1038→      setShowGroupSelector(false);
+  1039→      onOpenChange(false);
+  1040→    }, 800);
+  1041→  }, [recipientId, subject, content, priority, onSend, onOpenChange, allRecipients]);
+  1042→
+  1043→  const canSend = recipientId && subject.trim() && content.trim() && !isSending;
+  1044→
+  1045→  return (
+  1046→    <Dialog open={open} onOpenChange={onOpenChange}>
+  1047→      <DialogContent
+  1048→        className="glass-card-elevated max-w-lg w-full p-0"
+  1049→        dir="rtl"
+  1050→        style={{
+  1051→          borderColor: 'rgba(212, 165, 116, 0.15)',
+  1052→        }}
+  1053→      >
+  1054→        <DialogHeader className="p-6 pb-0">
+  1055→          <DialogTitle className="text-lg font-bold text-white flex items-center gap-2">
+  1056→            <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#D4A574]/10">
+  1057→              <Plus className="h-4 w-4 text-[#D4A574]" />
+  1058→            </div>
+  1059→            {initialValues ? 'إرسال رسالة' : 'رسالة جديدة'}
+  1060→          </DialogTitle>
+  1061→        </DialogHeader>
+  1062→
+  1063→        <div className="p-6 space-y-4">
+  1064→          {/* Recipient type toggle */}
+  1065→          <div className="space-y-2">
+  1066→            <label className="text-sm font-medium text-slate-300">
+  1067→              المرسل إليه
+  1068→            </label>
+  1069→            <div className="flex gap-2 mb-2">
+  1070→              <button
+  1071→                type="button"
+  1072→                onClick={() => setShowGroupSelector(false)}
+  1073→                className={cn(
+  1074→                  'text-xs font-medium px-3 py-1.5 rounded-lg transition-all duration-200',
+  1075→                  !showGroupSelector
+  1076→                    ? 'bg-[#D4A574] text-white shadow-[0_2px_12px_rgba(212,165,116,0.3)]'
+  1077→                    : 'bg-white/[0.04] text-slate-400 hover:bg-white/[0.08] hover:text-slate-200 border border-white/[0.06]',
+  1078→                )}
+  1079→              >
+  1080→                فرد
+  1081→              </button>
+  1082→              <button
+  1083→                type="button"
+  1084→                onClick={() => setShowGroupSelector(true)}
+  1085→                className={cn(
+  1086→                  'text-xs font-medium px-3 py-1.5 rounded-lg transition-all duration-200',
+  1087→                  showGroupSelector
+  1088→                    ? 'bg-[#D4A574] text-white shadow-[0_2px_12px_rgba(212,165,116,0.3)]'
+  1089→                    : 'bg-white/[0.04] text-slate-400 hover:bg-white/[0.08] hover:text-slate-200 border border-white/[0.06]',
+  1090→                )}
+  1091→              >
+  1092→                مجموعة
+  1093→              </button>
+  1094→            </div>
+  1095→            <div className="relative">
+  1096→              <Input
+  1097→                placeholder={showGroupSelector ? 'ابحث عن فصل أو مجموعة...' : 'ابحث عن المرسل إليه...'}
+  1098→                value={selectedRecipient ? selectedRecipient.name : recipientSearch}
+  1099→                onChange={(e) => {
+  1100→                  if (selectedRecipient) {
+  1101→                    setRecipientId('');
+  1102→                    setRecipientSearch(selectedRecipient.name);
+  1103→                  } else {
+  1104→                    setRecipientSearch(e.target.value);
+  1105→                  }
+  1106→                }}
+  1107→                className="rounded-lg text-sm bg-white/[0.03] border-white/[0.08] text-white placeholder:text-slate-600 focus-visible:ring-[#D4A574]/40 focus-visible:border-[#D4A574]/30"
+  1108→              />
+  1109→              {/* Selected recipient badge */}
+  1110→              {selectedRecipient && (
+  1111→                <button
+  1112→                  type="button"
+  1113→                  onClick={() => {
+  1114→                    setRecipientId('');
+  1115→                    setRecipientSearch('');
+  1116→                  }}
+  1117→                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+  1118→                >
+  1119→                  <X className="h-4 w-4" />
+  1120→                </button>
+  1121→              )}
+  1122→              {/* Dropdown */}
+  1123→              {!selectedRecipient && recipientSearch && filteredRecipients.length > 0 && (
+  1124→                <div
+  1125→                  className="absolute top-full right-0 left-0 mt-1 rounded-lg overflow-hidden z-50 max-h-48 overflow-y-auto sidebar-scroll"
+  1126→                  style={{
+  1127→                    backgroundColor: '#1A1A24',
+  1128→                    border: '1px solid rgba(212, 165, 116, 0.15)',
+  1129→                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+  1130→                  }}
+  1131→                >
+  1132→                  {filteredRecipients.map((r) => {
+  1133→                    const rConfig = ROLE_CONFIG[r.role as Message['senderRole']];
+  1134→                    return (
+  1135→                      <button
+  1136→                        key={r.id}
+  1137→                        type="button"
+  1138→                        onClick={() => {
+  1139→                          setRecipientId(r.id);
+  1140→                          setRecipientSearch('');
+  1141→                        }}
+  1142→                        className="w-full text-right px-4 py-2.5 text-sm transition-colors hover:bg-[rgba(212,165,116,0.06)] flex items-center justify-between"
+  1143→                      >
+  1144→                        <span className="flex items-center gap-2">
+  1145→                          {r.isGroup && (
+  1146→                            <span className="flex items-center justify-center h-5 w-5 rounded bg-[#D4A574]/15">
+  1147→                              <MessageSquare className="h-3 w-3 text-[#D4A574]" />
+  1148→                            </span>
+  1149→                          )}
+  1150→                          <span className="text-slate-200">{r.name}</span>
+  1151→                        </span>
+  1152→                        <span
+  1153→                          className={cn(
+  1154→                            'text-[10px] font-medium px-2 py-0.5 rounded-full',
+  1155→                            rConfig.color,
+  1156→                            rConfig.bgColor,
+  1157→                          )}
+  1158→                        >
+  1159→                          {rConfig.label}
+  1160→                        </span>
+  1161→                      </button>
+  1162→                    );
+  1163→                  })}
+  1164→                </div>
+  1165→              )}
+  1166→              {/* No results */}
+  1167→              {!selectedRecipient && recipientSearch && filteredRecipients.length === 0 && (
+  1168→                <div
+  1169→                  className="absolute top-full right-0 left-0 mt-1 rounded-lg overflow-hidden z-50 p-4 text-center"
+  1170→                  style={{
+  1171→                    backgroundColor: '#1A1A24',
+  1172→                    border: '1px solid rgba(255, 255, 255, 0.06)',
+  1173→                  }}
+  1174→                >
+  1175→                  <p className="text-sm text-slate-500">لا توجد نتائج</p>
+  1176→                </div>
+  1177→              )}
+  1178→            </div>
+  1179→          </div>
+  1180→
+  1181→          {/* Subject */}
+  1182→          <div className="space-y-2">
+  1183→            <label className="text-sm font-medium text-slate-300">
+  1184→              الموضوع
+  1185→            </label>
+  1186→            <Input
+  1187→              value={subject}
+  1188→              onChange={(e) => setSubject(e.target.value)}
+  1189→              placeholder="موضوع الرسالة..."
+  1190→              className="rounded-lg text-sm bg-white/[0.03] border-white/[0.08] text-white placeholder:text-slate-600 focus-visible:ring-[#D4A574]/40 focus-visible:border-[#D4A574]/30"
+  1191→            />
+  1192→          </div>
+  1193→
+  1194→          {/* Message body */}
+  1195→          <div className="space-y-2">
+  1196→            <label className="text-sm font-medium text-slate-300">
+  1197→              نص الرسالة
+  1198→            </label>
+  1199→            <Textarea
+  1200→              value={content}
+  1201→              onChange={(e) => setContent(e.target.value)}
+  1202→              placeholder="اكتب رسالتك هنا..."
+  1203→              className="min-h-[120px] rounded-lg text-sm bg-white/[0.03] border-white/[0.08] text-white placeholder:text-slate-600 focus-visible:ring-[#D4A574]/40 focus-visible:border-[#D4A574]/30 resize-none leading-relaxed"
+  1204→              dir="rtl"
+  1205→            />
+  1206→          </div>
+  1207→
+  1208→          {/* Priority */}
+  1209→          <div className="space-y-2">
+  1210→            <label className="text-sm font-medium text-slate-300">
+  1211→              الأولوية
+  1212→            </label>
+  1213→            <Select
+  1214→              value={priority}
+  1215→              onValueChange={(v) => setPriority(v as Message['priority'])}
+  1216→            >
+  1217→              <SelectTrigger className="rounded-lg text-sm bg-white/[0.03] border-white/[0.08] text-white focus:ring-[#D4A574]/40 focus:border-[#D4A574]/30">
+  1218→                <SelectValue />
+  1219→              </SelectTrigger>
+  1220→              <SelectContent className="bg-[#1A1A24] border-white/[0.08]">
+  1221→                {Object.entries(PRIORITY_CONFIG).map(([key, config]) => (
+  1222→                  <SelectItem key={key} value={key}>
+  1223→                    <span className="flex items-center gap-2">
+  1224→                      <span
+  1225→                        className={cn(
+  1226→                          'h-2 w-2 rounded-full',
+  1227→                          config.dotColor,
+  1228→                        )}
+  1229→                      />
+  1230→                      <span>{config.label}</span>
+  1231→                    </span>
+  1232→                  </SelectItem>
+  1233→                ))}
+  1234→              </SelectContent>
+  1235→            </Select>
+  1236→          </div>
+  1237→        </div>
+  1238→
+  1239→        {/* Footer */}
+  1240→        <DialogFooter className="p-6 pt-0 flex gap-2">
+  1241→          <Button
+  1242→            onClick={handleSend}
+  1243→            disabled={!canSend}
+  1244→            className={cn(
+  1245→              'flex-1 gap-2 rounded-lg text-white font-medium',
+  1246→              canSend && 'btn-shine',
+  1247→            )}
+  1248→            style={{
+  1249→              background: canSend
+  1250→                ? 'linear-gradient(135deg, #D4A574 0%, #B07D4F 100%)'
+  1251→                : undefined,
+  1252→              boxShadow: canSend
+  1253→                ? '0 4px 20px rgba(212, 165, 116, 0.3)'
+  1254→                : 'none',
+  1255→            }}
+  1256→          >
+  1257→            {isSending ? (
+  1258→              <Loader2 className="h-4 w-4 animate-spin" />
+  1259→            ) : (
+  1260→              <Send className="h-4 w-4" />
+  1261→            )}
+  1262→            {isSending ? 'جارٍ الإرسال...' : 'إرسال'}
+  1263→          </Button>
+  1264→          <Button
+  1265→            variant="outline"
+  1266→            onClick={() => onOpenChange(false)}
+  1267→            className="gap-2 text-slate-300 border-white/[0.08] hover:bg-white/[0.05] rounded-lg"
+  1268→          >
+  1269→            إلغاء
+  1270→          </Button>
+  1271→        </DialogFooter>
+  1272→      </DialogContent>
+  1273→    </Dialog>
+  1274→  );
+  1275→}
+  1276→
+  1277→/* ------------------------------------------------------------------ */
+  1278→/*  Empty state – no message selected                                   */
+  1279→/* ------------------------------------------------------------------ */
+  1280→function EmptyDetailState() {
+  1281→  return (
+  1282→    <div className="flex flex-col items-center justify-center h-full py-20 px-4">
+  1283→      <div className="relative mb-6">
+  1284→        <div className="flex items-center justify-center h-24 w-24 rounded-3xl bg-white/[0.03] border border-white/[0.06]">
+  1285→          <MessageSquare className="h-12 w-12 text-slate-600" />
+  1286→        </div>
+  1287→      </div>
+  1288→      <h3 className="text-lg font-semibold text-slate-400 mb-2">
+  1289→        لا توجد رسالة محددة
+  1290→      </h3>
+  1291→      <p className="text-sm text-muted-foreground text-center max-w-sm leading-relaxed">
+  1292→        اختر رسالة من القائمة لعرض تفاصيلها
+  1293→      </p>
+  1294→    </div>
+  1295→  );
+  1296→}
+  1297→
+  1298→/* ------------------------------------------------------------------ */
+  1299→/*  Empty state – no messages at all                                   */
+  1300→/* ------------------------------------------------------------------ */
+  1301→function EmptyInboxState() {
+  1302→  return (
+  1303→    <div className="flex flex-col items-center justify-center py-20 px-4 rounded-xl"
+  1304→      style={{
+  1305→        backgroundColor: '#1A1A24',
+  1306→        border: '1px solid rgba(255,255,255,0.06)',
+  1307→      }}
+  1308→    >
+  1309→      <div className="relative mb-6">
+  1310→        <div className="flex items-center justify-center h-24 w-24 rounded-3xl bg-white/[0.03] border border-white/[0.06]">
+  1311→          <Inbox className="h-12 w-12 text-slate-500" />
+  1312→        </div>
+  1313→      </div>
+  1314→      <h3 className="text-lg font-semibold text-slate-300 mb-2">
+  1315→        لا توجد رسائل
+  1316→      </h3>
+  1317→      <p className="text-sm text-muted-foreground text-center max-w-sm leading-relaxed">
+  1318→        صندوق الوارد فارغ. ستظهر الرسائل الجديدة هنا تلقائياً.
+  1319→      </p>
+  1320→    </div>
+  1321→  );
+  1322→}
+  1323→
+  1324→/* ------------------------------------------------------------------ */
+  1325→/*  Main component                                                     */
+  1326→/* ------------------------------------------------------------------ */
+  1327→export default function MessagesSection() {
+  1328→  const {
+  1329→    messages,
+  1330→    setMessages,
+  1331→    addMessage,
+  1332→    deleteMessage,
+  1333→    addToTrash,
+  1334→    archiveMessage,
+  1335→    unarchiveMessage,
+  1336→    toggleMessageStar,
+  1337→    markMessageRead,
+  1338→  } = useAppStore();
+  1339→
+  1340→  const [filter, setFilter] = useState<FilterTab>('all');
+  1341→  const [search, setSearch] = useState('');
+  1342→  const [selectedId, setSelectedId] = useState<string | null>(null);
+  1343→  const [composeOpen, setComposeOpen] = useState(false);
+  1344→  const [composeInitialValues, setComposeInitialValues] = useState<ComposeInitialValues | undefined>(undefined);
+  1345→  const [mobileShowDetail, setMobileShowDetail] = useState(false);
+  1346→
+  1347→  /* Seed mock data on mount if store is empty */
+  1348→  const initialized = useRef(false);
+  1349→  useEffect(() => {
+  1350→    if (!initialized.current && messages.length === 0) {
+  1351→      initialized.current = true;
+  1352→      requestAnimationFrame(() => {
+  1353→        setMessages(MOCK_MESSAGES);
+  1354→      });
+  1355→    }
+  1356→  }, [messages.length, setMessages]);
+  1357→
+  1358→  /* Computed values */
+  1359→  const unreadCount = useMemo(
+  1360→    () => messages.filter((m) => !m.isRead).length,
+  1361→    [messages],
+  1362→  );
+  1363→
+  1364→  const sentToday = useMemo(() => {
+  1365→    const todayStart = new Date();
+  1366→    todayStart.setHours(0, 0, 0, 0);
+  1367→    return messages.filter((m) => {
+  1368→      const isSent = m.senderRole === 'admin';
+  1369→      return isSent && new Date(m.createdAt) >= todayStart;
+  1370→    }).length;
+  1371→  }, [messages]);
+  1372→
+  1373→  const filtered = useMemo(() => {
+  1374→    let result = messages;
+  1375→
+  1376→    // Filter by tab
+  1377→    switch (filter) {
+  1378→      case 'unread':
+  1379→        result = result.filter((m) => !m.isRead);
+  1380→        break;
+  1381→      case 'starred':
+  1382→        result = result.filter((m) => m.isStarred);
+  1383→        break;
+  1384→      case 'sent':
+  1385→        result = result.filter((m) => m.senderRole === 'admin');
+  1386→        break;
+  1387→      case 'archived':
+  1388→        result = result.filter((m) => m.isArchived);
+  1389→        break;
+  1390→    }
+  1391→
+  1392→    // Filter by search
+  1393→    if (search.trim()) {
+  1394→      const q = search.trim();
+  1395→      result = result.filter(
+  1396→        (m) =>
+  1397→          m.senderName.includes(q) ||
+  1398→          m.subject.includes(q) ||
+  1399→          m.content.includes(q) ||
+  1400→          m.recipientName.includes(q),
+  1401→      );
+  1402→    }
+  1403→
+  1404→    return result;
+  1405→  }, [messages, filter, search]);
+  1406→
+  1407→  const selectedMessage = useMemo(
+  1408→    () => messages.find((m) => m.id === selectedId) ?? null,
+  1409→    [messages, selectedId],
+  1410→  );
+  1411→
+  1412→  // Thread messages
+  1413→  const threadMessages = useMemo(() => {
+  1414→    if (!selectedMessage) return [];
+  1415→    const threadId = selectedMessage.parentId ?? selectedMessage.id;
+  1416→    return messages.filter(
+  1417→      (m) => m.parentId === threadId || m.id === threadId,
+  1418→    );
+  1419→  }, [messages, selectedMessage]);
+  1420→
+  1421→  /* Handlers */
+  1422→  const handleSelectMessage = useCallback(
+  1423→    (id: string) => {
+  1424→      setSelectedId(id);
+  1425→      setMobileShowDetail(true);
+  1426→      // Mark as read
+  1427→      const msg = messages.find((m) => m.id === id);
+  1428→      if (msg && !msg.isRead) {
+  1429→        markMessageRead(id);
+  1430→        toast.success('تم تحديد الرسالة كمقروءة');
+  1431→      }
+  1432→    },
+  1433→    [messages, markMessageRead],
+  1434→  );
+  1435→
+  1436→  const handleStarToggle = useCallback(
+  1437→    (e: React.MouseEvent, id: string) => {
+  1438→      e.stopPropagation();
+  1439→      toggleMessageStar(id);
+  1440→      const msg = messages.find((m) => m.id === id);
+  1441→      toast.success(msg?.isStarred ? 'تمت إزالة النجمة' : 'تم تمييز الرسالة بنجمة');
+  1442→    },
+  1443→    [toggleMessageStar, messages],
+  1444→  );
+  1445→
+  1446→  const handleDelete = useCallback(() => {
+  1447→    if (!selectedMessage) return;
+  1448→    addToTrash({
+  1449→      id: `trash-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  1450→      itemType: 'message',
+  1451→      itemId: selectedMessage.id,
+  1452→      itemName: selectedMessage.subject,
+  1453→      deletedBy: 'المدير',
+  1454→      dataJson: JSON.stringify(selectedMessage),
+  1455→      restoredAt: null,
+  1456→      createdAt: new Date().toISOString(),
+  1457→    });
+  1458→    deleteMessage(selectedMessage.id);
+  1459→    setSelectedId(null);
+  1460→    setMobileShowDetail(false);
+  1461→    toast.success('تم حذف الرسالة');
+  1462→  }, [selectedMessage, deleteMessage, addToTrash]);
+  1463→
+  1464→  const handleArchive = useCallback(() => {
+  1465→    if (!selectedMessage) return;
+  1466→    if (selectedMessage.isArchived) {
+  1467→      unarchiveMessage(selectedMessage.id);
+  1468→      toast.success('تم إلغاء أرشفة الرسالة');
+  1469→    } else {
+  1470→      archiveMessage(selectedMessage.id);
+  1471→      toast.success('تم أرشفة الرسالة');
+  1472→    }
+  1473→    setSelectedId(null);
+  1474→    setMobileShowDetail(false);
+  1475→  }, [selectedMessage, archiveMessage, unarchiveMessage]);
+  1476→
+  1477→  const handleForward = useCallback(() => {
+  1478→    if (!selectedMessage) return;
+  1479→    setComposeInitialValues({
+  1480→      subject: `إعادة توجيه: ${selectedMessage.subject}`,
+  1481→      content: `--- رسالة مُعاد توجيهها ---\n\n${selectedMessage.content}`,
+  1482→      priority: selectedMessage.priority,
+  1483→    });
+  1484→    setComposeOpen(true);
+  1485→  }, [selectedMessage]);
+  1486→
+  1487→  const handleReplyViaDialog = useCallback(() => {
+  1488→    if (!selectedMessage) return;
+  1489→    setComposeInitialValues({
+  1490→      recipientId: selectedMessage.senderId,
+  1491→      subject: `رد: ${selectedMessage.subject}`,
+  1492→      priority: 'normal',
+  1493→    });
+  1494→    setComposeOpen(true);
+  1495→  }, [selectedMessage]);
+  1496→
+  1497→  const handleReply = useCallback(
+  1498→    (content: string) => {
+  1499→      if (!selectedMessage) return;
+  1500→      const newMessage: Message = {
+  1501→        id: `msg_${Date.now()}`,
+  1502→        senderId: 'admin',
+  1503→        senderName: 'المدير',
+  1504→        senderRole: 'admin',
+  1505→        recipientId: selectedMessage.senderId,
+  1506→        recipientName: selectedMessage.senderName,
+  1507→        recipientRole: selectedMessage.senderRole,
+  1508→        subject: selectedMessage.subject,
+  1509→        content,
+  1510→        isRead: true,
+  1511→        isStarred: false,
+  1512→        isArchived: false,
+  1513→        hasAttachment: false,
+  1514→        priority: 'normal',
+  1515→        parentId: selectedMessage.parentId ?? selectedMessage.id,
+  1516→        createdAt: new Date().toISOString(),
+  1517→      };
+  1518→      addMessage(newMessage);
+  1519→      toast.success('تم إرسال الرد بنجاح');
+  1520→    },
+  1521→    [selectedMessage, addMessage],
+  1522→  );
+  1523→
+  1524→  const handleComposeSend = useCallback(
+  1525→    (data: {
+  1526→      recipientId: string;
+  1527→      recipientName: string;
+  1528→      recipientRole: Message['recipientRole'];
+  1529→      subject: string;
+  1530→      content: string;
+  1531→      priority: Message['priority'];
+  1532→    }) => {
+  1533→      const newMessage: Message = {
+  1534→        id: `msg_${Date.now()}`,
+  1535→        senderId: 'admin',
+  1536→        senderName: 'المدير',
+  1537→        senderRole: 'admin',
+  1538→        recipientId: data.recipientId,
+  1539→        recipientName: data.recipientName,
+  1540→        recipientRole: data.recipientRole,
+  1541→        subject: data.subject,
+  1542→        content: data.content,
+  1543→        isRead: true,
+  1544→        isStarred: false,
+  1545→        isArchived: false,
+  1546→        hasAttachment: false,
+  1547→        priority: data.priority,
+  1548→        parentId: null,
+  1549→        createdAt: new Date().toISOString(),
+  1550→      };
+  1551→      addMessage(newMessage);
+  1552→      toast.success('تم إرسال الرسالة بنجاح');
+  1553→    },
+  1554→    [addMessage],
+  1555→  );
+  1556→
+  1557→  const filterLabel =
+  1558→    filter !== 'all'
+  1559→      ? FILTER_TABS.find((f) => f.value === filter)?.label ?? null
+  1560→      : null;
+  1561→
+  1562→  return (
+  1563→    <div className="flex flex-col gap-6" dir="rtl">
+  1564→      {/* ── Page header ── */}
+  1565→      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+  1566→        <div className="flex items-center gap-3">
+  1567→          <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-[#D4A574]/10">
+  1568→            <MessageSquare className="h-5 w-5 text-[#D4A574]" />
+  1569→          </div>
+  1570→          <div>
+  1571→            <h1 className="text-2xl font-bold text-white tracking-tight sm:text-3xl flex items-center gap-3">
+  1572→              الرسائل
+  1573→              {unreadCount > 0 && (
+  1574→                <Badge className="bg-[#D4A574] text-white hover:bg-[#D4A574]/90 text-sm px-2.5 py-0.5 rounded-full font-semibold tabular-nums">
+  1575→                  {unreadCount} جديد
+  1576→                </Badge>
+  1577→              )}
+  1578→            </h1>
+  1579→            <p className="mt-0.5 text-sm text-muted-foreground">
+  1580→              التواصل مع أولياء الأمور والمعلمين
+  1581→            </p>
+  1582→          </div>
+  1583→        </div>
+  1584→
+  1585→        <Button
+  1586→          onClick={() => setComposeOpen(true)}
+  1587→          className="gap-2 rounded-lg text-white font-medium"
+  1588→          style={{
+  1589→            background: 'linear-gradient(135deg, #D4A574 0%, #B07D4F 100%)',
+  1590→            boxShadow: '0 4px 20px rgba(212, 165, 116, 0.3)',
+  1591→          }}
+  1592→        >
+  1593→          <Plus className="h-4 w-4" />
+  1594→          رسالة جديدة
+  1595→        </Button>
+  1596→      </div>
+  1597→
+  1598→      {/* ── Stats row ── */}
+  1599→      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 stagger-grid">
+  1600→        <StatsCard
+  1601→          icon={Mail}
+  1602→          label="الرسائل غير المقروءة"
+  1603→          value={unreadCount}
+  1604→          glowColor="#D4A574"
+  1605→        />
+  1606→        <StatsCard
+  1607→          icon={Send}
+  1608→          label="الرسائل المرسلة اليوم"
+  1609→          value={sentToday}
+  1610→          glowColor="#34d399"
+  1611→        />
+  1612→        <StatsCard
+  1613→          icon={Clock}
+  1614→          label="متوسط وقت الرد"
+  1615→          value="2.5 ساعة"
+  1616→          subtext="أسرع من المتوسط"
+  1617→          glowColor="#38bdf8"
+  1618→        />
+  1619→      </div>
+  1620→
+  1621→      {/* ── Two-panel layout ── */}
+  1622→      <div className="flex flex-col lg:flex-row gap-4 min-h-[600px]">
+  1623→        {/* Left panel – Inbox (40%) */}
+  1624→        <div
+  1625→          className="w-full lg:w-[40%] flex flex-col rounded-xl overflow-hidden"
+  1626→          style={{
+  1627→            backgroundColor: '#141419',
+  1628→            border: '1px solid rgba(255,255,255,0.06)',
+  1629→          }}
+  1630→        >
+  1631→          {/* Filter tabs */}
+  1632→          <div className="flex-shrink-0 p-3 space-y-3">
+  1633→            <div
+  1634→              className="flex items-center gap-1.5 rounded-xl p-1.5 overflow-x-auto"
+  1635→              style={{
+  1636→                backgroundColor: '#1A1A24',
+  1637→                border: '1px solid rgba(255,255,255,0.04)',
+  1638→              }}
+  1639→            >
+  1640→              {FILTER_TABS.map((tab) => {
+  1641→                const isActive = filter === tab.value;
+  1642→                return (
+  1643→                  <button
+  1644→                    key={tab.value}
+  1645→                    onClick={() => setFilter(tab.value)}
+  1646→                    className={cn(
+  1647→                      'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-200 whitespace-nowrap',
+  1648→                      isActive
+  1649→                        ? 'bg-[#D4A574] text-white shadow-[0_2px_12px_rgba(212,165,116,0.3)]'
+  1650→                        : 'text-slate-400 hover:bg-white/[0.05] hover:text-slate-200',
+  1651→                    )}
+  1652→                  >
+  1653→                    {tab.label}
+  1654→                    {tab.value === 'unread' && unreadCount > 0 && (
+  1655→                      <span className="flex items-center justify-center h-4 min-w-[16px] rounded-full bg-white/20 text-[10px] px-1 tabular-nums">
+  1656→                        {unreadCount}
+  1657→                      </span>
+  1658→                    )}
+  1659→                  </button>
+  1660→                );
+  1661→              })}
+  1662→            </div>
+  1663→
+  1664→            {/* Search */}
+  1665→            <div className="relative">
+  1666→              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-600 pointer-events-none" />
+  1667→              <Input
+  1668→                value={search}
+  1669→                onChange={(e) => setSearch(e.target.value)}
+  1670→                placeholder="بحث في الرسائل..."
+  1671→                className="pr-9 rounded-lg text-sm bg-white/[0.03] border-white/[0.06] text-white placeholder:text-slate-600 focus-visible:ring-[#D4A574]/30 focus-visible:border-[#D4A574]/20 h-9"
+  1672→              />
+  1673→              {search && (
+  1674→                <button
+  1675→                  onClick={() => setSearch('')}
+  1676→                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+  1677→                >
+  1678→                  <X className="h-3.5 w-3.5" />
+  1679→                </button>
+  1680→              )}
+  1681→            </div>
+  1682→          </div>
+  1683→
+  1684→          {/* Message list */}
+  1685→          <div className="flex-1 overflow-y-auto p-3 pt-0 space-y-1.5 sidebar-scroll">
+  1686→            {filtered.length > 0 ? (
+  1687→              filtered.map((msg, idx) => (
+  1688→                <MessageListItem
+  1689→                  key={msg.id}
+  1690→                  message={msg}
+  1691→                  isSelected={selectedId === msg.id}
+  1692→                  onSelect={() => handleSelectMessage(msg.id)}
+  1693→                  onStarToggle={(e) => handleStarToggle(e, msg.id)}
+  1694→                  staggerIndex={idx}
+  1695→                />
+  1696→              ))
+  1697→            ) : (
+  1698→              <EmptyInboxState />
+  1699→            )}
+  1700→          </div>
+  1701→        </div>
+  1702→
+  1703→        {/* Right panel – Detail (60%) */}
+  1704→        <div
+  1705→          className="w-full lg:w-[60%] flex flex-col rounded-xl overflow-hidden"
+  1706→          style={{
+  1707→            backgroundColor: '#1A1A24',
+  1708→            border: '1px solid rgba(255,255,255,0.06)',
+  1709→          }}
+  1710→        >
+  1711→          {/* Mobile back button */}
+  1712→          <div className="lg:hidden flex-shrink-0 border-b border-white/[0.06]">
+  1713→            <button
+  1714→              onClick={() => {
+  1715→                setMobileShowDetail(false);
+  1716→                setSelectedId(null);
+  1717→              }}
+  1718→              className="flex items-center gap-2 px-4 py-3 text-sm text-slate-400 hover:text-white transition-colors"
+  1719→            >
+  1720→              <X className="h-4 w-4" />
+  1721→              العودة للرسائل
+  1722→            </button>
+  1723→          </div>
+  1724→
+  1725→          {selectedMessage && (mobileShowDetail || typeof window === 'undefined') ? (
+  1726→            <MessageDetail
+  1727→              message={selectedMessage}
+  1728→              threadMessages={threadMessages}
+  1729→              onReply={handleReply}
+  1730→              onDelete={handleDelete}
+  1731→              onArchive={handleArchive}
+  1732→              onForward={handleForward}
+  1733→              onReplyViaDialog={handleReplyViaDialog}
+  1734→              onStarToggle={() => {
+  1735→                if (selectedMessage) {
+  1736→                  toggleMessageStar(selectedMessage.id);
+  1737→                  toast.success(
+  1738→                    selectedMessage.isStarred
+  1739→                      ? 'تمت إزالة النجمة'
+  1740→                      : 'تم تمييز الرسالة بنجمة',
+  1741→                  );
+  1742→                }
+  1743→              }}
+  1744→            />
+  1745→          ) : (
+  1746→            <div className={mobileShowDetail ? 'hidden lg:flex' : 'flex'} style={{ display: 'flex' }}>
+  1747→              <EmptyDetailState />
+  1748→            </div>
+  1749→          )}
+  1750→        </div>
+  1751→      </div>
+  1752→
+  1753→      {/* Compose dialog */}
+  1754→      <ComposeDialog
+  1755→        key={composeOpen ? (composeInitialValues ? `fwd-${composeInitialValues.subject}` : 'new') : 'closed'}
+  1756→        open={composeOpen}
+  1757→        onOpenChange={(val) => {
+  1758→          setComposeOpen(val);
+  1759→          if (!val) setComposeInitialValues(undefined);
+  1760→        }}
+  1761→        onSend={handleComposeSend}
+  1762→        initialValues={composeInitialValues}
+  1763→      />
+  1764→    </div>
+  1765→  );
+  1766→}
+  1767→

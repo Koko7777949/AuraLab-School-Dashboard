@@ -1,0 +1,1781 @@
+     1→'use client';
+     2→
+     3→import { useState, useRef, useCallback } from 'react';
+     4→import { Switch } from '@/components/ui/switch';
+     5→import { Label } from '@/components/ui/label';
+     6→import { Button } from '@/components/ui/button';
+     7→import { Badge } from '@/components/ui/badge';
+     8→import { Slider } from '@/components/ui/slider';
+     9→import { Input } from '@/components/ui/input';
+    10→import { Textarea } from '@/components/ui/textarea';
+    11→import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+    12→import {
+    13→  AlertDialog,
+    14→  AlertDialogAction,
+    15→  AlertDialogCancel,
+    16→  AlertDialogContent,
+    17→  AlertDialogDescription,
+    18→  AlertDialogFooter,
+    19→  AlertDialogHeader,
+    20→  AlertDialogTitle,
+    21→} from '@/components/ui/alert-dialog';
+    22→import { cn } from '@/lib/utils';
+    23→import { useAppStore } from '@/lib/store';
+    24→import { t } from '@/lib/i18n';
+    25→import { toast } from 'sonner';
+    26→import { useTheme } from 'next-themes';
+    27→import {
+    28→  Select,
+    29→  SelectContent,
+    30→  SelectItem,
+    31→  SelectTrigger,
+    32→  SelectValue,
+    33→} from '@/components/ui/select';
+    34→import {
+    35→  Settings,
+    36→  Bell,
+    37→  Volume2,
+    38→  Mail,
+    39→  Smartphone,
+    40→  BarChart3,
+    41→  Activity,
+    42→  Target,
+    43→  Clock,
+    44→  Globe,
+    45→  Shield,
+    46→  RotateCcw,
+    47→  User,
+    48→  Moon,
+    49→  Monitor,
+    50→  School,
+    51→  CalendarDays,
+    52→  Check,
+    53→  Save,
+    54→  Palette,
+    55→  Layers,
+    56→  Sparkles,
+    57→  CheckCircle2,
+    58→  Camera,
+    59→  Lock,
+    60→  Eye,
+    61→  EyeOff,
+    62→  Download,
+    63→  Upload,
+    64→  Trash2,
+    65→  Database,
+    66→  MapPin,
+    67→  Phone,
+    68→  FileText,
+    69→} from 'lucide-react';
+    70→
+    71→/* ------------------------------------------------------------------ */
+    72→/*  Types                                                              */
+    73→/* ------------------------------------------------------------------ */
+    74→interface ToggleSetting {
+    75→  key: string;
+    76→  label: string;
+    77→  description: string;
+    78→  icon: React.ReactNode;
+    79→  defaultOn: boolean;
+    80→}
+    81→
+    82→/* ------------------------------------------------------------------ */
+    83→/*  Setting Card wrapper                                               */
+    84→/* ------------------------------------------------------------------ */
+    85→function SettingCard({
+    86→  title,
+    87→  icon,
+    88→  badge,
+    89→  children,
+    90→}: {
+    91→  title: string;
+    92→  icon: React.ReactNode;
+    93→  badge?: string;
+    94→  children: React.ReactNode;
+    95→}) {
+    96→  return (
+    97→    <div
+    98→      className="rounded-xl overflow-hidden transition-all duration-300 hover:-translate-y-0.5"
+    99→      style={{
+   100→        backgroundColor: '#1A1A24',
+   101→        border: '1px solid rgba(255,255,255,0.06)',
+   102→      }}
+   103→      onMouseEnter={(e) => {
+   104→        e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.3), 0 0 0 1px rgba(212,165,116,0.12)';
+   105→        e.currentTarget.style.borderColor = 'rgba(212,165,116,0.15)';
+   106→      }}
+   107→      onMouseLeave={(e) => {
+   108→        e.currentTarget.style.boxShadow = 'none';
+   109→        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
+   110→      }}
+   111→    >
+   112→      {/* Card Header */}
+   113→      <div
+   114→        className="flex items-center justify-between gap-3 px-5 py-3.5"
+   115→        style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+   116→      >
+   117→        <div className="flex items-center gap-3">
+   118→          <div className="flex shrink-0 items-center justify-center h-9 w-9 rounded-xl bg-[#D4A574]/10 text-[#D4A574]">
+   119→            {icon}
+   120→          </div>
+   121→          <div>
+   122→            <h3 className="text-base font-semibold text-white">{title}</h3>
+   123→          </div>
+   124→        </div>
+   125→        {badge && (
+   126→          <Badge className="bg-[#D4A574]/10 text-[#D4A574] border-[#D4A574]/20 text-[11px] px-2 py-0.5 rounded-full">
+   127→            {badge}
+   128→          </Badge>
+   129→        )}
+   130→      </div>
+   131→
+   132→      {/* Card Body */}
+   133→      <div className="p-5">
+   134→        {children}
+   135→      </div>
+   136→    </div>
+   137→  );
+   138→}
+   139→
+   140→/* ------------------------------------------------------------------ */
+   141→/*  Toggle item component                                              */
+   142→/* ------------------------------------------------------------------ */
+   143→function ToggleRow({
+   144→  setting,
+   145→  checked,
+   146→  onCheckedChange,
+   147→}: {
+   148→  setting: ToggleSetting;
+   149→  checked: boolean;
+   150→  onCheckedChange: (key: string, value: boolean) => void;
+   151→}) {
+   152→  return (
+   153→    <div
+   154→      className="flex items-center justify-between gap-4 rounded-xl p-4 transition-all duration-200"
+   155→      style={{
+   156→        backgroundColor: 'rgba(255,255,255,0.02)',
+   157→        border: '1px solid rgba(255,255,255,0.04)',
+   158→      }}
+   159→      onMouseEnter={(e) => {
+   160→        e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.04)';
+   161→        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+   162→      }}
+   163→      onMouseLeave={(e) => {
+   164→        e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.02)';
+   165→        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)';
+   166→      }}
+   167→    >
+   168→      <div className="flex items-center gap-3 min-w-0">
+   169→        <div className="flex shrink-0 items-center justify-center h-9 w-9 rounded-lg bg-[#D4A574]/10 text-[#D4A574]">
+   170→          {setting.icon}
+   171→        </div>
+   172→        <div className="min-w-0">
+   173→          <Label
+   174→            htmlFor={`toggle-${setting.key}`}
+   175→            className="cursor-pointer text-sm font-medium text-slate-200 block"
+   176→          >
+   177→            {setting.label}
+   178→          </Label>
+   179→          <p className="text-xs text-slate-500 mt-0.5">{setting.description}</p>
+   180→        </div>
+   181→      </div>
+   182→      <Switch
+   183→        id={`toggle-${setting.key}`}
+   184→        checked={checked}
+   185→        onCheckedChange={(v) => onCheckedChange(setting.key, v)}
+   186→        className="data-[state=checked]:bg-[#D4A574] data-[state=unchecked]:bg-slate-600 shrink-0"
+   187→      />
+   188→    </div>
+   189→  );
+   190→}
+   191→
+   192→/* ------------------------------------------------------------------ */
+   193→/*  Read-only display field                                            */
+   194→/* ------------------------------------------------------------------ */
+   195→function DisplayField({
+   196→  icon,
+   197→  label,
+   198→  value,
+   199→}: {
+   200→  icon: React.ReactNode;
+   201→  label: string;
+   202→  value: string;
+   203→}) {
+   204→  return (
+   205→    <div
+   206→      className="flex items-center gap-4 rounded-xl p-4"
+   207→      style={{
+   208→        backgroundColor: 'rgba(255,255,255,0.02)',
+   209→        border: '1px solid rgba(255,255,255,0.04)',
+   210→      }}
+   211→    >
+   212→      <div className="flex shrink-0 items-center justify-center h-9 w-9 rounded-lg bg-[#D4A574]/10 text-[#D4A574]">
+   213→        {icon}
+   214→      </div>
+   215→      <div className="min-w-0 flex-1">
+   216→        <p className="text-xs text-slate-500 mb-0.5">{label}</p>
+   217→        <p className="text-sm font-medium text-slate-200 truncate">{value}</p>
+   218→      </div>
+   219→      <Badge className="bg-white/[0.04] text-slate-500 border-white/[0.06] text-[10px] px-2 py-0.5 rounded-full shrink-0">
+   220→        للقراءة فقط
+   221→      </Badge>
+   222→    </div>
+   223→  );
+   224→}
+   225→
+   226→/* ------------------------------------------------------------------ */
+   227→/*  Accent Color Swatch                                                */
+   228→/* ------------------------------------------------------------------ */
+   229→const ACCENT_COLORS = [
+   230→  { value: '#D4A574', label: 'عنبري' },
+   231→  { value: '#34D399', label: 'زمردي' },
+   232→  { value: '#F472B6', label: 'وردي' },
+   233→  { value: '#38BDF8', label: 'سماوي' },
+   234→  { value: '#A78BFA', label: 'بنفسجي' },
+   235→  { value: '#FB923C', label: 'برتقالي' },
+   236→] as const;
+   237→
+   238→/* ------------------------------------------------------------------ */
+   239→/*  Theme Customizer — Live Preview Card                               */
+   240→/* ------------------------------------------------------------------ */
+   241→function LivePreviewCard({
+   242→  accentColor,
+   243→  borderRadius,
+   244→  backgroundStyle,
+   245→  uiDensity,
+   246→}: {
+   247→  accentColor: string;
+   248→  borderRadius: number;
+   249→  backgroundStyle: 'solid' | 'gradient' | 'dots';
+   250→  uiDensity: 'compact' | 'default' | 'comfortable';
+   251→}) {
+   252→  const densityPadding = uiDensity === 'compact' ? 'p-2' : uiDensity === 'comfortable' ? 'p-4' : 'p-3';
+   253→  const densityGap = uiDensity === 'compact' ? 'gap-1' : uiDensity === 'comfortable' ? 'gap-3' : 'gap-2';
+   254→
+   255→  const bgStyle: React.CSSProperties =
+   256→    backgroundStyle === 'dots'
+   257→      ? {
+   258→          backgroundColor: '#121218',
+   259→          backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px)',
+   260→          backgroundSize: '12px 12px',
+   261→        }
+   262→      : backgroundStyle === 'gradient'
+   263→        ? {
+   264→            background: 'linear-gradient(135deg, #121218 0%, #1A1A2E 50%, #1E1E30 100%)',
+   265→          }
+   266→        : {
+   267→            backgroundColor: '#121218',
+   268→          };
+   269→
+   270→  return (
+   271→    <div
+   272→      className={cn('w-full min-h-[140px] transition-all duration-300', densityPadding, densityGap)}
+   273→      style={{
+   274→        ...bgStyle,
+   275→        borderRadius: `${borderRadius}px`,
+   276→        border: `1px solid ${accentColor}20`,
+   277→      }}
+   278→    >
+   279→      {/* Preview header */}
+   280→      <div
+   281→        className={cn('flex items-center justify-between', uiDensity === 'compact' ? 'mb-1' : uiDensity === 'comfortable' ? 'mb-3' : 'mb-2')}
+   282→      >
+   283→        <div className={cn('flex items-center', densityGap)}>
+   284→          <div
+   285→            className="rounded-md"
+   286→            style={{
+   287→              width: uiDensity === 'compact' ? 18 : uiDensity === 'comfortable' ? 26 : 22,
+   288→              height: uiDensity === 'compact' ? 18 : uiDensity === 'comfortable' ? 26 : 22,
+   289→              backgroundColor: `${accentColor}18`,
+   290→            }}
+   291→          />
+   292→          <div
+   293→            className="rounded-sm"
+   294→            style={{
+   295→              width: uiDensity === 'compact' ? 40 : 55,
+   296→              height: uiDensity === 'compact' ? 6 : 8,
+   297→              backgroundColor: 'rgba(255,255,255,0.12)',
+   298→            }}
+   299→          />
+   300→        </div>
+   301→        <div className="flex gap-1.5">
+   302→          <div
+   303→            className="rounded-full"
+   304→            style={{ width: 6, height: 6, backgroundColor: `${accentColor}40` }}
+   305→          />
+   306→          <div
+   307→            className="rounded-full"
+   308→            style={{ width: 6, height: 6, backgroundColor: 'rgba(255,255,255,0.08)' }}
+   309→          />
+   310→          <div
+   311→            className="rounded-full"
+   312→            style={{ width: 6, height: 6, backgroundColor: 'rgba(255,255,255,0.08)' }}
+   313→          />
+   314→        </div>
+   315→      </div>
+   316→
+   317→      {/* Preview content cards */}
+   318→      <div className={cn('grid grid-cols-2', densityGap)}>
+   319→        {[0, 1, 2, 3].map((i) => (
+   320→          <div
+   321→            key={i}
+   322→            className="transition-all duration-300"
+   323→            style={{
+   324→              backgroundColor: '#1A1A24',
+   325→              borderRadius: `${Math.max(borderRadius - 4, 2)}px`,
+   326→              border: `1px solid rgba(255,255,255,0.04)`,
+   327→              padding: uiDensity === 'compact' ? '6px' : uiDensity === 'comfortable' ? '12px' : '8px',
+   328→            }}
+   329→          >
+   330→            <div
+   331→              className="rounded-sm mb-1"
+   332→              style={{
+   333→                width: `${50 + i * 10}%`,
+   334→                height: uiDensity === 'compact' ? 4 : 6,
+   335→                backgroundColor: `${accentColor}30`,
+   336→              }}
+   337→            />
+   338→            <div
+   339→              className="rounded-sm"
+   340→              style={{
+   341→                width: `${30 + i * 5}%`,
+   342→                height: uiDensity === 'compact' ? 3 : 4,
+   343→                backgroundColor: 'rgba(255,255,255,0.06)',
+   344→              }}
+   345→            />
+   346→          </div>
+   347→        ))}
+   348→      </div>
+   349→
+   350→      {/* Preview button */}
+   351→      <div className={cn('flex items-center', densityGap, uiDensity === 'compact' ? 'mt-1' : uiDensity === 'comfortable' ? 'mt-3' : 'mt-2')}>
+   352→        <div
+   353→          className="rounded-md"
+   354→          style={{
+   355→            backgroundColor: accentColor,
+   356→            color: '#121218',
+   357→            padding: uiDensity === 'compact' ? '3px 10px' : uiDensity === 'comfortable' ? '6px 18px' : '4px 14px',
+   358→            fontSize: uiDensity === 'compact' ? '9px' : uiDensity === 'comfortable' ? '12px' : '10px',
+   359→            fontWeight: 600,
+   360→            width: 'fit-content',
+   361→            borderRadius: `${Math.max(borderRadius - 4, 2)}px`,
+   362→          }}
+   363→        >
+   364→          زر
+   365→        </div>
+   366→        <div
+   367→          className="rounded-md"
+   368→          style={{
+   369→            border: `1px solid ${accentColor}40`,
+   370→            color: accentColor,
+   371→            padding: uiDensity === 'compact' ? '3px 10px' : uiDensity === 'comfortable' ? '6px 18px' : '4px 14px',
+   372→            fontSize: uiDensity === 'compact' ? '9px' : uiDensity === 'comfortable' ? '12px' : '10px',
+   373→            fontWeight: 600,
+   374→            width: 'fit-content',
+   375→            borderRadius: `${Math.max(borderRadius - 4, 2)}px`,
+   376→          }}
+   377→        >
+   378→          زر ثانٍ
+   379→        </div>
+   380→      </div>
+   381→    </div>
+   382→  );
+   383→}
+   384→
+   385→/* ------------------------------------------------------------------ */
+   386→/*  Theme Customizer Card                                              */
+   387→/* ------------------------------------------------------------------ */
+   388→function ThemeCustomizerCard() {
+   389→  const {
+   390→    accentColor,
+   391→    setAccentColor,
+   392→    uiDensity,
+   393→    setUiDensity,
+   394→    borderRadius,
+   395→    setBorderRadius,
+   396→    backgroundStyle,
+   397→    setBackgroundStyle,
+   398→  } = useAppStore();
+   399→
+   400→  const [localAccent, setLocalAccent] = useState(accentColor);
+   401→  const [localDensity, setLocalDensity] = useState(uiDensity);
+   402→  const [localRadius, setLocalRadius] = useState(borderRadius);
+   403→  const [localBgStyle, setLocalBgStyle] = useState(backgroundStyle);
+   404→
+   405→  const handleSaveTheme = () => {
+   406→    setAccentColor(localAccent);
+   407→    setUiDensity(localDensity);
+   408→    setBorderRadius(localRadius);
+   409→    setBackgroundStyle(localBgStyle);
+   410→    toast.success('تم حفظ إعدادات المظهر بنجاح');
+   411→  };
+   412→
+   413→  const handleResetTheme = () => {
+   414→    setLocalAccent('#D4A574');
+   415→    setLocalDensity('default');
+   416→    setLocalRadius(8);
+   417→    setLocalBgStyle('dots');
+   418→    setAccentColor('#D4A574');
+   419→    setUiDensity('default');
+   420→    setBorderRadius(8);
+   421→    setBackgroundStyle('dots');
+   422→    toast.success('تم إعادة تعيين إعدادات المظهر');
+   423→  };
+   424→
+   425→  const hasChanges =
+   426→    localAccent !== accentColor ||
+   427→    localDensity !== uiDensity ||
+   428→    localRadius !== borderRadius ||
+   429→    localBgStyle !== backgroundStyle;
+   430→
+   431→  const densityOptions: { value: 'compact' | 'default' | 'comfortable'; label: string; desc: string }[] = [
+   432→    { value: 'compact', label: 'مضغوط', desc: 'مسافات صغيرة' },
+   433→    { value: 'default', label: 'افتراضي', desc: 'مسافات متوسطة' },
+   434→    { value: 'comfortable', label: 'مريح', desc: 'مسافات واسعة' },
+   435→  ];
+   436→
+   437→  const bgStyleOptions: { value: 'solid' | 'gradient' | 'dots'; label: string }[] = [
+   438→    { value: 'solid', label: 'صلب' },
+   439→    { value: 'gradient', label: 'متدرج' },
+   440→    { value: 'dots', label: 'نقاط' },
+   441→  ];
+   442→
+   443→  return (
+   444→    <SettingCard
+   445→      title="تخصيص المظهر"
+   446→      icon={<Palette className="h-5 w-5" />}
+   447→      badge="مخصص"
+   448→    >
+   449→      <div className="flex flex-col gap-5">
+   450→        {/* ── Accent Color Picker ── */}
+   451→        <div>
+   452→          <div className="flex items-center gap-2 mb-3">
+   453→            <Sparkles className="h-4 w-4 text-[#D4A574]" />
+   454→            <span className="text-sm font-semibold text-slate-300">اللون المميز</span>
+   455→          </div>
+   456→          <div className="flex flex-col sm:flex-row gap-4">
+   457→            <div className="flex flex-wrap gap-3">
+   458→              {ACCENT_COLORS.map((c) => (
+   459→                <button
+   460→                  key={c.value}
+   461→                  onClick={() => setLocalAccent(c.value)}
+   462→                  className="group relative flex flex-col items-center gap-1.5 transition-transform duration-200 hover:scale-110 active:scale-95"
+   463→                  title={c.label}
+   464→                >
+   465→                  <div
+   466→                    className={cn(
+   467→                      'h-9 w-9 rounded-full transition-all duration-200',
+   468→                      localAccent === c.value && 'ring-2 ring-offset-2 ring-offset-[#1A1A24]',
+   469→                    )}
+   470→                    style={{
+   471→                      backgroundColor: c.value,
+   472→                      '--tw-ring-color': localAccent === c.value ? c.value : 'transparent',
+   473→                      boxShadow: localAccent === c.value ? `0 0 12px ${c.value}50` : 'none',
+   474→                    } as React.CSSProperties}
+   475→                  >
+   476→                    {localAccent === c.value && (
+   477→                      <CheckCircle2
+   478→                        className="h-5 w-5 text-white mx-auto mt-[6px] drop-shadow-md"
+   479→                        strokeWidth={3}
+   480→                      />
+   481→                    )}
+   482→                  </div>
+   483→                  <span className="text-[10px] text-slate-500 group-hover:text-slate-300 transition-colors">
+   484→                    {c.label}
+   485→                  </span>
+   486→                </button>
+   487→              ))}
+   488→            </div>
+   489→            {/* Live Preview */}
+   490→            <div className="flex-1 min-w-[200px] max-w-[300px] mx-auto">
+   491→              <LivePreviewCard
+   492→                accentColor={localAccent}
+   493→                borderRadius={localRadius}
+   494→                backgroundStyle={localBgStyle}
+   495→                uiDensity={localDensity}
+   496→              />
+   497→            </div>
+   498→          </div>
+   499→        </div>
+   500→
+   501→        {/* ── UI Density Selector ── */}
+   502→        <div
+   503→          className="p-4 rounded-xl"
+   504→          style={{
+   505→            backgroundColor: 'rgba(255,255,255,0.02)',
+   506→            border: '1px solid rgba(255,255,255,0.04)',
+   507→          }}
+   508→        >
+   509→          <div className="flex items-center gap-2 mb-3">
+   510→            <Layers className="h-4 w-4 text-[#D4A574]" />
+   511→            <span className="text-sm font-semibold text-slate-300">كثافة الواجهة</span>
+   512→          </div>
+   513→          <div className="grid grid-cols-3 gap-2">
+   514→            {densityOptions.map((opt) => (
+   515→              <button
+   516→                key={opt.value}
+   517→                onClick={() => setLocalDensity(opt.value)}
+   518→                className={cn(
+   519→                  'flex flex-col items-center gap-1 rounded-xl p-3 transition-all duration-200',
+   520→                  localDensity === opt.value
+   521→                    ? 'border'
+   522→                    : 'border border-transparent hover:bg-white/[0.03]',
+   523→                )}
+   524→                style={
+   525→                  localDensity === opt.value
+   526→                    ? {
+   527→                        backgroundColor: `${localAccent}10`,
+   528→                        borderColor: `${localAccent}30`,
+   529→                      }
+   530→                    : undefined
+   531→                }
+   532→              >
+   533→                <div
+   534→                  className={cn(
+   535→                    'flex items-center justify-center h-5 w-5 rounded-full border-2 transition-all duration-200',
+   536→                    localDensity === opt.value && 'border-transparent',
+   537→                  )}
+   538→                  style={{
+   539→                    borderColor: localDensity === opt.value ? 'transparent' : 'rgba(255,255,255,0.15)',
+   540→                    backgroundColor: localDensity === opt.value ? localAccent : 'transparent',
+   541→                  }}
+   542→                >
+   543→                  {localDensity === opt.value && (
+   544→                    <Check className="h-3 w-3 text-[#121218]" strokeWidth={3} />
+   545→                  )}
+   546→                </div>
+   547→                <span
+   548→                  className={cn(
+   549→                    'text-xs font-medium transition-colors',
+   550→                    localDensity === opt.value ? 'text-slate-200' : 'text-slate-500',
+   551→                  )}
+   552→                >
+   553→                  {opt.label}
+   554→                </span>
+   555→                <span className="text-[10px] text-slate-600">{opt.desc}</span>
+   556→              </button>
+   557→            ))}
+   558→          </div>
+   559→        </div>
+   560→
+   561→        {/* ── Border Radius Slider ── */}
+   562→        <div
+   563→          className="p-4 rounded-xl"
+   564→          style={{
+   565→            backgroundColor: 'rgba(255,255,255,0.02)',
+   566→            border: '1px solid rgba(255,255,255,0.04)',
+   567→          }}
+   568→        >
+   569→          <div className="flex items-center justify-between mb-3">
+   570→            <div className="flex items-center gap-2">
+   571→              <div
+   572→                className="h-5 w-5 transition-all duration-300"
+   573→                style={{
+   574→                  borderRadius: `${localRadius}px`,
+   575→                  border: `2px solid ${localAccent}`,
+   576→                  backgroundColor: `${localAccent}20`,
+   577→                }}
+   578→              />
+   579→              <span className="text-sm font-semibold text-slate-300">حواف مستديرة</span>
+   580→            </div>
+   581→            <Badge
+   582→              className="text-[11px] px-2.5 py-0.5 rounded-full font-mono"
+   583→              style={{
+   584→                backgroundColor: `${localAccent}15`,
+   585→                color: localAccent,
+   586→                border: `1px solid ${localAccent}25`,
+   587→              }}
+   588→            >
+   589→              {localRadius}px
+   590→            </Badge>
+   591→          </div>
+   592→          <Slider
+   593→            value={[localRadius]}
+   594→            onValueChange={(v) => setLocalRadius(v[0])}
+   595→            min={0}
+   596→            max={24}
+   597→            step={1}
+   598→            className="w-full [&_[data-slot=slider-track]]:h-2 [&_[data-slot=slider-range]]:bg-[var(--preview-accent,#D4A574)] [&_[data-slot=slider-thumb]]:bg-[var(--preview-accent,#D4A574)] [&_[data-slot=slider-thumb]]:border-0 [&_[data-slot=slider-thumb]]:h-5 [&_[data-slot=slider-thumb]]:w-5 [&_[data-slot=slider-thumb]]:shadow-md"
+   599→            style={{ '--preview-accent': localAccent } as React.CSSProperties}
+   600→          />
+   601→          <div className="flex justify-between mt-2 text-[10px] text-slate-600 px-0.5">
+   602→            <span>0px — مربع</span>
+   603→            <span>12px — متوسط</span>
+   604→            <span>24px — دائري</span>
+   605→          </div>
+   606→        </div>
+   607→
+   608→        {/* ── Background Style Toggle ── */}
+   609→        <div
+   610→          className="p-4 rounded-xl"
+   611→          style={{
+   612→            backgroundColor: 'rgba(255,255,255,0.02)',
+   613→            border: '1px solid rgba(255,255,255,0.04)',
+   614→          }}
+   615→        >
+   616→          <div className="flex items-center gap-2 mb-3">
+   617→            <Monitor className="h-4 w-4 text-[#D4A574]" />
+   618→            <span className="text-sm font-semibold text-slate-300">نمط الخلفية</span>
+   619→          </div>
+   620→          <div className="grid grid-cols-3 gap-2">
+   621→            {bgStyleOptions.map((opt) => (
+   622→              <button
+   623→                key={opt.value}
+   624→                onClick={() => setLocalBgStyle(opt.value)}
+   625→                className={cn(
+   626→                  'relative flex flex-col items-center gap-2 rounded-xl p-3 transition-all duration-200 overflow-hidden',
+   627→                  localBgStyle === opt.value ? 'border' : 'border border-transparent hover:bg-white/[0.03]',
+   628→                )}
+   629→                style={
+   630→                  localBgStyle === opt.value
+   631→                    ? {
+   632→                        backgroundColor: `${localAccent}10`,
+   633→                        borderColor: `${localAccent}30`,
+   634→                      }
+   635→                    : undefined
+   636→                }
+   637→              >
+   638→                {/* Mini background preview */}
+   639→                <div
+   640→                  className="h-10 w-full rounded-md overflow-hidden"
+   641→                  style={
+   642→                    opt.value === 'dots'
+   643→                      ? {
+   644→                          backgroundColor: '#121218',
+   645→                          backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px)',
+   646→                          backgroundSize: '6px 6px',
+   647→                        }
+   648→                      : opt.value === 'gradient'
+   649→                        ? {
+   650→                            background: 'linear-gradient(135deg, #121218 0%, #1A1A2E 50%, #1E1E30 100%)',
+   651→                          }
+   652→                        : {
+   653→                            backgroundColor: '#121218',
+   654→                          }
+   655→                  }
+   656→                />
+   657→                <div
+   658→                  className={cn(
+   659→                    'text-xs font-medium transition-colors',
+   660→                    localBgStyle === opt.value ? 'text-slate-200' : 'text-slate-500',
+   661→                  )}
+   662→                >
+   663→                  {opt.label}
+   664→                </div>
+   665→                {localBgStyle === opt.value && (
+   666→                  <div
+   667→                    className="absolute top-2 left-2"
+   668→                    style={{ color: localAccent }}
+   669→                  >
+   670→                    <Check className="h-3.5 w-3.5" strokeWidth={3} />
+   671→                  </div>
+   672→                )}
+   673→              </button>
+   674→            ))}
+   675→          </div>
+   676→        </div>
+   677→
+   678→        {/* ── Action Buttons ── */}
+   679→        <div className="flex items-center justify-between gap-3 pt-2">
+   680→          <Button
+   681→            onClick={handleResetTheme}
+   682→            variant="outline"
+   683→            className="gap-2 text-slate-400 border-white/[0.08] hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-colors rounded-lg text-xs h-8"
+   684→          >
+   685→            <RotateCcw className="h-3.5 w-3.5" />
+   686→            إعادة تعيين
+   687→          </Button>
+   688→          <Button
+   689→            onClick={handleSaveTheme}
+   690→            disabled={!hasChanges}
+   691→            className={cn(
+   692→              'gap-2 font-semibold rounded-lg px-5 h-8 text-xs transition-all duration-300',
+   693→              hasChanges
+   694→                ? 'btn-shine'
+   695→                : 'opacity-40 cursor-not-allowed',
+   696→            )}
+   697→            style={
+   698→              hasChanges
+   699→                ? { backgroundColor: localAccent, color: '#121218' }
+   700→                : { backgroundColor: localAccent, color: '#121218' }
+   701→            }
+   702→          >
+   703→            <Save className="h-3.5 w-3.5" />
+   704→            حفظ التخصيص
+   705→          </Button>
+   706→        </div>
+   707→      </div>
+   708→    </SettingCard>
+   709→  );
+   710→}
+   711→
+   712→/* ------------------------------------------------------------------ */
+   713→/*  Admin Profile Card (Editable)                                      */
+   714→/* ------------------------------------------------------------------ */
+   715→function AdminProfileCard() {
+   716→  const { adminProfile, updateAdminProfile } = useAppStore();
+   717→  const avatarInputRef = useRef<HTMLInputElement | null>(null);
+   718→
+   719→  const [name, setName] = useState(adminProfile.name);
+   720→  const [email, setEmail] = useState(adminProfile.email);
+   721→  const [phone, setPhone] = useState(adminProfile.phone);
+   722→  const [role, setRole] = useState(adminProfile.role);
+   723→  const [avatar, setAvatar] = useState(adminProfile.avatar);
+   724→  const [profileSaved, setProfileSaved] = useState(false);
+   725→
+   726→  // Password change state
+   727→  const [currentPassword, setCurrentPassword] = useState('');
+   728→  const [newPassword, setNewPassword] = useState('');
+   729→  const [confirmPassword, setConfirmPassword] = useState('');
+   730→  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+   731→  const [showNewPassword, setShowNewPassword] = useState(false);
+   732→  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+   733→  const [passwordSaved, setPasswordSaved] = useState(false);
+   734→
+   735→  const hasProfileChanges =
+   736→    name !== adminProfile.name ||
+   737→    email !== adminProfile.email ||
+   738→    phone !== adminProfile.phone ||
+   739→    role !== adminProfile.role ||
+   740→    avatar !== adminProfile.avatar;
+   741→
+   742→  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+   743→    const file = e.target.files?.[0];
+   744→    if (!file) return;
+   745→
+   746→    if (!file.type.startsWith('image/')) {
+   747→      toast.error('يرجى اختيار ملف صورة');
+   748→      return;
+   749→    }
+   750→
+   751→    const reader = new FileReader();
+   752→    reader.onloadend = () => {
+   753→      const dataUrl = reader.result as string;
+   754→      setAvatar(dataUrl);
+   755→    };
+   756→    reader.readAsDataURL(file);
+   757→  };
+   758→
+   759→  const handleSaveProfile = () => {
+   760→    updateAdminProfile({ name, email, phone, role, avatar });
+   761→    setProfileSaved(true);
+   762→    toast.success(t('adminProfile.saved'));
+   763→    setTimeout(() => setProfileSaved(false), 3000);
+   764→  };
+   765→
+   766→  const handlePasswordChange = () => {
+   767→    if (!currentPassword || !newPassword || !confirmPassword) {
+   768→      toast.error('يرجى ملء جميع حقول كلمة المرور');
+   769→      return;
+   770→    }
+   771→    if (newPassword !== confirmPassword) {
+   772→      toast.error(t('adminProfile.passwordMismatch'));
+   773→      return;
+   774→    }
+   775→    if (newPassword.length < 6) {
+   776→      toast.error('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+   777→      return;
+   778→    }
+   779→
+   780→    // In a real app, this would call an API. For now, just show success.
+   781→    setCurrentPassword('');
+   782→    setNewPassword('');
+   783→    setConfirmPassword('');
+   784→    setPasswordSaved(true);
+   785→    toast.success(t('adminProfile.passwordChanged'));
+   786→    setTimeout(() => setPasswordSaved(false), 3000);
+   787→  };
+   788→
+   789→  return (
+   790→    <>
+   791→      {/* Profile Info Card */}
+   792→      <SettingCard
+   793→        title={t('adminProfile.title')}
+   794→        icon={<User className="h-5 w-5" />}
+   795→        badge={t('adminProfile.badge')}
+   796→      >
+   797→        <div className="flex flex-col gap-5">
+   798→          {/* Avatar Section */}
+   799→          <div className="flex items-center gap-4">
+   800→            <div className="relative group">
+   801→              <Avatar className="h-20 w-20 border-2 border-[#D4A574]/30">
+   802→                {avatar ? (
+   803→                  <AvatarImage src={avatar} alt={name} />
+   804→                ) : null}
+   805→                <AvatarFallback className="bg-amber-500/20 text-amber-400 text-2xl font-bold">
+   806→                  {name.charAt(0) || 'أ'}
+   807→                </AvatarFallback>
+   808→              </Avatar>
+   809→              <button
+   810→                type="button"
+   811→                onClick={() => avatarInputRef.current?.click()}
+   812→                className="absolute inset-0 flex items-center justify-center rounded-full
+   813→                  bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity"
+   814→                aria-label={t('adminProfile.avatarChange')}
+   815→              >
+   816→                <Camera className="h-5 w-5 text-white" />
+   817→              </button>
+   818→              <input
+   819→                ref={avatarInputRef}
+   820→                type="file"
+   821→                accept="image/*"
+   822→                onChange={handleAvatarChange}
+   823→                className="hidden"
+   824→              />
+   825→            </div>
+   826→            <div className="flex-1">
+   827→              <p className="text-sm font-semibold text-slate-200">{name || 'مدير النظام'}</p>
+   828→              <p className="text-xs text-slate-500">{role || 'مدير النظام'}</p>
+   829→              <button
+   830→                type="button"
+   831→                onClick={() => avatarInputRef.current?.click()}
+   832→                className="mt-1 text-[11px] text-[#D4A574] hover:underline"
+   833→              >
+   834→                {t('adminProfile.avatarChange')}
+   835→              </button>
+   836→            </div>
+   837→          </div>
+   838→
+   839→          {/* Editable Fields */}
+   840→          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+   841→            {/* Name */}
+   842→            <div className="flex flex-col gap-2">
+   843→              <Label className="text-sm text-slate-300 font-medium flex items-center gap-2">
+   844→                <User className="h-4 w-4 text-[#D4A574]" />
+   845→                {t('adminProfile.name')}
+   846→              </Label>
+   847→              <Input
+   848→                type="text"
+   849→                value={name}
+   850→                onChange={(e) => setName(e.target.value)}
+   851→                placeholder={t('adminProfile.namePlaceholder')}
+   852→                dir="rtl"
+   853→                className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   854→              />
+   855→            </div>
+   856→
+   857→            {/* Email */}
+   858→            <div className="flex flex-col gap-2">
+   859→              <Label className="text-sm text-slate-300 font-medium flex items-center gap-2">
+   860→                <Mail className="h-4 w-4 text-[#D4A574]" />
+   861→                {t('adminProfile.email')}
+   862→              </Label>
+   863→              <Input
+   864→                type="email"
+   865→                value={email}
+   866→                onChange={(e) => setEmail(e.target.value)}
+   867→                placeholder={t('adminProfile.emailPlaceholder')}
+   868→                dir="ltr"
+   869→                className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   870→              />
+   871→            </div>
+   872→
+   873→            {/* Phone */}
+   874→            <div className="flex flex-col gap-2">
+   875→              <Label className="text-sm text-slate-300 font-medium flex items-center gap-2">
+   876→                <Smartphone className="h-4 w-4 text-[#D4A574]" />
+   877→                {t('adminProfile.phone')}
+   878→              </Label>
+   879→              <Input
+   880→                type="tel"
+   881→                value={phone}
+   882→                onChange={(e) => setPhone(e.target.value)}
+   883→                placeholder={t('adminProfile.phonePlaceholder')}
+   884→                dir="ltr"
+   885→                className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   886→              />
+   887→            </div>
+   888→
+   889→            {/* Role */}
+   890→            <div className="flex flex-col gap-2">
+   891→              <Label className="text-sm text-slate-300 font-medium flex items-center gap-2">
+   892→                <Shield className="h-4 w-4 text-[#D4A574]" />
+   893→                {t('adminProfile.role')}
+   894→              </Label>
+   895→              <Input
+   896→                type="text"
+   897→                value={role}
+   898→                onChange={(e) => setRole(e.target.value)}
+   899→                placeholder={t('adminProfile.rolePlaceholder')}
+   900→                dir="rtl"
+   901→                className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   902→              />
+   903→            </div>
+   904→          </div>
+   905→
+   906→          {/* Save Profile Button */}
+   907→          <div className="flex items-center justify-end gap-3 pt-1">
+   908→            <Button
+   909→              onClick={handleSaveProfile}
+   910→              disabled={!hasProfileChanges}
+   911→              className={cn(
+   912→                'gap-2 font-semibold rounded-lg px-5 h-9 text-xs transition-all duration-300',
+   913→                hasProfileChanges
+   914→                  ? 'btn-shine'
+   915→                  : 'opacity-40 cursor-not-allowed',
+   916→              )}
+   917→              style={
+   918→                hasProfileChanges
+   919→                  ? { backgroundColor: '#D4A574', color: '#121218' }
+   920→                  : { backgroundColor: '#D4A574', color: '#121218' }
+   921→              }
+   922→            >
+   923→              {profileSaved ? (
+   924→                <>
+   925→                  <Check className="h-3.5 w-3.5" />
+   926→                  {t('general.saved', 'ar') === 'تم الحفظ' ? 'تم الحفظ' : 'Saved'}
+   927→                </>
+   928→              ) : (
+   929→                <>
+   930→                  <Save className="h-3.5 w-3.5" />
+   931→                  {t('adminProfile.save')}
+   932→                </>
+   933→              )}
+   934→            </Button>
+   935→          </div>
+   936→        </div>
+   937→      </SettingCard>
+   938→
+   939→      {/* Password Change Card */}
+   940→      <SettingCard
+   941→        title={t('adminProfile.passwordTitle')}
+   942→        icon={<Lock className="h-5 w-5" />}
+   943→        badge="أمان"
+   944→      >
+   945→        <div className="flex flex-col gap-4">
+   946→          {/* Current Password */}
+   947→          <div className="flex flex-col gap-2">
+   948→            <Label className="text-sm text-slate-300 font-medium flex items-center gap-2">
+   949→              <Lock className="h-4 w-4 text-[#D4A574]" />
+   950→              {t('adminProfile.currentPassword')}
+   951→            </Label>
+   952→            <div className="relative">
+   953→              <Input
+   954→                type={showCurrentPassword ? 'text' : 'password'}
+   955→                value={currentPassword}
+   956→                onChange={(e) => setCurrentPassword(e.target.value)}
+   957→                placeholder="••••••••"
+   958→                dir="ltr"
+   959→                className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 pr-10"
+   960→              />
+   961→              <button
+   962→                type="button"
+   963→                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+   964→                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+   965→              >
+   966→                {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+   967→              </button>
+   968→            </div>
+   969→          </div>
+   970→
+   971→          {/* New Password */}
+   972→          <div className="flex flex-col gap-2">
+   973→            <Label className="text-sm text-slate-300 font-medium flex items-center gap-2">
+   974→              <Lock className="h-4 w-4 text-[#D4A574]" />
+   975→              {t('adminProfile.newPassword')}
+   976→            </Label>
+   977→            <div className="relative">
+   978→              <Input
+   979→                type={showNewPassword ? 'text' : 'password'}
+   980→                value={newPassword}
+   981→                onChange={(e) => setNewPassword(e.target.value)}
+   982→                placeholder="••••••••"
+   983→                dir="ltr"
+   984→                className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 pr-10"
+   985→              />
+   986→              <button
+   987→                type="button"
+   988→                onClick={() => setShowNewPassword(!showNewPassword)}
+   989→                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+   990→              >
+   991→                {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+   992→              </button>
+   993→            </div>
+   994→          </div>
+   995→
+   996→          {/* Confirm Password */}
+   997→          <div className="flex flex-col gap-2">
+   998→            <Label className="text-sm text-slate-300 font-medium flex items-center gap-2">
+   999→              <Lock className="h-4 w-4 text-[#D4A574]" />
+  1000→              {t('adminProfile.confirmPassword')}
+  1001→            </Label>
+  1002→            <div className="relative">
+  1003→              <Input
+  1004→                type={showConfirmPassword ? 'text' : 'password'}
+  1005→                value={confirmPassword}
+  1006→                onChange={(e) => setConfirmPassword(e.target.value)}
+  1007→                placeholder="••••••••"
+  1008→                dir="ltr"
+  1009→                className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 pr-10"
+  1010→              />
+  1011→              <button
+  1012→                type="button"
+  1013→                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+  1014→                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+  1015→              >
+  1016→                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+  1017→              </button>
+  1018→            </div>
+  1019→          </div>
+  1020→
+  1021→          {/* Password Mismatch Warning */}
+  1022→          {confirmPassword && newPassword !== confirmPassword && (
+  1023→            <p className="text-xs text-red-400 flex items-center gap-1">
+  1024→              <Shield className="h-3 w-3" />
+  1025→              {t('adminProfile.passwordMismatch')}
+  1026→            </p>
+  1027→          )}
+  1028→
+  1029→          {/* Change Password Button */}
+  1030→          <div className="flex items-center justify-end gap-3 pt-1">
+  1031→            <Button
+  1032→              onClick={handlePasswordChange}
+  1033→              disabled={!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword}
+  1034→              className={cn(
+  1035→                'gap-2 font-semibold rounded-lg px-5 h-9 text-xs transition-all duration-300',
+  1036→                currentPassword && newPassword && confirmPassword && newPassword === confirmPassword
+  1037→                  ? 'btn-shine'
+  1038→                  : 'opacity-40 cursor-not-allowed',
+  1039→              )}
+  1040→              style={{ backgroundColor: '#D4A574', color: '#121218' }}
+  1041→            >
+  1042→              {passwordSaved ? (
+  1043→                <>
+  1044→                  <Check className="h-3.5 w-3.5" />
+  1045→                  تم التغيير
+  1046→                </>
+  1047→              ) : (
+  1048→                <>
+  1049→                  <Lock className="h-3.5 w-3.5" />
+  1050→                  {t('adminProfile.passwordChange')}
+  1051→                </>
+  1052→              )}
+  1053→            </Button>
+  1054→          </div>
+  1055→        </div>
+  1056→      </SettingCard>
+  1057→    </>
+  1058→  );
+  1059→}
+  1060→
+  1061→/* ------------------------------------------------------------------ */
+  1062→/*  Main component                                                     */
+  1063→/* ------------------------------------------------------------------ */
+  1064→export default function SettingsSection() {
+  1065→  /* ── notification toggles ── */
+  1066→  const notificationDefaults: ToggleSetting[] = [
+  1067→    { key: 'system', label: 'إشعارات النظام', description: 'تحديثات النظام وصيانة الخوادم', icon: <Bell className="h-4 w-4" />, defaultOn: true },
+  1068→    { key: 'sound', label: 'إشعارات الصوت', description: 'تنبيهات صوتية عند الإشعارات الجديدة', icon: <Volume2 className="h-4 w-4" />, defaultOn: true },
+  1069→    { key: 'email', label: 'إشعارات البريد الإلكتروني', description: 'إرسال ملخص يومي للبريد', icon: <Mail className="h-4 w-4" />, defaultOn: false },
+  1070→    { key: 'messages', label: 'إشعارات الرسائل', description: 'تنبيهات الرسائل الجديدة والدردشات', icon: <Smartphone className="h-4 w-4" />, defaultOn: true },
+  1071→  ];
+  1072→
+  1073→  /* ── appearance toggles ── */
+  1074→  const { theme, setTheme } = useTheme();
+  1075→  const isDark = theme === 'dark';
+  1076→
+  1077→  const handleThemeToggle = (checked: boolean) => {
+  1078→    setTheme(checked ? 'dark' : 'light');
+  1079→    setSaved(false);
+  1080→  };
+  1081→
+  1082→  const appearanceDefaults: ToggleSetting[] = [
+  1083→    { key: 'darkMode', label: 'الوضع الداكن', description: 'تفعيل المظهر الداكن (موصى به)', icon: <Moon className="h-4 w-4" />, defaultOn: true },
+  1084→    { key: 'sidebarDefault', label: 'الشريط الجانبي مفتوح', description: 'عرض الشريط الجانبي افتراضياً عند فتح الصفحة', icon: <Monitor className="h-4 w-4" />, defaultOn: true },
+  1085→  ];
+  1086→
+  1087→  /* ── analytics toggles ── */
+  1088→  const analyticsDefaults: ToggleSetting[] = [
+  1089→    { key: 'analyticsNotif', label: 'إشعارات التحليلات', description: 'تنبيهات التغييرات في التحليلات', icon: <BarChart3 className="h-4 w-4" />, defaultOn: true },
+  1090→    { key: 'activityTracking', label: 'تتبع الأنشطة', description: 'تتبع نشاط الطلاب والمعلمين', icon: <Activity className="h-4 w-4" />, defaultOn: true },
+  1091→    { key: 'assessmentTracking', label: 'تتبع التقييمات', description: 'إشعارات نتائج التقييمات والاختبارات', icon: <Target className="h-4 w-4" />, defaultOn: false },
+  1092→    { key: 'sessionTracking', label: 'تتبع الجلسات', description: 'تتبع إحصائيات الجلسات التعليمية', icon: <Clock className="h-4 w-4" />, defaultOn: true },
+  1093→  ];
+  1094→
+  1095→  const allDefaults = [...notificationDefaults, ...appearanceDefaults, ...analyticsDefaults];
+  1096→
+  1097→  const buildDefaultMap = () =>
+  1098→    Object.fromEntries(allDefaults.map((s) => [s.key, s.defaultOn]));
+  1099→
+  1100→  const [toggles, setToggles] = useState<Record<string, boolean>>(buildDefaultMap);
+  1101→  const [language, setLanguage] = useState('ar');
+  1102→  const [schoolName, setSchoolName] = useState('AuraLab Academy');
+  1103→  const [academicYear, setAcademicYear] = useState('2024-2025');
+  1104→  const [saved, setSaved] = useState(false);
+  1105→  const [clearDataOpen, setClearDataOpen] = useState(false);
+  1106→
+  1107→  // Store settings
+  1108→  const {
+  1109→    schoolInfo, updateSchoolInfo,
+  1110→    academicYear: academicYearSettings, updateAcademicYear,
+  1111→    notificationSettings, updateNotificationSettings,
+  1112→    displaySettings, updateDisplaySettings,
+  1113→    languageSettings, updateLanguageSettings,
+  1114→    uiDensity, setUiDensity,
+  1115→  } = useAppStore();
+  1116→
+  1117→  const handleToggle = (key: string, value: boolean) => {
+  1118→    setToggles((prev) => ({ ...prev, [key]: value }));
+  1119→    setSaved(false);
+  1120→  };
+  1121→
+  1122→  const resetAll = () => {
+  1123→    setToggles(buildDefaultMap());
+  1124→    setLanguage('ar');
+  1125→    setSchoolName('AuraLab Academy');
+  1126→    setAcademicYear('2024-2025');
+  1127→    setSaved(false);
+  1128→    toast.success('تم إعادة تعيين جميع الإعدادات');
+  1129→  };
+  1130→
+  1131→  const handleSave = () => {
+  1132→    setSaved(true);
+  1133→    toast.success('تم حفظ إعدادات النظام بنجاح');
+  1134→    setTimeout(() => setSaved(false), 3000);
+  1135→  };
+  1136→
+  1137→  return (
+  1138→    <div className="flex flex-col gap-6" dir="rtl">
+  1139→      {/* ── Page header ── */}
+  1140→      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+  1141→        <div className="flex items-center gap-3">
+  1142→          <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-[#D4A574]/10">
+  1143→            <Settings className="h-5 w-5 text-[#D4A574]" />
+  1144→          </div>
+  1145→          <div>
+  1146→            <h1 className="text-2xl font-bold text-white tracking-tight sm:text-3xl">
+  1147→              إعدادات النظام
+  1148→            </h1>
+  1149→            <p className="mt-0.5 text-sm text-muted-foreground">
+  1150→              تخصيص إعدادات النظام والملف الشخصي والإشعارات
+  1151→            </p>
+  1152→          </div>
+  1153→        </div>
+  1154→        <Button
+  1155→          onClick={resetAll}
+  1156→          variant="outline"
+  1157→          className="gap-2 text-slate-300 border-white/[0.08] hover:bg-[#D4A574]/10 hover:text-[#D4A574] hover:border-[#D4A574]/40 transition-colors rounded-lg"
+  1158→        >
+  1159→          <RotateCcw className="h-4 w-4" />
+  1160→          إعادة تعيين
+  1161→        </Button>
+  1162→      </div>
+  1163→
+  1164→      {/* ============================================================ */}
+  1165→      {/* Section – School Information                                   */}
+  1166→      {/* ============================================================ */}
+  1167→      <SettingCard
+  1168→        title="معلومات المدرسة"
+  1169→        icon={<School className="h-5 w-5" />}
+  1170→        badge="البيانات الأساسية"
+  1171→      >
+  1172→        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  1173→          <div className="flex flex-col gap-2">
+  1174→            <Label className="text-sm text-slate-300 font-medium flex items-center gap-2">
+  1175→              <School className="h-4 w-4 text-[#D4A574]" />
+  1176→              اسم المدرسة
+  1177→            </Label>
+  1178→            <Input
+  1179→              value={schoolInfo.name}
+  1180→              onChange={(e) => updateSchoolInfo({ name: e.target.value })}
+  1181→              className="bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50"
+  1182→            />
+  1183→          </div>
+  1184→          <div className="flex flex-col gap-2">
+  1185→            <Label className="text-sm text-slate-300 font-medium flex items-center gap-2">
+  1186→              <MapPin className="h-4 w-4 text-[#D4A574]" />
+  1187→              العنوان
+  1188→            </Label>
+  1189→            <Input
+  1190→              value={schoolInfo.address}
+  1191→              onChange={(e) => updateSchoolInfo({ address: e.target.value })}
+  1192→              className="bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50"
+  1193→            />
+  1194→          </div>
+  1195→          <div className="flex flex-col gap-2">
+  1196→            <Label className="text-sm text-slate-300 font-medium flex items-center gap-2">
+  1197→              <Phone className="h-4 w-4 text-[#D4A574]" />
+  1198→              رقم الهاتف
+  1199→            </Label>
+  1200→            <Input
+  1201→              value={schoolInfo.phone}
+  1202→              onChange={(e) => updateSchoolInfo({ phone: e.target.value })}
+  1203→              className="bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50"
+  1204→              dir="ltr"
+  1205→            />
+  1206→          </div>
+  1207→          <div className="flex flex-col gap-2">
+  1208→            <Label className="text-sm text-slate-300 font-medium flex items-center gap-2">
+  1209→              <Mail className="h-4 w-4 text-[#D4A574]" />
+  1210→              البريد الإلكتروني
+  1211→            </Label>
+  1212→            <Input
+  1213→              value={schoolInfo.email}
+  1214→              onChange={(e) => updateSchoolInfo({ email: e.target.value })}
+  1215→              className="bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50"
+  1216→              dir="ltr"
+  1217→            />
+  1218→          </div>
+  1219→        </div>
+  1220→      </SettingCard>
+  1221→
+  1222→      {/* ============================================================ */}
+  1223→      {/* Section – Academic Year Settings                                */}
+  1224→      {/* ============================================================ */}
+  1225→      <SettingCard
+  1226→        title="العام الدراسي"
+  1227→        icon={<CalendarDays className="h-5 w-5" />}
+  1228→        badge="الفصول الدراسية"
+  1229→      >
+  1230→        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  1231→          <div className="flex flex-col gap-2">
+  1232→            <Label className="text-sm text-slate-300 font-medium">تاريخ البداية</Label>
+  1233→            <Input
+  1234→              type="date"
+  1235→              value={academicYearSettings.startDate}
+  1236→              onChange={(e) => updateAcademicYear({ startDate: e.target.value })}
+  1237→              className="bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50"
+  1238→              dir="ltr"
+  1239→            />
+  1240→          </div>
+  1241→          <div className="flex flex-col gap-2">
+  1242→            <Label className="text-sm text-slate-300 font-medium">تاريخ النهاية</Label>
+  1243→            <Input
+  1244→              type="date"
+  1245→              value={academicYearSettings.endDate}
+  1246→              onChange={(e) => updateAcademicYear({ endDate: e.target.value })}
+  1247→              className="bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50"
+  1248→              dir="ltr"
+  1249→            />
+  1250→          </div>
+  1251→          <div className="flex flex-col gap-2">
+  1252→            <Label className="text-sm text-slate-300 font-medium">اسم الفصل الأول</Label>
+  1253→            <Input
+  1254→              value={academicYearSettings.semester1Name}
+  1255→              onChange={(e) => updateAcademicYear({ semester1Name: e.target.value })}
+  1256→              className="bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50"
+  1257→            />
+  1258→          </div>
+  1259→          <div className="flex flex-col gap-2">
+  1260→            <Label className="text-sm text-slate-300 font-medium">اسم الفصل الثاني</Label>
+  1261→            <Input
+  1262→              value={academicYearSettings.semester2Name}
+  1263→              onChange={(e) => updateAcademicYear({ semester2Name: e.target.value })}
+  1264→              className="bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50"
+  1265→            />
+  1266→          </div>
+  1267→        </div>
+  1268→      </SettingCard>
+  1269→
+  1270→      {/* ============================================================ */}
+  1271→      {/* Section – Notification Settings (from store)                     */}
+  1272→      {/* ============================================================ */}
+  1273→      <SettingCard
+  1274→        title="إعدادات الإشعارات"
+  1275→        icon={<Bell className="h-5 w-5" />}
+  1276→        badge="قنوات الإشعار"
+  1277→      >
+  1278→        <div className="flex flex-col gap-3">
+  1279→          {[
+  1280→            { key: 'emailEnabled', label: 'إشعارات البريد الإلكتروني', desc: 'إرسال إشعارات عبر البريد الإلكتروني', icon: <Mail className="h-4 w-4" /> },
+  1281→            { key: 'smsEnabled', label: 'إشعارات الرسائل النصية', desc: 'إرسال رسائل SMS للتنبيهات', icon: <Smartphone className="h-4 w-4" /> },
+  1282→            { key: 'pushEnabled', label: 'الإشعارات الفورية', desc: 'إشعارات Push عبر المتصفح', icon: <Bell className="h-4 w-4" /> },
+  1283→            { key: 'soundEnabled', label: 'صوت الإشعارات', desc: 'تشغيل صوت عند وصول إشعار جديد', icon: <Volume2 className="h-4 w-4" /> },
+  1284→          ].map((item) => (
+  1285→            <div
+  1286→              key={item.key}
+  1287→              className="flex items-center justify-between gap-4 rounded-xl p-4"
+  1288→              style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}
+  1289→            >
+  1290→              <div className="flex items-center gap-3 min-w-0">
+  1291→                <div className="flex shrink-0 items-center justify-center h-9 w-9 rounded-lg bg-[#D4A574]/10 text-[#D4A574]">
+  1292→                  {item.icon}
+  1293→                </div>
+  1294→                <div className="min-w-0">
+  1295→                  <Label className="cursor-pointer text-sm font-medium text-slate-200 block">{item.label}</Label>
+  1296→                  <p className="text-xs text-slate-500 mt-0.5">{item.desc}</p>
+  1297→                </div>
+  1298→              </div>
+  1299→              <Switch
+  1300→                checked={notificationSettings[item.key as keyof typeof notificationSettings]}
+  1301→                onCheckedChange={(v) => updateNotificationSettings({ [item.key]: v })}
+  1302→                className="data-[state=checked]:bg-[#D4A574] data-[state=unchecked]:bg-slate-600 shrink-0"
+  1303→              />
+  1304→            </div>
+  1305→          ))}
+  1306→        </div>
+  1307→      </SettingCard>
+  1308→
+  1309→      {/* ============================================================ */}
+  1310→      {/* Section – Display Settings                                      */}
+  1311→      {/* ============================================================ */}
+  1312→      <SettingCard
+  1313→        title="إعدادات العرض"
+  1314→        icon={<Monitor className="h-5 w-5" />}
+  1315→        badge="الكثافة والحركة"
+  1316→      >
+  1317→        <div className="flex flex-col gap-4">
+  1318→          <div className="flex flex-col gap-2">
+  1319→            <Label className="text-sm text-slate-300 font-medium">كثافة العرض</Label>
+  1320→            <Select value={uiDensity} onValueChange={(v: 'compact' | 'default' | 'comfortable') => setUiDensity(v)}>
+  1321→              <SelectTrigger className="w-full bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50">
+  1322→                <SelectValue />
+  1323→              </SelectTrigger>
+  1324→              <SelectContent className="bg-[#1A1A24] border-white/[0.08] text-slate-200">
+  1325→                <SelectItem value="compact" className="focus:bg-white/[0.05] focus:text-white">مضغوط</SelectItem>
+  1326→                <SelectItem value="default" className="focus:bg-white/[0.05] focus:text-white">افتراضي</SelectItem>
+  1327→                <SelectItem value="comfortable" className="focus:bg-white/[0.05] focus:text-white">مريح</SelectItem>
+  1328→              </SelectContent>
+  1329→            </Select>
+  1330→          </div>
+  1331→          <div
+  1332→            className="flex items-center justify-between gap-4 rounded-xl p-4"
+  1333→            style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}
+  1334→          >
+  1335→            <div className="flex items-center gap-3 min-w-0">
+  1336→              <div className="flex shrink-0 items-center justify-center h-9 w-9 rounded-lg bg-[#D4A574]/10 text-[#D4A574]">
+  1337→                <Sparkles className="h-4 w-4" />
+  1338→              </div>
+  1339→              <div className="min-w-0">
+  1340→                <Label className="cursor-pointer text-sm font-medium text-slate-200 block">الحركات والتأثيرات</Label>
+  1341→                <p className="text-xs text-slate-500 mt-0.5">تفعيل الحركات الانتقالية والتأثيرات البصرية</p>
+  1342→              </div>
+  1343→            </div>
+  1344→            <Switch
+  1345→              checked={displaySettings.animationsEnabled}
+  1346→              onCheckedChange={(v) => updateDisplaySettings({ animationsEnabled: v })}
+  1347→              className="data-[state=checked]:bg-[#D4A574] data-[state=unchecked]:bg-slate-600 shrink-0"
+  1348→            />
+  1349→          </div>
+  1350→        </div>
+  1351→      </SettingCard>
+  1352→
+  1353→      {/* ============================================================ */}
+  1354→      {/* Section – Language Settings                                      */}
+  1355→      {/* ============================================================ */}
+  1356→      <SettingCard
+  1357→        title="إعدادات اللغة والتنسيق"
+  1358→        icon={<Globe className="h-5 w-5" />}
+  1359→        badge="اللغة والتاريخ"
+  1360→      >
+  1361→        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  1362→          <div className="flex flex-col gap-2">
+  1363→            <Label className="text-sm text-slate-300 font-medium">اللغة الافتراضية</Label>
+  1364→            <Select value={languageSettings.defaultLanguage} onValueChange={(v) => updateLanguageSettings({ defaultLanguage: v })}>
+  1365→              <SelectTrigger className="w-full bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50">
+  1366→                <SelectValue />
+  1367→              </SelectTrigger>
+  1368→              <SelectContent className="bg-[#1A1A24] border-white/[0.08] text-slate-200">
+  1369→                <SelectItem value="ar" className="focus:bg-white/[0.05] focus:text-white">العربية</SelectItem>
+  1370→                <SelectItem value="en" className="focus:bg-white/[0.05] focus:text-white">English</SelectItem>
+  1371→              </SelectContent>
+  1372→            </Select>
+  1373→          </div>
+  1374→          <div className="flex flex-col gap-2">
+  1375→            <Label className="text-sm text-slate-300 font-medium">تنسيق التاريخ</Label>
+  1376→            <Select value={languageSettings.dateFormat} onValueChange={(v) => updateLanguageSettings({ dateFormat: v })}>
+  1377→              <SelectTrigger className="w-full bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50">
+  1378→                <SelectValue />
+  1379→              </SelectTrigger>
+  1380→              <SelectContent className="bg-[#1A1A24] border-white/[0.08] text-slate-200">
+  1381→                <SelectItem value="yyyy/mm/dd" className="focus:bg-white/[0.05] focus:text-white">سنة/شهر/يوم</SelectItem>
+  1382→                <SelectItem value="dd/mm/yyyy" className="focus:bg-white/[0.05] focus:text-white">يوم/شهر/سنة</SelectItem>
+  1383→                <SelectItem value="mm/dd/yyyy" className="focus:bg-white/[0.05] focus:text-white">شهر/يوم/سنة</SelectItem>
+  1384→              </SelectContent>
+  1385→            </Select>
+  1386→          </div>
+  1387→          <div className="flex flex-col gap-2">
+  1388→            <Label className="text-sm text-slate-300 font-medium">تنسيق الوقت</Label>
+  1389→            <Select value={languageSettings.timeFormat} onValueChange={(v) => updateLanguageSettings({ timeFormat: v })}>
+  1390→              <SelectTrigger className="w-full bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50">
+  1391→                <SelectValue />
+  1392→              </SelectTrigger>
+  1393→              <SelectContent className="bg-[#1A1A24] border-white/[0.08] text-slate-200">
+  1394→                <SelectItem value="24h" className="focus:bg-white/[0.05] focus:text-white">24 ساعة</SelectItem>
+  1395→                <SelectItem value="12h" className="focus:bg-white/[0.05] focus:text-white">12 ساعة</SelectItem>
+  1396→              </SelectContent>
+  1397→            </Select>
+  1398→          </div>
+  1399→          <div className="flex flex-col gap-2">
+  1400→            <Label className="text-sm text-slate-300 font-medium">تنسيق الأرقام</Label>
+  1401→            <Select value={languageSettings.numberFormat} onValueChange={(v) => updateLanguageSettings({ numberFormat: v })}>
+  1402→              <SelectTrigger className="w-full bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50">
+  1403→                <SelectValue />
+  1404→              </SelectTrigger>
+  1405→              <SelectContent className="bg-[#1A1A24] border-white/[0.08] text-slate-200">
+  1406→                <SelectItem value="arabic" className="focus:bg-white/[0.05] focus:text-white">أرقام عربية (٠-٩)</SelectItem>
+  1407→                <SelectItem value="western" className="focus:bg-white/[0.05] focus:text-white">أرقام غربية (0-9)</SelectItem>
+  1408→              </SelectContent>
+  1409→            </Select>
+  1410→          </div>
+  1411→        </div>
+  1412→      </SettingCard>
+  1413→
+  1414→      {/* ============================================================ */}
+  1415→      {/* Section – Data Management                                       */}
+  1416→      {/* ============================================================ */}
+  1417→      <SettingCard
+  1418→        title="إدارة البيانات"
+  1419→        icon={<Database className="h-5 w-5" />}
+  1420→        badge="تصدير واستيراد"
+  1421→      >
+  1422→        <div className="flex flex-col gap-3">
+  1423→          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+  1424→            <Button
+  1425→              onClick={() => {
+  1426→                const storeData = useAppStore.getState();
+  1427→                const exportData = {
+  1428→                  students: storeData.students,
+  1429→                  teachers: storeData.teachers,
+  1430→                  classes: storeData.classes,
+  1431→                  exams: storeData.exams,
+  1432→                  grades: storeData.grades,
+  1433→                  behaviors: storeData.behaviors,
+  1434→                  messages: storeData.messages,
+  1435→                  scheduleBlocks: storeData.scheduleBlocks,
+  1436→                  libraryBooks: storeData.libraryBooks,
+  1437→                  fees: storeData.fees,
+  1438→                  announcements: storeData.announcements,
+  1439→                  sessions: storeData.sessions,
+  1440→                };
+  1441→                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+  1442→                const url = URL.createObjectURL(blob);
+  1443→                const a = document.createElement('a');
+  1444→                a.href = url;
+  1445→                a.download = `auralab-data-${new Date().toISOString().split('T')[0]}.json`;
+  1446→                a.click();
+  1447→                URL.revokeObjectURL(url);
+  1448→                toast.success('تم تصدير جميع البيانات بنجاح');
+  1449→              }}
+  1450→              variant="outline"
+  1451→              className="gap-2 h-20 flex-col text-slate-300 border-white/[0.08] hover:bg-[#D4A574]/10 hover:text-[#D4A574] hover:border-[#D4A574]/40 transition-colors rounded-xl"
+  1452→            >
+  1453→              <Download className="h-5 w-5" />
+  1454→              تصدير جميع البيانات
+  1455→            </Button>
+  1456→            <Button
+  1457→              onClick={() => {
+  1458→                const input = document.createElement('input');
+  1459→                input.type = 'file';
+  1460→                input.accept = '.json';
+  1461→                input.onchange = async (e) => {
+  1462→                  const file = (e.target as HTMLInputElement).files?.[0];
+  1463→                  if (!file) return;
+  1464→                  try {
+  1465→                    const text = await file.text();
+  1466→                    const data = JSON.parse(text);
+  1467→                    const store = useAppStore.getState();
+  1468→                    if (data.students) store.setStudents(data.students);
+  1469→                    if (data.teachers) store.setTeachers(data.teachers);
+  1470→                    if (data.classes) store.setClasses(data.classes);
+  1471→                    if (data.exams) store.setExams(data.exams);
+  1472→                    if (data.grades) store.setGrades(data.grades);
+  1473→                    if (data.behaviors) store.setBehaviors(data.behaviors);
+  1474→                    if (data.messages) store.setMessages(data.messages);
+  1475→                    if (data.scheduleBlocks) store.setScheduleBlocks(data.scheduleBlocks);
+  1476→                    if (data.libraryBooks) store.setLibraryBooks(data.libraryBooks);
+  1477→                    if (data.fees) store.setFees(data.fees);
+  1478→                    if (data.announcements) store.setAnnouncements(data.announcements);
+  1479→                    if (data.sessions) store.setSessions(data.sessions);
+  1480→                    toast.success('تم استيراد البيانات بنجاح');
+  1481→                  } catch {
+  1482→                    toast.error('فشل في استيراد البيانات. تأكد من صيغة الملف.');
+  1483→                  }
+  1484→                };
+  1485→                input.click();
+  1486→              }}
+  1487→              variant="outline"
+  1488→              className="gap-2 h-20 flex-col text-slate-300 border-white/[0.08] hover:bg-[#D4A574]/10 hover:text-[#D4A574] hover:border-[#D4A574]/40 transition-colors rounded-xl"
+  1489→            >
+  1490→              <Upload className="h-5 w-5" />
+  1491→              استيراد بيانات
+  1492→            </Button>
+  1493→            <Button
+  1494→              onClick={() => setClearDataOpen(true)}
+  1495→              variant="outline"
+  1496→              className="gap-2 h-20 flex-col text-rose-400 border-rose-500/20 hover:bg-rose-500/10 hover:text-rose-300 hover:border-rose-500/40 transition-colors rounded-xl"
+  1497→            >
+  1498→              <Trash2 className="h-5 w-5" />
+  1499→              مسح جميع البيانات
+  1500→            </Button>
+  1501→          </div>
+  1502→          <p className="text-xs text-slate-500">تنبيه: مسح البيانات لا يمكن التراجع عنه. تأكد من تصدير نسخة احتياطية أولاً.</p>
+  1503→        </div>
+  1504→      </SettingCard>
+  1505→
+  1506→      {/* ============================================================ */}
+  1507→      {/* Section 1 – Admin Profile (Editable)                          */}
+  1508→      {/* ============================================================ */}
+  1509→      <AdminProfileCard />
+  1510→
+  1511→      {/* ============================================================ */}
+  1512→      {/* Section 2 – المظهر (with working theme toggle)               */}
+  1513→      {/* ============================================================ */}
+  1514→      <SettingCard
+  1515→        title="المظهر"
+  1516→        icon={<Monitor className="h-5 w-5" />}
+  1517→        badge="تخصيص العرض"
+  1518→      >
+  1519→        <div className="flex flex-col gap-3">
+  1520→          {/* Working Theme Toggle */}
+  1521→          <div
+  1522→            className="flex items-center justify-between gap-4 rounded-xl p-4 transition-all duration-200"
+  1523→            style={{
+  1524→              backgroundColor: 'rgba(255,255,255,0.02)',
+  1525→              border: '1px solid rgba(255,255,255,0.04)',
+  1526→            }}
+  1527→          >
+  1528→            <div className="flex items-center gap-3 min-w-0">
+  1529→              <div className="flex shrink-0 items-center justify-center h-9 w-9 rounded-lg bg-[#D4A574]/10 text-[#D4A574]">
+  1530→                <Moon className="h-4 w-4" />
+  1531→              </div>
+  1532→              <div className="min-w-0">
+  1533→                <Label className="cursor-pointer text-sm font-medium text-slate-200 block">
+  1534→                  الوضع الداكن
+  1535→                </Label>
+  1536→                <p className="text-xs text-slate-500 mt-0.5">تفعيل المظهر الداكن (موصى به) — التبديل فوري</p>
+  1537→              </div>
+  1538→            </div>
+  1539→            <Switch
+  1540→              id="theme-dark-toggle"
+  1541→              checked={isDark}
+  1542→              onCheckedChange={handleThemeToggle}
+  1543→              className="data-[state=checked]:bg-[#D4A574] data-[state=unchecked]:bg-slate-600 shrink-0"
+  1544→            />
+  1545→          </div>
+  1546→
+  1547→          {/* Theme preview */}
+  1548→          <div className="flex items-center gap-3 rounded-xl p-4" style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+  1549→            <div className="flex gap-2">
+  1550→              <button
+  1551→                onClick={() => { setTheme('dark'); setSaved(false); }}
+  1552→                className={cn(
+  1553→                  'flex flex-col items-center gap-2 rounded-xl p-3 transition-all duration-200 border',
+  1554→                  isDark ? 'border-[#D4A574]/30 bg-[#D4A574]/10' : 'border-white/[0.06] hover:bg-white/[0.03]'
+  1555→                )}
+  1556→              >
+  1557→                <div className="h-8 w-12 rounded-md" style={{ background: 'linear-gradient(135deg, #121218, #1A1A24)' }} />
+  1558→                <span className={cn('text-xs font-medium', isDark ? 'text-[#D4A574]' : 'text-slate-500')}>داكن</span>
+  1559→              </button>
+  1560→              <button
+  1561→                onClick={() => { setTheme('light'); setSaved(false); }}
+  1562→                className={cn(
+  1563→                  'flex flex-col items-center gap-2 rounded-xl p-3 transition-all duration-200 border',
+  1564→                  !isDark ? 'border-[#D4A574]/30 bg-[#D4A574]/10' : 'border-white/[0.06] hover:bg-white/[0.03]'
+  1565→                )}
+  1566→              >
+  1567→                <div className="h-8 w-12 rounded-md" style={{ background: 'linear-gradient(135deg, #F8F6F3, #FFFFFF)' }} />
+  1568→                <span className={cn('text-xs font-medium', !isDark ? 'text-[#D4A574]' : 'text-slate-500')}>فاتح</span>
+  1569→              </button>
+  1570→            </div>
+  1571→            <div className="flex-1 min-w-0">
+  1572→              <p className="text-sm font-medium text-slate-200">النظام الحالي: <span className="text-[#D4A574]">{isDark ? 'داكن' : 'فاتح'}</span></p>
+  1573→              <p className="text-xs text-slate-500">يتم حفظ التفضيل تلقائياً</p>
+  1574→            </div>
+  1575→          </div>
+  1576→
+  1577→          {appearanceDefaults.filter(s => s.key !== 'darkMode').map((s) => (
+  1578→            <ToggleRow
+  1579→              key={s.key}
+  1580→              setting={s}
+  1581→              checked={toggles[s.key]}
+  1582→              onCheckedChange={handleToggle}
+  1583→            />
+  1584→          ))}
+  1585→        </div>
+  1586→      </SettingCard>
+  1587→
+  1588→      {/* ============================================================ */}
+  1589→      {/* Section 3 – تخصيص المظهر (Theme Customizer)                  */}
+  1590→      {/* ============================================================ */}
+  1591→      <ThemeCustomizerCard />
+  1592→
+  1593→      {/* ============================================================ */}
+  1594→      {/* Section 4 – الإشعارات                                        */}
+  1595→      {/* ============================================================ */}
+  1596→      <SettingCard
+  1597→        title="الإشعارات"
+  1598→        icon={<Bell className="h-5 w-5" />}
+  1599→        badge="إدارة التنبيهات"
+  1600→      >
+  1601→        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+  1602→          {notificationDefaults.map((s) => (
+  1603→            <ToggleRow
+  1604→              key={s.key}
+  1605→              setting={s}
+  1606→              checked={toggles[s.key]}
+  1607→              onCheckedChange={handleToggle}
+  1608→            />
+  1609→          ))}
+  1610→        </div>
+  1611→
+  1612→        {/* Analytics subsection */}
+  1613→        <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+  1614→          <div className="flex items-center gap-2 mb-3">
+  1615→            <BarChart3 className="h-4 w-4 text-[#D4A574]" />
+  1616→            <span className="text-sm font-semibold text-slate-300">تحليلات وإحصائيات</span>
+  1617→          </div>
+  1618→          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+  1619→            {analyticsDefaults.map((s) => (
+  1620→              <ToggleRow
+  1621→                key={s.key}
+  1622→                setting={s}
+  1623→                checked={toggles[s.key]}
+  1624→                onCheckedChange={handleToggle}
+  1625→              />
+  1626→            ))}
+  1627→          </div>
+  1628→        </div>
+  1629→      </SettingCard>
+  1630→
+  1631→      {/* ============================================================ */}
+  1632→      {/* Section 5 – النظام                                           */}
+  1633→      {/* ============================================================ */}
+  1634→      <SettingCard
+  1635→        title="النظام"
+  1636→        icon={<Globe className="h-5 w-5" />}
+  1637→        badge="إعدادات عامة"
+  1638→      >
+  1639→        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  1640→          {/* School name */}
+  1641→          <div className="flex flex-col gap-2">
+  1642→            <Label className="text-sm text-slate-300 font-medium flex items-center gap-2">
+  1643→              <School className="h-4 w-4 text-[#D4A574]" />
+  1644→              اسم المدرسة
+  1645→            </Label>
+  1646→            <input
+  1647→              type="text"
+  1648→              value={schoolName}
+  1649→              onChange={(e) => { setSchoolName(e.target.value); setSaved(false); }}
+  1650→              className="w-full rounded-lg bg-white/[0.03] border border-white/[0.08] px-3.5 py-2.5 text-sm text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 outline-none transition-colors"
+  1651→            />
+  1652→          </div>
+  1653→
+  1654→          {/* Academic year */}
+  1655→          <div className="flex flex-col gap-2">
+  1656→            <Label className="text-sm text-slate-300 font-medium flex items-center gap-2">
+  1657→              <CalendarDays className="h-4 w-4 text-[#D4A574]" />
+  1658→              العام الدراسي
+  1659→            </Label>
+  1660→            <Select value={academicYear} onValueChange={(v) => { setAcademicYear(v); setSaved(false); }}>
+  1661→              <SelectTrigger className="w-full bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20">
+  1662→                <SelectValue />
+  1663→              </SelectTrigger>
+  1664→              <SelectContent className="bg-[#1A1A24] border-white/[0.08] text-slate-200">
+  1665→                <SelectItem value="2024-2025" className="focus:bg-white/[0.05] focus:text-white">2024 - 2025</SelectItem>
+  1666→                <SelectItem value="2025-2026" className="focus:bg-white/[0.05] focus:text-white">2025 - 2026</SelectItem>
+  1667→                <SelectItem value="2023-2024" className="focus:bg-white/[0.05] focus:text-white">2023 - 2024</SelectItem>
+  1668→              </SelectContent>
+  1669→            </Select>
+  1670→          </div>
+  1671→
+  1672→          {/* Language */}
+  1673→          <div className="flex flex-col gap-2">
+  1674→            <Label className="text-sm text-slate-300 font-medium flex items-center gap-2">
+  1675→              <Globe className="h-4 w-4 text-[#D4A574]" />
+  1676→              اللغة
+  1677→            </Label>
+  1678→            <Select value={language} onValueChange={(v) => { setLanguage(v); setSaved(false); }}>
+  1679→              <SelectTrigger className="w-full bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20">
+  1680→                <SelectValue />
+  1681→              </SelectTrigger>
+  1682→              <SelectContent className="bg-[#1A1A24] border-white/[0.08] text-slate-200">
+  1683→                <SelectItem value="ar" className="focus:bg-white/[0.05] focus:text-white">العربية</SelectItem>
+  1684→                <SelectItem value="en" className="focus:bg-white/[0.05] focus:text-white">English</SelectItem>
+  1685→              </SelectContent>
+  1686→            </Select>
+  1687→          </div>
+  1688→        </div>
+  1689→      </SettingCard>
+  1690→
+  1691→      {/* ============================================================ */}
+  1692→      {/* Save Button                                                   */}
+  1693→      {/* ============================================================ */}
+  1694→      <div
+  1695→        className="flex items-center justify-between rounded-xl p-4"
+  1696→        style={{
+  1697→          backgroundColor: '#1A1A24',
+  1698→          border: '1px solid rgba(255,255,255,0.06)',
+  1699→        }}
+  1700→      >
+  1701→        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+  1702→          {saved ? (
+  1703→            <span className="flex items-center gap-2 text-emerald-400">
+  1704→              <Check className="h-4 w-4" />
+  1705→              تم حفظ التغييرات بنجاح
+  1706→            </span>
+  1707→          ) : (
+  1708→            'تأكد من مراجعة التغييرات قبل الحفظ'
+  1709→          )}
+  1710→        </div>
+  1711→        <Button
+  1712→          onClick={handleSave}
+  1713→          className={cn(
+  1714→            'gap-2 font-semibold rounded-lg px-6 h-10 transition-all duration-300',
+  1715→            saved
+  1716→              ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+  1717→              : 'bg-amber-500 hover:bg-amber-600 text-slate-900',
+  1718→          )}
+  1719→        >
+  1720→          {saved ? (
+  1721→            <>
+  1722→              <Check className="h-4 w-4" />
+  1723→              تم الحفظ
+  1724→            </>
+  1725→          ) : (
+  1726→            <>
+  1727→              <Save className="h-4 w-4" />
+  1728→              حفظ التغييرات
+  1729→            </>
+  1730→          )}
+  1731→        </Button>
+  1732→      </div>
+  1733→
+  1734→      {/* ── Clear Data Confirmation ── */}
+  1735→      <AlertDialog open={clearDataOpen} onOpenChange={setClearDataOpen}>
+  1736→        <AlertDialogContent
+  1737→          dir="rtl"
+  1738→          style={{ backgroundColor: '#1A1A24', border: '1px solid rgba(255,255,255,0.06)' }}
+  1739→        >
+  1740→          <AlertDialogHeader>
+  1741→            <AlertDialogTitle className="text-white">مسح جميع البيانات</AlertDialogTitle>
+  1742→            <AlertDialogDescription className="text-muted-foreground">
+  1743→              هل أنت متأكد من مسح جميع البيانات؟ سيتم حذف جميع الطلاب والمعلمين والفصول والاختبارات وغيرها. لا يمكن التراجع عن هذا الإجراء.
+  1744→            </AlertDialogDescription>
+  1745→          </AlertDialogHeader>
+  1746→          <AlertDialogFooter className="flex gap-2">
+  1747→            <AlertDialogCancel className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg">
+  1748→              إلغاء
+  1749→            </AlertDialogCancel>
+  1750→            <AlertDialogAction
+  1751→              onClick={() => {
+  1752→                const store = useAppStore.getState();
+  1753→                store.setStudents([]);
+  1754→                store.setTeachers([]);
+  1755→                store.setClasses([]);
+  1756→                store.setExams([]);
+  1757→                store.setGrades([]);
+  1758→                store.setBehaviors([]);
+  1759→                store.setMessages([]);
+  1760→                store.setScheduleBlocks([]);
+  1761→                store.setLibraryBooks([]);
+  1762→                store.setFees([]);
+  1763→                store.setAnnouncements([]);
+  1764→                store.setSessions([]);
+  1765→                store.setReportCards([]);
+  1766→                store.setNotifications([]);
+  1767→                store.setTrashItems([]);
+  1768→                setClearDataOpen(false);
+  1769→                toast.success('تم مسح جميع البيانات');
+  1770→              }}
+  1771→              className="bg-rose-500 hover:bg-rose-600 text-white rounded-lg"
+  1772→            >
+  1773→              مسح البيانات
+  1774→            </AlertDialogAction>
+  1775→          </AlertDialogFooter>
+  1776→        </AlertDialogContent>
+  1777→      </AlertDialog>
+  1778→    </div>
+  1779→  );
+  1780→}
+  1781→

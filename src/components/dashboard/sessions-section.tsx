@@ -20,6 +20,7 @@ import {
 import type { Session } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
+import { t } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -429,6 +430,7 @@ function SessionCardComponent({
   onEdit: (s: SessionCardData) => void;
   onDelete: (s: SessionCardData) => void;
 }) {
+  const locale = useAppStore((s) => s.locale);
   const isActive = session.status === 'in-progress';
   const borderColor = getStatusColor(session.status);
 
@@ -512,36 +514,36 @@ function SessionCardComponent({
           <Button
             variant="ghost"
             size="sm"
-            className="text-slate-400 hover:text-white hover:bg-white/[0.06] gap-1.5 h-8 px-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+            className="text-slate-300 hover:bg-white/5 gap-1.5 h-8 px-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
             onClick={(e) => {
               e.stopPropagation();
               onView(session);
             }}
           >
             <Eye className="h-3.5 w-3.5" />
-            عرض
+            {t('general.view', locale)}
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            className="text-slate-400 hover:text-[#D4A574] hover:bg-[#D4A574]/10 h-8 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+            className="text-[#D4A574] hover:bg-[#D4A574]/10 h-8 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
             onClick={(e) => {
               e.stopPropagation();
               onEdit(session);
             }}
-            title="تعديل"
+            title={t('general.edit', locale)}
           >
             <Pencil className="h-3.5 w-3.5" />
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            className="text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 h-8 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+            className="text-rose-400 hover:bg-rose-500/10 h-8 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
             onClick={(e) => {
               e.stopPropagation();
               onDelete(session);
             }}
-            title="حذف"
+            title={t('general.delete', locale)}
           >
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
@@ -696,7 +698,7 @@ function StartSessionDialog({
   onOpenChange: (open: boolean) => void;
   editSession?: SessionCardData | null;
 }) {
-  const { addSession, updateSession, classes, teachers } = useAppStore();
+  const { addSession, updateSession, classes, teachers, locale } = useAppStore();
   const isEdit = !!editSession;
   const [topic, setTopic] = useState(isEdit ? (editSession?.topic || '') : '');
   const [classId, setClassId] = useState(isEdit ? (editSession?.classId || 'class-1') : 'class-1');
@@ -765,7 +767,7 @@ function StartSessionDialog({
         <DialogHeader>
           <DialogTitle className="text-white text-xl flex items-center gap-2">
             {isEdit ? <Pencil className="h-5 w-5 text-[#D4A574]" /> : <Plus className="h-5 w-5 text-[#D4A574]" />}
-            {isEdit ? 'تعديل الجلسة' : 'بدء جلسة جديدة'}
+            {isEdit ? t('general.edit', locale) : t('general.add', locale)}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
             أضف جلسة تعليمية جديدة للجدول الدراسي
@@ -892,17 +894,17 @@ function StartSessionDialog({
           <div className="flex items-center gap-3 pt-2">
             <Button
               onClick={handleSave}
-              className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold gap-2 rounded-lg px-6"
+              className="bg-emerald-500/90 hover:bg-emerald-500 text-white border-transparent font-semibold gap-2 rounded-lg px-6"
             >
               {isEdit ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-              {isEdit ? 'تحديث الجلسة' : 'بدء الجلسة'}
+              {isEdit ? t('general.save', locale) : t('general.add', locale)}
             </Button>
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
               className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-6"
             >
-              إلغاء
+              {t('general.cancel', locale)}
             </Button>
           </div>
         </div>
@@ -913,6 +915,7 @@ function StartSessionDialog({
 
 /** Empty state with better illustration */
 function EmptyState({ onAdd }: { onAdd: () => void }) {
+  const locale = useAppStore((s) => s.locale);
   return (
     <div
       className="flex flex-col items-center justify-center py-20 px-4 rounded-xl"
@@ -939,10 +942,10 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
       </p>
       <Button
         onClick={onAdd}
-        className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold gap-2 rounded-lg px-6"
+        className="bg-emerald-500/90 hover:bg-emerald-500 text-white border-transparent font-semibold gap-2 rounded-lg px-6"
       >
         <PlayCircle className="h-4 w-4" />
-        بدء جلسة جديدة
+        {t('general.add', locale)}
       </Button>
     </div>
   );
@@ -953,7 +956,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
 // ---------------------------------------------------------------------------
 
 export default function SessionsSection() {
-  const { sessions, setSessions, addSession, updateSession, deleteSession, classes, teachers } = useAppStore();
+  const { sessions, setSessions, addSession, updateSession, deleteSession, classes, teachers, locale } = useAppStore();
   // Local state
   const [classFilter, setClassFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -1079,13 +1082,13 @@ export default function SessionsSection() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white tracking-tight sm:text-3xl flex items-center gap-3">
-              إدارة الجلسات
+              {t('sections.sessions', locale)}
               <Badge className="bg-[#D4A574]/15 text-[#D4A574] border-[#D4A574]/20 hover:bg-[#D4A574]/20 text-sm px-2.5 py-0.5 rounded-full font-semibold tabular-nums">
                 {stats.total}
               </Badge>
             </h1>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              متابعة وإدارة الجلسات التعليمية
+              {t('sections.sessionsSub', locale)}
             </p>
           </div>
         </div>
@@ -1129,10 +1132,10 @@ export default function SessionsSection() {
         {/* Start new session button */}
         <Button
           onClick={() => setAddOpen(true)}
-          className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold gap-2 rounded-lg px-5 h-10"
+          className="bg-emerald-500/90 hover:bg-emerald-500 text-white border-transparent font-semibold gap-2 rounded-lg px-5 h-10"
         >
           <PlayCircle className="h-4 w-4" />
-          بدء جلسة جديدة
+          {t('general.add', locale)}
         </Button>
 
         {/* Filters */}
@@ -1258,20 +1261,22 @@ export default function SessionsSection() {
           style={{ backgroundColor: '#1A1A24', border: '1px solid rgba(255,255,255,0.06)' }}
         >
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">حذف الجلسة</AlertDialogTitle>
+            <AlertDialogTitle className="text-white">{t('general.confirmDelete', locale)}</AlertDialogTitle>
             <AlertDialogDescription className="text-muted-foreground">
-              هل أنت متأكد من حذف جلسة "{selectedSession?.topic}"؟ لا يمكن التراجع عن هذا الإجراء.
+              {t('general.deleteWarning', locale)}
+              <br />
+              <span className="font-semibold text-slate-200">{selectedSession?.topic}</span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex gap-2">
             <AlertDialogCancel className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg">
-              إلغاء
+              {t('general.cancel', locale)}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               className="bg-rose-500 hover:bg-rose-600 text-white rounded-lg"
             >
-              حذف
+              {t('general.delete', locale)}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -1,0 +1,1706 @@
+     1→'use client';
+     2→
+     3→import { useState, useRef, useEffect, useCallback } from 'react';
+     4→import {
+     5→  FileText,
+     6→  GraduationCap,
+     7→  ClipboardCheck,
+     8→  BarChart3,
+     9→  Megaphone,
+    10→  BookOpen,
+    11→  FileBarChart,
+    12→  Download,
+    13→  Printer,
+    14→  FileDown,
+    15→  ChevronDown,
+    16→  Loader2,
+    17→  CalendarDays,
+    18→  X,
+    19→  Clock,
+    20→  Filter,
+    21→  Sparkles,
+    22→  TrendingUp,
+    23→  Eye,
+    24→  Trash2,
+    25→  ArrowLeft,
+    26→} from 'lucide-react';
+    27→import { useAppStore } from '@/lib/store';
+    28→import { cn } from '@/lib/utils';
+    29→import { toast } from 'sonner';
+    30→import { exportToCSV, formatCsvDate } from '@/lib/csv-export';
+    31→import { Button } from '@/components/ui/button';
+    32→import { Badge } from '@/components/ui/badge';
+    33→import { Input } from '@/components/ui/input';
+    34→import SectionCard from './section-card';
+    35→
+    36→// ---------------------------------------------------------------------------
+    37→// Types
+    38→// ---------------------------------------------------------------------------
+    39→
+    40→type ReportType =
+    41→  | 'students'
+    42→  | 'teachers'
+    43→  | 'attendance'
+    44→  | 'grades'
+    45→  | 'announcements'
+    46→  | 'comprehensive';
+    47→
+    48→interface ReportCategory {
+    49→  id: ReportType;
+    50→  title: string;
+    51→  description: string;
+    52→  icon: React.ElementType;
+    53→  gradientFrom: string;
+    54→  gradientTo: string;
+    55→}
+    56→
+    57→interface GeneratedReport {
+    58→  id: string;
+    59→  title: string;
+    60→  type: ReportType;
+    61→  generatedAt: string;
+    62→  dateRange: { from: string; to: string };
+    63→  rowCount: number;
+    64→  summaryStats: { label: string; value: string | number; color: string }[];
+    65→  tableHeaders: string[];
+    66→  tableData: string[][];
+    67→  chartData: { label: string; value: number; color: string }[];
+    68→  chartType: 'bar' | 'donut';
+    69→  trendData?: { label: string; value: number }[];
+    70→}
+    71→
+    72→interface ReportFilter {
+    73→  classFilter: string;
+    74→  statusFilter: string;
+    75→  subjectFilter: string;
+    76→  termFilter: string;
+    77→  categoryFilter: string;
+    78→  priorityFilter: string;
+    79→}
+    80→
+    81→// ---------------------------------------------------------------------------
+    82→// Report categories definition
+    83→// ---------------------------------------------------------------------------
+    84→
+    85→const REPORT_CATEGORIES: ReportCategory[] = [
+    86→  {
+    87→    id: 'students',
+    88→    title: 'تقرير الطلاب',
+    89→    description: 'تقرير شامل عن الطلاب يتضمن التوزيع حسب الصفوف والحالات',
+    90→    icon: FileText,
+    91→    gradientFrom: '#10b981',
+    92→    gradientTo: '#34d399',
+    93→  },
+    94→  {
+    95→    id: 'teachers',
+    96→    title: 'تقرير المعلمين',
+    97→    description: 'تقرير تفصيلي عن المعلمين حسب المواد والصلاحيات',
+    98→    icon: GraduationCap,
+    99→    gradientFrom: '#0ea5e9',
+   100→    gradientTo: '#38bdf8',
+   101→  },
+   102→  {
+   103→    id: 'attendance',
+   104→    title: 'تقرير الحضور',
+   105→    description: 'إحصائيات الحضور والغياب مقارنة بين الفصول',
+   106→    icon: ClipboardCheck,
+   107→    gradientFrom: '#f59e0b',
+   108→    gradientTo: '#fbbf24',
+   109→  },
+   110→  {
+   111→    id: 'grades',
+   112→    title: 'تقرير الدرجات',
+   113→    description: 'تحليل أداء الطلاب ومتوسطات الدرجات حسب المادة',
+   114→    icon: BarChart3,
+   115→    gradientFrom: '#8b5cf6',
+   116→    gradientTo: '#a78bfa',
+   117→  },
+   118→  {
+   119→    id: 'announcements',
+   120→    title: 'تقرير الإعلانات',
+   121→    description: 'توزيع الإعلانات حسب الفئات والأولويات',
+   122→    icon: Megaphone,
+   123→    gradientFrom: '#ec4899',
+   124→    gradientTo: '#f472b6',
+   125→  },
+   126→  {
+   127→    id: 'comprehensive',
+   128→    title: 'تقرير شامل',
+   129→    description: 'تقرير متكامل يجمع جميع البيانات والإحصائيات',
+   130→    icon: BookOpen,
+   131→    gradientFrom: '#D4A574',
+   132→    gradientTo: '#E8C9A8',
+   133→  },
+   134→];
+   135→
+   136→const REPORT_TYPE_LABELS: Record<ReportType, string> = {
+   137→  students: 'الطلاب',
+   138→  teachers: 'المعلمين',
+   139→  attendance: 'الحضور',
+   140→  grades: 'الدرجات',
+   141→  announcements: 'الإعلانات',
+   142→  comprehensive: 'شامل',
+   143→};
+   144→
+   145→const STATUS_MAP: Record<string, string> = {
+   146→  active: 'نشط',
+   147→  inactive: 'غير نشط',
+   148→  graduated: 'متخرّج',
+   149→  present: 'حاضر',
+   150→  absent: 'غائب',
+   151→  late: 'متأخر',
+   152→  excused: 'مستأذن',
+   153→};
+   154→
+   155→// ---------------------------------------------------------------------------
+   156→// Helper: mock data seed with useRef guard
+   157→// ---------------------------------------------------------------------------
+   158→
+   159→function useMockReportData() {
+   160→  const seeded = useRef(false);
+   161→  const recentReports = useRef<GeneratedReport[]>([]);
+   162→
+   163→  if (!seeded.current) {
+   164→    seeded.current = true;
+   165→    recentReports.current = [
+   166→      {
+   167→        id: 'r1',
+   168→        title: 'تقرير الطلاب - الأسبوع الأول',
+   169→        type: 'students',
+   170→        generatedAt: new Date(Date.now() - 86400000).toISOString(),
+   171→        dateRange: {
+   172→          from: new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0],
+   173→          to: new Date().toISOString().split('T')[0],
+   174→        },
+   175→        rowCount: 120,
+   176→        summaryStats: [
+   177→          { label: 'إجمالي الطلاب', value: 120, color: '#D4A574' },
+   178→          { label: 'نشط', value: 92, color: '#10b981' },
+   179→          { label: 'غير نشط', value: 18, color: '#f59e0b' },
+   180→          { label: 'متخرّج', value: 10, color: '#0ea5e9' },
+   181→        ],
+   182→        tableHeaders: ['الصف', 'عدد الطلاب', 'نشط', 'غير نشط', 'متخرّج'],
+   183→        tableData: [
+   184→          ['الصف الأول - أ', '22', '18', '3', '1'],
+   185→          ['الصف الأول - ب', '20', '16', '3', '1'],
+   186→          ['الصف الثاني - أ', '25', '20', '3', '2'],
+   187→          ['الصف الثاني - ب', '18', '14', '2', '2'],
+   188→          ['الصف الثالث - أ', '20', '14', '4', '2'],
+   189→          ['الصف الثالث - ب', '15', '10', '3', '2'],
+   190→        ],
+   191→        chartData: [
+   192→          { label: 'نشط', value: 92, color: '#10b981' },
+   193→          { label: 'غير نشط', value: 18, color: '#f59e0b' },
+   194→          { label: 'متخرّج', value: 10, color: '#0ea5e9' },
+   195→        ],
+   196→        chartType: 'donut',
+   197→      },
+   198→      {
+   199→        id: 'r2',
+   200→        title: 'تقرير الحضور - شهري',
+   201→        type: 'attendance',
+   202→        generatedAt: new Date(Date.now() - 2 * 86400000).toISOString(),
+   203→        dateRange: {
+   204→          from: new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0],
+   205→          to: new Date().toISOString().split('T')[0],
+   206→        },
+   207→        rowCount: 85,
+   208→        summaryStats: [
+   209→          { label: 'نسبة الحضور', value: '94%', color: '#10b981' },
+   210→          { label: 'حاضر', value: 1128, color: '#10b981' },
+   211→          { label: 'غائب', value: 48, color: '#ef4444' },
+   212→          { label: 'متأخر', value: 36, color: '#f59e0b' },
+   213→        ],
+   214→        tableHeaders: ['الصف', 'نسبة الحضور', 'حاضر', 'غائب', 'متأخر', 'مستأذن'],
+   215→        tableData: [
+   216→          ['الصف الأول - أ', '96%', '211', '5', '3', '1'],
+   217→          ['الصف الأول - ب', '92%', '184', '12', '3', '1'],
+   218→          ['الصف الثاني - أ', '95%', '238', '8', '4', '0'],
+   219→          ['الصف الثاني - ب', '90%', '162', '13', '4', '1'],
+   220→          ['الصف الثالث - أ', '93%', '186', '7', '6', '1'],
+   221→          ['الصف الثالث - ب', '88%', '132', '11', '5', '2'],
+   222→        ],
+   223→        chartData: [
+   224→          { label: '١-أ', value: 96, color: '#10b981' },
+   225→          { label: '١-ب', value: 92, color: '#0ea5e9' },
+   226→          { label: '٢-أ', value: 95, color: '#8b5cf6' },
+   227→          { label: '٢-ب', value: 90, color: '#f59e0b' },
+   228→          { label: '٣-أ', value: 93, color: '#ec4899' },
+   229→          { label: '٣-ب', value: 88, color: '#f97316' },
+   230→        ],
+   231→        chartType: 'bar',
+   232→        trendData: [
+   233→          { label: 'الأسبوع ١', value: 93 },
+   234→          { label: 'الأسبوع ٢', value: 95 },
+   235→          { label: 'الأسبوع ٣', value: 91 },
+   236→          { label: 'الأسبوع ٤', value: 94 },
+   237→        ],
+   238→      },
+   239→      {
+   240→        id: 'r3',
+   241→        title: 'تقرير الدرجات - الفصل الدراسي الأول',
+   242→        type: 'grades',
+   243→        generatedAt: new Date(Date.now() - 5 * 86400000).toISOString(),
+   244→        dateRange: {
+   245→          from: new Date(Date.now() - 90 * 86400000).toISOString().split('T')[0],
+   246→          to: new Date().toISOString().split('T')[0],
+   247→        },
+   248→        rowCount: 65,
+   249→        summaryStats: [
+   250→          { label: 'المتوسط العام', value: '76.5%', color: '#D4A574' },
+   251→          { label: 'ممتاز (90+)', value: 18, color: '#10b981' },
+   252→          { label: 'جيد جداً', value: 32, color: '#0ea5e9' },
+   253→          { label: 'مقبول', value: 15, color: '#f59e0b' },
+   254→        ],
+   255→        tableHeaders: ['المادة', 'المتوسط', 'أعلى درجة', 'أدنى درجة', 'عدد الطلاب'],
+   256→        tableData: [
+   257→          ['الرياضيات', '74%', '98%', '32%', '120'],
+   258→          ['العلوم', '78%', '97%', '45%', '120'],
+   259→          ['اللغة العربية', '82%', '100%', '50%', '120'],
+   260→          ['اللغة الإنجليزية', '71%', '95%', '28%', '120'],
+   261→          ['التربية الإسلامية', '85%', '100%', '55%', '120'],
+   262→          ['الاجتماعيات', '76%', '96%', '38%', '120'],
+   263→        ],
+   264→        chartData: [
+   265→          { label: 'رياضيات', value: 74, color: '#f59e0b' },
+   266→          { label: 'علوم', value: 78, color: '#10b981' },
+   267→          { label: 'عربي', value: 82, color: '#0ea5e9' },
+   268→          { label: 'إنجليزي', value: 71, color: '#8b5cf6' },
+   269→          { label: 'إسلامية', value: 85, color: '#D4A574' },
+   270→          { label: 'اجتماعيات', value: 76, color: '#ec4899' },
+   271→        ],
+   272→        chartType: 'bar',
+   273→      },
+   274→    ];
+   275→  }
+   276→
+   277→  return recentReports.current;
+   278→}
+   279→
+   280→// ---------------------------------------------------------------------------
+   281→// SVG Chart Components
+   282→// ---------------------------------------------------------------------------
+   283→
+   284→function ReportBarChart({
+   285→  data,
+   286→  height = 180,
+   287→}: {
+   288→  data: { label: string; value: number; color: string }[];
+   289→  height?: number;
+   290→}) {
+   291→  const maxValue = Math.max(...data.map((d) => d.value), 1);
+   292→  const barWidth = Math.min(40, Math.max(16, 200 / data.length));
+   293→  const gap = Math.max(4, (200 - barWidth * data.length) / (data.length + 1));
+   294→
+   295→  return (
+   296→    <svg
+   297→      viewBox={`0 0 200 ${height + 30}`}
+   298→      width="100%"
+   299→      height={height + 30}
+   300→      preserveAspectRatio="xMidYMid meet"
+   301→    >
+   302→      {/* Grid lines */}
+   303→      {[0, 25, 50, 75, 100].map((pct) => {
+   304→        const y = height - (pct / 100) * height + 5;
+   305→        return (
+   306→          <g key={pct}>
+   307→            <line
+   308→              x1="25"
+   309→              y1={y}
+   310→              x2="195"
+   311→              y2={y}
+   312→              stroke="rgba(255,255,255,0.05)"
+   313→              strokeDasharray="4 3"
+   314→            />
+   315→            <text
+   316→              x="20"
+   317→              y={y + 3}
+   318→              textAnchor="end"
+   319→              fill="rgba(255,255,255,0.25)"
+   320→              fontSize="7"
+   321→            >
+   322→              {pct}%
+   323→            </text>
+   324→          </g>
+   325→        );
+   326→      })}
+   327→
+   328→      {/* Bars */}
+   329→      {data.map((item, i) => {
+   330→        const barHeight = (item.value / maxValue) * height;
+   331→        const x = 30 + i * (barWidth + gap);
+   332→        const y = height - barHeight + 5;
+   333→
+   334→        return (
+   335→          <g key={item.label}>
+   336→            {/* Bar gradient */}
+   337→            <defs>
+   338→              <linearGradient id={`bar-grad-${i}`} x1="0" y1="0" x2="0" y2="1">
+   339→                <stop offset="0%" stopColor={item.color} stopOpacity="1" />
+   340→                <stop offset="100%" stopColor={item.color} stopOpacity="0.4" />
+   341→              </linearGradient>
+   342→            </defs>
+   343→            {/* Bar */}
+   344→            <rect
+   345→              x={x}
+   346→              y={y}
+   347→              width={barWidth}
+   348→              height={barHeight}
+   349→              rx="3"
+   350→              fill={`url(#bar-grad-${i})`}
+   351→              className="transition-all duration-700"
+   352→              style={{ animationDelay: `${i * 80}ms` }}
+   353→            />
+   354→            {/* Value on top */}
+   355→            <text
+   356→              x={x + barWidth / 2}
+   357→              y={y - 4}
+   358→              textAnchor="middle"
+   359→              fill="white"
+   360→              fontSize="8"
+   361→              fontWeight="600"
+   362→            >
+   363→              {item.value}
+   364→            </text>
+   365→            {/* Label below */}
+   366→            <text
+   367→              x={x + barWidth / 2}
+   368→              y={height + 22}
+   369→              textAnchor="middle"
+   370→              fill="rgba(255,255,255,0.4)"
+   371→              fontSize="7"
+   372→            >
+   373→              {item.label}
+   374→            </text>
+   375→          </g>
+   376→        );
+   377→      })}
+   378→    </svg>
+   379→  );
+   380→}
+   381→
+   382→function ReportDonutChart({
+   383→  data,
+   384→  size = 160,
+   385→}: {
+   386→  data: { label: string; value: number; color: string }[];
+   387→  size?: number;
+   388→}) {
+   389→  const total = data.reduce((sum, d) => sum + d.value, 0);
+   390→  const strokeWidth = 24;
+   391→  const radius = (size - strokeWidth) / 2;
+   392→  const circumference = 2 * Math.PI * radius;
+   393→  const center = size / 2;
+   394→
+   395→  // Compute segment offsets immutably
+   396→  const segments = data.reduce(
+   397→    (acc, item) => {
+   398→      const pct = item.value / total;
+   399→      const dashLength = pct * circumference;
+   400→      const gapSize = 2; // small gap between segments
+   401→      const offset = acc.accumulated;
+   402→      return {
+   403→        segments: [
+   404→          ...acc.segments,
+   405→          { ...item, dashLength, gapSize, offset },
+   406→        ],
+   407→        accumulated: offset + dashLength + gapSize,
+   408→      };
+   409→    },
+   410→    { segments: [] as { label: string; value: number; color: string; dashLength: number; gapSize: number; offset: number }[], accumulated: 0 },
+   411→  ).segments;
+   412→
+   413→  return (
+   414→    <div className="flex flex-col items-center">
+   415→      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+   416→        {segments.map((seg, i) => (
+   417→          <circle
+   418→            key={seg.label}
+   419→            cx={center}
+   420→            cy={center}
+   421→            r={radius}
+   422→            fill="none"
+   423→            stroke={seg.color}
+   424→            strokeWidth={strokeWidth}
+   425→            strokeDasharray={`${seg.dashLength} ${circumference - seg.dashLength}`}
+   426→            strokeDashoffset={-seg.offset}
+   427→            strokeLinecap="round"
+   428→            className="transition-all duration-700"
+   429→            style={{ animationDelay: `${i * 100}ms` }}
+   430→          />
+   431→        ))}
+   432→        {/* Center text */}
+   433→        <text
+   434→          x={center}
+   435→          y={center - 6}
+   436→          textAnchor="middle"
+   437→          fill="white"
+   438→          fontSize="20"
+   439→          fontWeight="700"
+   440→        >
+   441→          {total}
+   442→        </text>
+   443→        <text
+   444→          x={center}
+   445→          y={center + 12}
+   446→          textAnchor="middle"
+   447→          fill="rgba(255,255,255,0.4)"
+   448→          fontSize="10"
+   449→        >
+   450→          إجمالي
+   451→        </text>
+   452→      </svg>
+   453→      {/* Legend */}
+   454→      <div className="flex flex-wrap items-center justify-center gap-3 mt-3">
+   455→        {data.map((item) => (
+   456→          <div key={item.label} className="flex items-center gap-1.5">
+   457→            <span
+   458→              className="h-2 w-2 rounded-full"
+   459→              style={{ backgroundColor: item.color }}
+   460→            />
+   461→            <span className="text-[10px] text-slate-400">
+   462→              {item.label} ({item.value})
+   463→            </span>
+   464→          </div>
+   465→        ))}
+   466→      </div>
+   467→    </div>
+   468→  );
+   469→}
+   470→
+   471→function ReportTrendChart({
+   472→  data,
+   473→  height = 80,
+   474→  width = 300,
+   475→}: {
+   476→  data: { label: string; value: number }[];
+   477→  height?: number;
+   478→  width?: number;
+   479→}) {
+   480→  const maxValue = Math.max(...data.map((d) => d.value), 1);
+   481→  const minValue = Math.min(...data.map((d) => d.value), 0);
+   482→  const range = maxValue - minValue || 1;
+   483→  const padding = { top: 10, bottom: 20, left: 30, right: 10 };
+   484→  const chartW = width - padding.left - padding.right;
+   485→  const chartH = height - padding.top - padding.bottom;
+   486→
+   487→  const points = data.map((d, i) => ({
+   488→    x: padding.left + (i / Math.max(data.length - 1, 1)) * chartW,
+   489→    y: padding.top + chartH - ((d.value - minValue) / range) * chartH,
+   490→    label: d.label,
+   491→    value: d.value,
+   492→  }));
+   493→
+   494→  const linePath =
+   495→    points.length > 1
+   496→      ? points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
+   497→      : '';
+   498→
+   499→  const areaPath =
+   500→    points.length > 1
+   501→      ? `${linePath} L ${points[points.length - 1].x} ${padding.top + chartH} L ${points[0].x} ${padding.top + chartH} Z`
+   502→      : '';
+   503→
+   504→  return (
+   505→    <svg
+   506→      viewBox={`0 0 ${width} ${height}`}
+   507→      width="100%"
+   508→      height={height}
+   509→      preserveAspectRatio="xMidYMid meet"
+   510→    >
+   511→      <defs>
+   512→        <linearGradient id="trend-fill" x1="0" y1="0" x2="0" y2="1">
+   513→          <stop offset="0%" stopColor="#D4A574" stopOpacity="0.3" />
+   514→          <stop offset="100%" stopColor="#D4A574" stopOpacity="0" />
+   515→        </linearGradient>
+   516→      </defs>
+   517→
+   518→      {/* Grid */}
+   519→      {[0, 1, 2, 3].map((i) => {
+   520→        const y = padding.top + (i / 3) * chartH;
+   521→        return (
+   522→          <line
+   523→            key={i}
+   524→            x1={padding.left}
+   525→            y1={y}
+   526→            x2={width - padding.right}
+   527→            y2={y}
+   528→            stroke="rgba(255,255,255,0.04)"
+   529→            strokeDasharray="3 3"
+   530→          />
+   531→        );
+   532→      })}
+   533→
+   534→      {/* Area */}
+   535→      {areaPath && <path d={areaPath} fill="url(#trend-fill)" />}
+   536→
+   537→      {/* Line */}
+   538→      {linePath && (
+   539→        <path
+   540→          d={linePath}
+   541→          fill="none"
+   542→          stroke="#D4A574"
+   543→          strokeWidth="2"
+   544→          strokeLinecap="round"
+   545→          strokeLinejoin="round"
+   546→        />
+   547→      )}
+   548→
+   549→      {/* Dots & labels */}
+   550→      {points.map((p) => (
+   551→        <g key={p.label}>
+   552→          <circle cx={p.x} cy={p.y} r="3" fill="#D4A574" stroke="#1A1A24" strokeWidth="1.5" />
+   553→          <text
+   554→            x={p.x}
+   555→            y={p.y - 8}
+   556→            textAnchor="middle"
+   557→            fill="rgba(255,255,255,0.7)"
+   558→            fontSize="7"
+   559→            fontWeight="600"
+   560→          >
+   561→            {p.value}%
+   562→          </text>
+   563→          <text
+   564→            x={p.x}
+   565→            y={height - 4}
+   566→            textAnchor="middle"
+   567→            fill="rgba(255,255,255,0.3)"
+   568→            fontSize="7"
+   569→          >
+   570→            {p.label}
+   571→          </text>
+   572→        </g>
+   573→      ))}
+   574→    </svg>
+   575→  );
+   576→}
+   577→
+   578→// ---------------------------------------------------------------------------
+   579→// Animated Counter
+   580→// ---------------------------------------------------------------------------
+   581→
+   582→function AnimatedCounter({ target, duration = 800 }: { target: number; duration?: number }) {
+   583→  const [count, setCount] = useState(0);
+   584→  const rafRef = useRef(0);
+   585→
+   586→  useEffect(() => {
+   587→    const start = performance.now();
+   588→    const animate = (now: number) => {
+   589→      const elapsed = now - start;
+   590→      const progress = Math.min(elapsed / duration, 1);
+   591→      // Ease out cubic
+   592→      const eased = 1 - Math.pow(1 - progress, 3);
+   593→      setCount(Math.round(eased * target));
+   594→      if (progress < 1) {
+   595→        rafRef.current = requestAnimationFrame(animate);
+   596→      }
+   597→    };
+   598→    rafRef.current = requestAnimationFrame(animate);
+   599→    return () => cancelAnimationFrame(rafRef.current);
+   600→  }, [target, duration]);
+   601→
+   602→  return <span className="tabular-nums">{count}</span>;
+   603→}
+   604→
+   605→// ---------------------------------------------------------------------------
+   606→// Main Component
+   607→// ---------------------------------------------------------------------------
+   608→
+   609→export default function ReportsSection() {
+   610→  const { students, teachers, classes, exams, grades } = useAppStore();
+   611→
+   612→  // State
+   613→  const [selectedType, setSelectedType] = useState<ReportType | null>(null);
+   614→  const [isGenerating, setIsGenerating] = useState(false);
+   615→  const [generatedReport, setGeneratedReport] = useState<GeneratedReport | null>(null);
+   616→  const [viewingReport, setViewingReport] = useState<GeneratedReport | null>(null);
+   617→
+   618→  const [reportTitle, setReportTitle] = useState('');
+   619→  const [dateFrom, setDateFrom] = useState(() => {
+   620→    const d = new Date();
+   621→    d.setDate(d.getDate() - 30);
+   622→    return d.toISOString().split('T')[0];
+   623→  });
+   624→  const [dateTo, setDateTo] = useState(() => new Date().toISOString().split('T')[0]);
+   625→
+   626→  const [filters, setFilters] = useState<ReportFilter>({
+   627→    classFilter: 'all',
+   628→    statusFilter: 'all',
+   629→    subjectFilter: 'all',
+   630→    termFilter: 'all',
+   631→    categoryFilter: 'all',
+   632→    priorityFilter: 'all',
+   633→  });
+   634→
+   635→  // Mock recent reports
+   636→  const recentReportsRef = useMockReportData();
+   637→  const [recentReports, setRecentReports] = useState<GeneratedReport[]>(recentReportsRef);
+   638→
+   639→  // Unique class/subject lists from store
+   640→  const classList = classes.length > 0 ? classes.map((c) => c.name) : ['الصف الأول - أ', 'الصف الأول - ب', 'الصف الثاني - أ', 'الصف الثاني - ب', 'الصف الثالث - أ', 'الصف الثالث - ب'];
+   641→  const subjectList = teachers.length > 0
+   642→    ? [...new Set(teachers.map((t) => t.subject))]
+   643→    : ['الرياضيات', 'العلوم', 'اللغة العربية', 'اللغة الإنجليزية', 'التربية الإسلامية', 'الاجتماعيات'];
+   644→
+   645→  // Handlers
+   646→  const handleSelectType = useCallback((type: ReportType) => {
+   647→    setSelectedType(type);
+   648→    setGeneratedReport(null);
+   649→    setViewingReport(null);
+   650→    const cat = REPORT_CATEGORIES.find((c) => c.id === type);
+   651→    if (cat) setReportTitle(`تقرير ${cat.title} - ${new Date().toLocaleDateString('ar-SA')}`);
+   652→    setFilters({
+   653→      classFilter: 'all',
+   654→      statusFilter: 'all',
+   655→      subjectFilter: 'all',
+   656→      termFilter: 'all',
+   657→      categoryFilter: 'all',
+   658→      priorityFilter: 'all',
+   659→    });
+   660→  }, []);
+   661→
+   662→  const handleGenerate = useCallback(() => {
+   663→    setIsGenerating(true);
+   664→    // Simulate generation delay
+   665→    setTimeout(() => {
+   666→      if (!selectedType) return;
+   667→      const report = generateReport(selectedType, reportTitle, { from: dateFrom, to: dateTo }, filters, { students, teachers, classes, exams, grades });
+   668→      setGeneratedReport(report);
+   669→      setViewingReport(report);
+   670→      setRecentReports((prev) => [report, ...prev.slice(0, 9)]);
+   671→      setIsGenerating(false);
+   672→      toast.success('تم إنشاء التقرير بنجاح');
+   673→    }, 1500);
+   674→  }, [selectedType, reportTitle, dateFrom, dateTo, filters, students, teachers, classes, exams, grades]);
+   675→
+   676→  const handleExportCSV = useCallback((report: GeneratedReport) => {
+   677→    const data = report.tableData.map((row) => {
+   678→      const obj: Record<string, unknown> = {};
+   679→      report.tableHeaders.forEach((header, idx) => {
+   680→        obj[header] = row[idx];
+   681→      });
+   682→      return obj;
+   683→    });
+   684→    const columns = report.tableHeaders.map((header) => ({
+   685→      key: header,
+   686→      label: header,
+   687→    }));
+   688→    exportToCSV(data as Record<string, unknown>[], report.title.replace(/\s+/g, '-'), columns);
+   689→    toast.success('تم تصدير التقرير كملف CSV');
+   690→  }, []);
+   691→
+   692→  const handlePrint = useCallback(() => {
+   693→    window.print();
+   694→  }, []);
+   695→
+   696→  const handleDeleteReport = useCallback(
+   697→    (id: string) => {
+   698→      setRecentReports((prev) => prev.filter((r) => r.id !== id));
+   699→      if (viewingReport?.id === id) setViewingReport(null);
+   700→      if (generatedReport?.id === id) setGeneratedReport(null);
+   701→      toast.success('تم حذف التقرير');
+   702→    },
+   703→    [viewingReport, generatedReport],
+   704→  );
+   705→
+   706→  const handleViewReport = useCallback((report: GeneratedReport) => {
+   707→    setViewingReport(report);
+   708→    setSelectedType(report.type);
+   709→    setReportTitle(report.title);
+   710→  }, []);
+   711→
+   712→  // Get the report being displayed
+   713→  const displayReport = viewingReport || generatedReport;
+   714→
+   715→  return (
+   716→    <div className="flex flex-col gap-6" dir="rtl">
+   717→      {/* ── Page Title ── */}
+   718→      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+   719→        <div className="flex items-center gap-3">
+   720→          <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-[#D4A574]/10">
+   721→            <FileBarChart className="h-5 w-5 text-[#D4A574]" />
+   722→          </div>
+   723→          <div>
+   724→            <h1 className="text-2xl font-bold text-white tracking-tight sm:text-3xl">
+   725→              التقارير
+   726→            </h1>
+   727→            <p className="mt-0.5 text-sm text-muted-foreground">
+   728→              إنشاء وتصدير التقارير الإحصائية للمدرسة
+   729→            </p>
+   730→          </div>
+   731→        </div>
+   732→        {selectedType && (
+   733→          <Button
+   734→            variant="ghost"
+   735→            size="sm"
+   736→            className="text-slate-400 hover:text-white"
+   737→            onClick={() => {
+   738→              setSelectedType(null);
+   739→              setGeneratedReport(null);
+   740→              setViewingReport(null);
+   741→            }}
+   742→          >
+   743→            <ArrowLeft className="h-4 w-4 ml-1" />
+   744→            العودة إلى الأنواع
+   745→          </Button>
+   746→        )}
+   747→      </div>
+   748→
+   749→      {/* ── Step 1: Report Categories Grid ── */}
+   750→      {!selectedType && (
+   751→        <>
+   752→          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+   753→            {REPORT_CATEGORIES.map((cat, index) => {
+   754→              const Icon = cat.icon;
+   755→              return (
+   756→                <div
+   757→                  key={cat.id}
+   758→                  className="glass-card-elevated hover-lift group cursor-pointer rounded-xl p-5 transition-all duration-300 animate-fade-in-up"
+   759→                  style={{ animationDelay: `${index * 80}ms` }}
+   760→                  onClick={() => handleSelectType(cat.id)}
+   761→                >
+   762→                  <div className="flex items-start gap-4">
+   763→                    {/* Icon */}
+   764→                    <div
+   765→                      className="flex shrink-0 items-center justify-center h-12 w-12 rounded-xl transition-transform duration-300 group-hover:scale-110"
+   766→                      style={{
+   767→                        background: `linear-gradient(135deg, ${cat.gradientFrom}22, ${cat.gradientTo}22)`,
+   768→                      }}
+   769→                    >
+   770→                      <Icon
+   771→                        className="h-6 w-6 transition-colors duration-300"
+   772→                        style={{ color: cat.gradientFrom }}
+   773→                      />
+   774→                    </div>
+   775→                    <div className="flex-1 min-w-0">
+   776→                      <h3 className="text-base font-semibold text-white mb-1 group-hover:text-[#D4A574] transition-colors">
+   777→                        {cat.title}
+   778→                      </h3>
+   779→                      <p className="text-xs text-slate-400 leading-relaxed line-clamp-2">
+   780→                        {cat.description}
+   781→                      </p>
+   782→                    </div>
+   783→                  </div>
+   784→                  <div className="mt-4 flex items-center justify-between">
+   785→                    <span className="text-[10px] text-slate-500 bg-white/[0.04] px-2.5 py-1 rounded-md">
+   786→                      {cat.id === 'comprehensive' ? 'جميع البيانات' : `${REPORT_TYPE_LABELS[cat.id]}`}
+   787→                    </span>
+   788→                    <Button
+   789→                      size="sm"
+   790→                      className="h-8 text-xs font-medium px-3 transition-all duration-300"
+   791→                      style={{
+   792→                        background: `linear-gradient(135deg, ${cat.gradientFrom}, ${cat.gradientTo})`,
+   793→                        color: 'white',
+   794→                      }}
+   795→                      onClick={(e) => {
+   796→                        e.stopPropagation();
+   797→                        handleSelectType(cat.id);
+   798→                      }}
+   799→                    >
+   800→                      إنشاء التقرير
+   801→                      <Sparkles className="h-3.5 w-3.5 mr-1" />
+   802→                    </Button>
+   803→                  </div>
+   804→                </div>
+   805→              );
+   806→            })}
+   807→          </div>
+   808→
+   809→          {/* ── Recent Reports ── */}
+   810→          <SectionCard
+   811→            title="التقارير الأخيرة"
+   812→            icon={<Clock className="h-4 w-4" />}
+   813→            action={
+   814→              <span className="text-xs text-muted-foreground bg-white/[0.04] px-3 py-1.5 rounded-lg">
+   815→                {recentReports.length} تقرير
+   816→              </span>
+   817→            }
+   818→          >
+   819→            {recentReports.length === 0 ? (
+   820→              <div className="flex flex-col items-center justify-center py-12 gap-3">
+   821→                <div className="flex items-center justify-center h-14 w-14 rounded-full bg-white/[0.04]">
+   822→                  <FileText className="h-7 w-7 text-slate-500" />
+   823→                </div>
+   824→                <p className="text-sm text-slate-400">لا توجد تقارير تم إنشاؤها بعد</p>
+   825→                <p className="text-xs text-slate-500">اختر نوع التقرير أعلاه للبدء</p>
+   826→              </div>
+   827→            ) : (
+   828→              <div className="flex flex-col gap-2.5 max-h-[400px] overflow-y-auto scrollbar-thin">
+   829→                {recentReports.map((report) => {
+   830→                  const cat = REPORT_CATEGORIES.find((c) => c.id === report.type);
+   831→                  return (
+   832→                    <div
+   833→                      key={report.id}
+   834→                      className="flex items-center gap-4 rounded-xl p-3.5 transition-all duration-200 hover:bg-white/[0.03] cursor-pointer group"
+   835→                      style={{
+   836→                        backgroundColor: 'rgba(255,255,255,0.015)',
+   837→                        border: '1px solid rgba(255,255,255,0.04)',
+   838→                      }}
+   839→                      onClick={() => handleViewReport(report)}
+   840→                    >
+   841→                      {/* Type icon */}
+   842→                      <div
+   843→                        className="flex shrink-0 items-center justify-center h-10 w-10 rounded-lg"
+   844→                        style={{
+   845→                          background: cat
+   846→                            ? `linear-gradient(135deg, ${cat.gradientFrom}22, ${cat.gradientTo}22)`
+   847→                            : 'rgba(212,165,116,0.1)',
+   848→                        }}
+   849→                      >
+   850→                        {cat ? (
+   851→                          <cat.icon className="h-5 w-5" style={{ color: cat.gradientFrom }} />
+   852→                        ) : (
+   853→                          <FileText className="h-5 w-5 text-[#D4A574]" />
+   854→                        )}
+   855→                      </div>
+   856→
+   857→                      {/* Info */}
+   858→                      <div className="flex-1 min-w-0">
+   859→                        <p className="text-sm font-medium text-slate-200 truncate">
+   860→                          {report.title}
+   861→                        </p>
+   862→                        <div className="flex items-center gap-2 mt-1">
+   863→                          <Badge
+   864→                            variant="secondary"
+   865→                            className="text-[10px] px-2 py-0 bg-white/[0.06] text-slate-400 border-0"
+   866→                          >
+   867→                            {REPORT_TYPE_LABELS[report.type]}
+   868→                          </Badge>
+   869→                          <span className="text-[10px] text-slate-500">
+   870→                            {formatCsvDate(report.generatedAt)}
+   871→                          </span>
+   872→                          <span className="text-[10px] text-slate-500">
+   873→                            {report.rowCount} صف
+   874→                          </span>
+   875→                        </div>
+   876→                      </div>
+   877→
+   878→                      {/* Actions */}
+   879→                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+   880→                        <button
+   881→                          onClick={(e) => {
+   882→                            e.stopPropagation();
+   883→                            handleViewReport(report);
+   884→                          }}
+   885→                          className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-[#D4A574] hover:bg-[#D4A574]/10 transition-colors"
+   886→                          title="عرض"
+   887→                        >
+   888→                          <Eye className="h-4 w-4" />
+   889→                        </button>
+   890→                        <button
+   891→                          onClick={(e) => {
+   892→                            e.stopPropagation();
+   893→                            handleDeleteReport(report.id);
+   894→                          }}
+   895→                          className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+   896→                          title="حذف"
+   897→                        >
+   898→                          <Trash2 className="h-4 w-4" />
+   899→                        </button>
+   900→                      </div>
+   901→                    </div>
+   902→                  );
+   903→                })}
+   904→              </div>
+   905→            )}
+   906→          </SectionCard>
+   907→        </>
+   908→      )}
+   909→
+   910→      {/* ── Step 2: Report Generation Form ── */}
+   911→      {selectedType && !displayReport && (
+   912→        <SectionCard
+   913→          title={`إنشاء ${REPORT_CATEGORIES.find((c) => c.id === selectedType)?.title || ''}`}
+   914→          icon={
+   915→            (() => {
+   916→              const cat = REPORT_CATEGORIES.find((c) => c.id === selectedType);
+   917→              return cat ? <cat.icon className="h-4 w-4" /> : <FileBarChart className="h-4 w-4" />;
+   918→            })()
+   919→          }
+   920→        >
+   921→          <div className="flex flex-col gap-5">
+   922→            {/* Title */}
+   923→            <div className="flex flex-col gap-1.5">
+   924→              <label className="text-sm font-medium text-slate-300">عنوان التقرير</label>
+   925→              <Input
+   926→                value={reportTitle}
+   927→                onChange={(e) => setReportTitle(e.target.value)}
+   928→                placeholder="أدخل عنوان التقرير..."
+   929→                className="bg-white/[0.04] border-white/[0.08] text-white placeholder:text-slate-500 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   930→              />
+   931→            </div>
+   932→
+   933→            {/* Date range */}
+   934→            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   935→              <div className="flex flex-col gap-1.5">
+   936→                <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
+   937→                  <CalendarDays className="h-4 w-4 text-[#D4A574]" />
+   938→                  من تاريخ
+   939→                </label>
+   940→                <Input
+   941→                  type="date"
+   942→                  value={dateFrom}
+   943→                  onChange={(e) => setDateFrom(e.target.value)}
+   944→                  className="bg-white/[0.04] border-white/[0.08] text-white focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   945→                />
+   946→              </div>
+   947→              <div className="flex flex-col gap-1.5">
+   948→                <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
+   949→                  <CalendarDays className="h-4 w-4 text-[#D4A574]" />
+   950→                  إلى تاريخ
+   951→                </label>
+   952→                <Input
+   953→                  type="date"
+   954→                  value={dateTo}
+   955→                  onChange={(e) => setDateTo(e.target.value)}
+   956→                  className="bg-white/[0.04] border-white/[0.08] text-white focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   957→                />
+   958→              </div>
+   959→            </div>
+   960→
+   961→            {/* Dynamic filters based on report type */}
+   962→            <div className="flex flex-col gap-1.5">
+   963→              <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
+   964→                <Filter className="h-4 w-4 text-[#D4A574]" />
+   965→                تصفية إضافية
+   966→              </label>
+   967→              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+   968→                {/* Class filter - for student, attendance, grades, comprehensive */}
+   969→                {(selectedType === 'students' || selectedType === 'attendance' || selectedType === 'grades' || selectedType === 'comprehensive') && (
+   970→                  <SelectField
+   971→                    label="الصف"
+   972→                    value={filters.classFilter}
+   973→                    onChange={(v) => setFilters((f) => ({ ...f, classFilter: v }))}
+   974→                    options={[
+   975→                      { value: 'all', label: 'جميع الصفوف' },
+   976→                      ...classList.map((c) => ({ value: c, label: c })),
+   977→                    ]}
+   978→                  />
+   979→                )}
+   980→
+   981→                {/* Status filter - for student, teacher, attendance, comprehensive */}
+   982→                {(selectedType === 'students' || selectedType === 'teachers' || selectedType === 'attendance' || selectedType === 'comprehensive') && (
+   983→                  <SelectField
+   984→                    label="الحالة"
+   985→                    value={filters.statusFilter}
+   986→                    onChange={(v) => setFilters((f) => ({ ...f, statusFilter: v }))}
+   987→                    options={
+   988→                      selectedType === 'teachers'
+   989→                        ? [
+   990→                            { value: 'all', label: 'جميع الحالات' },
+   991→                            { value: 'active', label: 'نشط' },
+   992→                            { value: 'inactive', label: 'غير نشط' },
+   993→                          ]
+   994→                        : selectedType === 'attendance'
+   995→                          ? [
+   996→                              { value: 'all', label: 'جميع الحالات' },
+   997→                              { value: 'present', label: 'حاضر' },
+   998→                              { value: 'absent', label: 'غائب' },
+   999→                              { value: 'late', label: 'متأخر' },
+  1000→                              { value: 'excused', label: 'مستأذن' },
+  1001→                            ]
+  1002→                          : [
+  1003→                              { value: 'all', label: 'جميع الحالات' },
+  1004→                              { value: 'active', label: 'نشط' },
+  1005→                              { value: 'inactive', label: 'غير نشط' },
+  1006→                              { value: 'graduated', label: 'متخرّج' },
+  1007→                            ]
+  1008→                    }
+  1009→                  />
+  1010→                )}
+  1011→
+  1012→                {/* Subject filter - for teacher, grades, comprehensive */}
+  1013→                {(selectedType === 'teachers' || selectedType === 'grades' || selectedType === 'comprehensive') && (
+  1014→                  <SelectField
+  1015→                    label="المادة"
+  1016→                    value={filters.subjectFilter}
+  1017→                    onChange={(v) => setFilters((f) => ({ ...f, subjectFilter: v }))}
+  1018→                    options={[
+  1019→                      { value: 'all', label: 'جميع المواد' },
+  1020→                      ...subjectList.map((s) => ({ value: s, label: s })),
+  1021→                    ]}
+  1022→                  />
+  1023→                )}
+  1024→
+  1025→                {/* Term filter - for grades, comprehensive */}
+  1026→                {(selectedType === 'grades' || selectedType === 'comprehensive') && (
+  1027→                  <SelectField
+  1028→                    label="الفصل الدراسي"
+  1029→                    value={filters.termFilter}
+  1030→                    onChange={(v) => setFilters((f) => ({ ...f, termFilter: v }))}
+  1031→                    options={[
+  1032→                      { value: 'all', label: 'جميع الفصول' },
+  1033→                      { value: 'first', label: 'الفصل الأول' },
+  1034→                      { value: 'second', label: 'الفصل الثاني' },
+  1035→                    ]}
+  1036→                  />
+  1037→                )}
+  1038→
+  1039→                {/* Category filter - for announcements, comprehensive */}
+  1040→                {(selectedType === 'announcements' || selectedType === 'comprehensive') && (
+  1041→                  <SelectField
+  1042→                    label="الفئة"
+  1043→                    value={filters.categoryFilter}
+  1044→                    onChange={(v) => setFilters((f) => ({ ...f, categoryFilter: v }))}
+  1045→                    options={[
+  1046→                      { value: 'all', label: 'جميع الفئات' },
+  1047→                      { value: 'general', label: 'عام' },
+  1048→                      { value: 'academic', label: 'أكاديمي' },
+  1049→                      { value: 'event', label: 'فعالية' },
+  1050→                      { value: 'urgent', label: 'عاجل' },
+  1051→                      { value: 'parent', label: 'أولياء الأمور' },
+  1052→                    ]}
+  1053→                  />
+  1054→                )}
+  1055→
+  1056→                {/* Priority filter - for announcements, comprehensive */}
+  1057→                {(selectedType === 'announcements' || selectedType === 'comprehensive') && (
+  1058→                  <SelectField
+  1059→                    label="الأولوية"
+  1060→                    value={filters.priorityFilter}
+  1061→                    onChange={(v) => setFilters((f) => ({ ...f, priorityFilter: v }))}
+  1062→                    options={[
+  1063→                      { value: 'all', label: 'جميع الأولويات' },
+  1064→                      { value: 'low', label: 'منخفض' },
+  1065→                      { value: 'normal', label: 'عادي' },
+  1066→                      { value: 'high', label: 'مرتفع' },
+  1067→                      { value: 'urgent', label: 'عاجل' },
+  1068→                    ]}
+  1069→                  />
+  1070→                )}
+  1071→              </div>
+  1072→            </div>
+  1073→
+  1074→            {/* Generate button */}
+  1075→            <div className="flex items-center gap-3 pt-2">
+  1076→              <Button
+  1077→                onClick={handleGenerate}
+  1078→                disabled={isGenerating || !reportTitle.trim()}
+  1079→                className="h-11 px-6 text-sm font-medium"
+  1080→                style={{
+  1081→                  background: 'linear-gradient(135deg, #D4A574, #B07D4F)',
+  1082→                  color: 'white',
+  1083→                }}
+  1084→              >
+  1085→                {isGenerating ? (
+  1086→                  <>
+  1087→                    <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+  1088→                    جارٍ إنشاء التقرير...
+  1089→                  </>
+  1090→                ) : (
+  1091→                  <>
+  1092→                    <Sparkles className="h-4 w-4 ml-2" />
+  1093→                    إنشاء التقرير
+  1094→                  </>
+  1095→                )}
+  1096→              </Button>
+  1097→              <Button
+  1098→                variant="ghost"
+  1099→                onClick={() => {
+  1100→                  setSelectedType(null);
+  1101→                }}
+  1102→                className="text-slate-400 hover:text-white"
+  1103→              >
+  1104→                إلغاء
+  1105→              </Button>
+  1106→            </div>
+  1107→          </div>
+  1108→        </SectionCard>
+  1109→      )}
+  1110→
+  1111→      {/* ── Step 3: Report Preview ── */}
+  1112→      {displayReport && (
+  1113→        <>
+  1114→          {/* Report Header Card */}
+  1115→          <div className="glass-card-elevated rounded-xl p-6">
+  1116→            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+  1117→              <div className="flex items-start gap-4">
+  1118→                {(() => {
+  1119→                  const cat = REPORT_CATEGORIES.find((c) => c.id === displayReport.type);
+  1120→                  return cat ? (
+  1121→                    <div
+  1122→                      className="flex shrink-0 items-center justify-center h-12 w-12 rounded-xl"
+  1123→                      style={{
+  1124→                        background: `linear-gradient(135deg, ${cat.gradientFrom}22, ${cat.gradientTo}22)`,
+  1125→                      }}
+  1126→                    >
+  1127→                      <cat.icon className="h-6 w-6" style={{ color: cat.gradientFrom }} />
+  1128→                    </div>
+  1129→                  ) : null;
+  1130→                })()}
+  1131→                <div>
+  1132→                  <h2 className="text-xl font-bold text-white">{displayReport.title}</h2>
+  1133→                  <div className="flex flex-wrap items-center gap-3 mt-2">
+  1134→                    <Badge
+  1135→                      variant="secondary"
+  1136→                      className="text-xs px-2.5 py-0.5 bg-[#D4A574]/10 text-[#D4A574] border border-[#D4A574]/20"
+  1137→                    >
+  1138→                      {REPORT_TYPE_LABELS[displayReport.type]}
+  1139→                    </Badge>
+  1140→                    <span className="text-xs text-slate-400 flex items-center gap-1.5">
+  1141→                      <CalendarDays className="h-3.5 w-3.5" />
+  1142→                      {displayReport.dateRange.from} — {displayReport.dateRange.to}
+  1143→                    </span>
+  1144→                    <span className="text-xs text-slate-400 flex items-center gap-1.5">
+  1145→                      <Clock className="h-3.5 w-3.5" />
+  1146→                      تم الإنشاء: {formatCsvDate(displayReport.generatedAt)}
+  1147→                    </span>
+  1148→                  </div>
+  1149→                </div>
+  1150→              </div>
+  1151→
+  1152→              {/* Action buttons */}
+  1153→              <div className="flex items-center gap-2 shrink-0 print:hidden">
+  1154→                <Button
+  1155→                  variant="outline"
+  1156→                  size="sm"
+  1157→                  className="h-9 text-xs border-[#D4A574]/30 text-[#D4A574] hover:bg-[#D4A574]/10"
+  1158→                  onClick={() => handleExportCSV(displayReport)}
+  1159→                >
+  1160→                  <Download className="h-3.5 w-3.5 ml-1.5" />
+  1161→                  تصدير CSV
+  1162→                </Button>
+  1163→                <Button
+  1164→                  variant="outline"
+  1165→                  size="sm"
+  1166→                  className="h-9 text-xs border-white/[0.1] text-slate-300 hover:bg-white/[0.06]"
+  1167→                  onClick={handlePrint}
+  1168→                >
+  1169→                  <Printer className="h-3.5 w-3.5 ml-1.5" />
+  1170→                  طباعة
+  1171→                </Button>
+  1172→                <Button
+  1173→                  variant="outline"
+  1174→                  size="sm"
+  1175→                  className="h-9 text-xs border-white/[0.1] text-slate-300 hover:bg-white/[0.06]"
+  1176→                  onClick={() => {
+  1177→                    setGeneratedReport(null);
+  1178→                    setViewingReport(null);
+  1179→                  }}
+  1180→                >
+  1181→                  <FileDown className="h-3.5 w-3.5 ml-1.5" />
+  1182→                  تقرير جديد
+  1183→                </Button>
+  1184→              </div>
+  1185→            </div>
+  1186→          </div>
+  1187→
+  1188→          {/* Summary Statistics Row */}
+  1189→          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+  1190→            {displayReport.summaryStats.map((stat, index) => (
+  1191→              <div
+  1192→                key={stat.label}
+  1193→                className="glass-card-elevated rounded-xl p-4 animate-fade-in-up"
+  1194→                style={{ animationDelay: `${index * 80}ms` }}
+  1195→              >
+  1196→                <p className="text-[11px] text-slate-400 mb-1">{stat.label}</p>
+  1197→                <p className="text-xl font-bold text-white tabular-nums" style={{ color: stat.color }}>
+  1198→                  {typeof stat.value === 'number' ? (
+  1199→                    <AnimatedCounter target={stat.value} />
+  1200→                  ) : (
+  1201→                    stat.value
+  1202→                  )}
+  1203→                </p>
+  1204→              </div>
+  1205→            ))}
+  1206→          </div>
+  1207→
+  1208→          {/* Chart + Table Row */}
+  1209→          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  1210→            {/* Chart */}
+  1211→            <div className="glass-card-elevated rounded-xl p-5">
+  1212→              <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+  1213→                <TrendingUp className="h-4 w-4 text-[#D4A574]" />
+  1214→                {displayReport.chartType === 'donut' ? 'توزيع الحالات' : 'مقارنة البيانات'}
+  1215→              </h3>
+  1216→              {displayReport.chartType === 'donut' ? (
+  1217→                <ReportDonutChart data={displayReport.chartData} size={180} />
+  1218→              ) : (
+  1219→                <ReportBarChart data={displayReport.chartData} height={200} />
+  1220→              )}
+  1221→            </div>
+  1222→
+  1223→            {/* Data Table */}
+  1224→            <div className="glass-card-elevated rounded-xl p-5 lg:col-span-2">
+  1225→              <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+  1226→                <BarChart3 className="h-4 w-4 text-[#D4A574]" />
+  1227→                بيانات التقرير
+  1228→                <Badge variant="secondary" className="text-[10px] px-2 py-0 bg-white/[0.06] text-slate-400 border-0 mr-auto">
+  1229→                  {displayReport.rowCount} صف
+  1230→                </Badge>
+  1231→              </h3>
+  1232→              <div className="overflow-x-auto rounded-lg border border-white/[0.06]">
+  1233→                <table className="w-full text-sm">
+  1234→                  <thead>
+  1235→                    <tr className="bg-white/[0.03]">
+  1236→                      {displayReport.tableHeaders.map((header, i) => (
+  1237→                        <th
+  1238→                          key={i}
+  1239→                          className="text-right text-xs font-medium text-slate-400 px-4 py-3 whitespace-nowrap"
+  1240→                        >
+  1241→                          {header}
+  1242→                        </th>
+  1243→                      ))}
+  1244→                    </tr>
+  1245→                  </thead>
+  1246→                  <tbody>
+  1247→                    {displayReport.tableData.map((row, rowIdx) => (
+  1248→                      <tr
+  1249→                        key={rowIdx}
+  1250→                        className={cn(
+  1251→                          'border-t border-white/[0.04] transition-colors hover:bg-white/[0.02]',
+  1252→                          rowIdx % 2 === 1 && 'bg-white/[0.015]',
+  1253→                        )}
+  1254→                      >
+  1255→                        {row.map((cell, cellIdx) => (
+  1256→                          <td
+  1257→                            key={cellIdx}
+  1258→                            className="text-xs text-slate-300 px-4 py-2.5 whitespace-nowrap tabular-nums"
+  1259→                          >
+  1260→                            {cell}
+  1261→                          </td>
+  1262→                        ))}
+  1263→                      </tr>
+  1264→                    ))}
+  1265→                  </tbody>
+  1266→                </table>
+  1267→              </div>
+  1268→            </div>
+  1269→          </div>
+  1270→
+  1271→          {/* Trend Chart (if available) */}
+  1272→          {displayReport.trendData && displayReport.trendData.length > 1 && (
+  1273→            <div className="glass-card-elevated rounded-xl p-5">
+  1274→              <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+  1275→                <TrendingUp className="h-4 w-4 text-[#D4A574]" />
+  1276→                اتجاه الأداء
+  1277→              </h3>
+  1278→              <ReportTrendChart data={displayReport.trendData} height={100} width={500} />
+  1279→            </div>
+  1280→          )}
+  1281→
+  1282→          {/* Recent Reports (compact) */}
+  1283→          <SectionCard
+  1284→            title="التقارير الأخيرة"
+  1285→            icon={<Clock className="h-4 w-4" />}
+  1286→            action={
+  1287→              <span className="text-xs text-muted-foreground bg-white/[0.04] px-3 py-1.5 rounded-lg">
+  1288→                {recentReports.length} تقرير
+  1289→              </span>
+  1290→            }
+  1291→          >
+  1292→            <div className="flex flex-col gap-2 max-h-[250px] overflow-y-auto scrollbar-thin">
+  1293→              {recentReports.map((report) => (
+  1294→                <div
+  1295→                  key={report.id}
+  1296→                  className={cn(
+  1297→                    'flex items-center gap-3 rounded-lg p-2.5 transition-all cursor-pointer',
+  1298→                    viewingReport?.id === report.id
+  1299→                      ? 'bg-[#D4A574]/10 border border-[#D4A574]/20'
+  1300→                      : 'hover:bg-white/[0.03] border border-transparent',
+  1301→                  )}
+  1302→                  onClick={() => handleViewReport(report)}
+  1303→                >
+  1304→                  <div className="flex-1 min-w-0">
+  1305→                    <p className="text-xs font-medium text-slate-200 truncate">{report.title}</p>
+  1306→                    <p className="text-[10px] text-slate-500 mt-0.5">
+  1307→                      {formatCsvDate(report.generatedAt)} · {report.rowCount} صف
+  1308→                    </p>
+  1309→                  </div>
+  1310→                  <Badge variant="secondary" className="text-[9px] px-1.5 py-0 bg-white/[0.06] text-slate-400 border-0 shrink-0">
+  1311→                    {REPORT_TYPE_LABELS[report.type]}
+  1312→                  </Badge>
+  1313→                </div>
+  1314→              ))}
+  1315→            </div>
+  1316→          </SectionCard>
+  1317→        </>
+  1318→      )}
+  1319→    </div>
+  1320→  );
+  1321→}
+  1322→
+  1323→// ---------------------------------------------------------------------------
+  1324→// Select Field Component
+  1325→// ---------------------------------------------------------------------------
+  1326→
+  1327→function SelectField({
+  1328→  label,
+  1329→  value,
+  1330→  onChange,
+  1331→  options,
+  1332→}: {
+  1333→  label: string;
+  1334→  value: string;
+  1335→  onChange: (value: string) => void;
+  1336→  options: { value: string; label: string }[];
+  1337→}) {
+  1338→  return (
+  1339→    <div className="flex flex-col gap-1.5">
+  1340→      <label className="text-xs font-medium text-slate-400">{label}</label>
+  1341→      <div className="relative">
+  1342→        <select
+  1343→          value={value}
+  1344→          onChange={(e) => onChange(e.target.value)}
+  1345→          className="w-full appearance-none rounded-lg bg-white/[0.04] border border-white/[0.08] text-white text-xs px-3 py-2.5 pl-8 focus:outline-none focus:border-[#D4A574]/50 focus:ring-1 focus:ring-[#D4A574]/20 transition-colors cursor-pointer"
+  1346→        >
+  1347→          {options.map((opt) => (
+  1348→            <option key={opt.value} value={opt.value} className="bg-[#1A1A24] text-white">
+  1349→              {opt.label}
+  1350→            </option>
+  1351→          ))}
+  1352→        </select>
+  1353→        <ChevronDown className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500 pointer-events-none" />
+  1354→      </div>
+  1355→    </div>
+  1356→  );
+  1357→}
+  1358→
+  1359→// ---------------------------------------------------------------------------
+  1360→// Report Generation Logic
+  1361→// ---------------------------------------------------------------------------
+  1362→
+  1363→function generateReport(
+  1364→  type: ReportType,
+  1365→  title: string,
+  1366→  dateRange: { from: string; to: string },
+  1367→  filters: ReportFilter,
+  1368→  storeData: {
+  1369→    students: ReturnType<typeof useAppStore.getState>['students'];
+  1370→    teachers: ReturnType<typeof useAppStore.getState>['teachers'];
+  1371→    classes: ReturnType<typeof useAppStore.getState>['classes'];
+  1372→    exams: ReturnType<typeof useAppStore.getState>['exams'];
+  1373→    grades: ReturnType<typeof useAppStore.getState>['grades'];
+  1374→  },
+  1375→): GeneratedReport {
+  1376→  const { students, teachers, classes, exams, grades } = storeData;
+  1377→  const id = `r-${Date.now()}`;
+  1378→  const now = new Date().toISOString();
+  1379→
+  1380→  // Get unique class names
+  1381→  const classNames = classes.length > 0
+  1382→    ? classes.map((c) => c.name)
+  1383→    : ['الصف الأول - أ', 'الصف الأول - ب', 'الصف الثاني - أ', 'الصف الثاني - ب', 'الصف الثالث - أ', 'الصف الثالث - ب'];
+  1384→
+  1385→  switch (type) {
+  1386→    case 'students':
+  1387→      return generateStudentReport(id, title, now, dateRange, filters, students, classNames);
+  1388→    case 'teachers':
+  1389→      return generateTeacherReport(id, title, now, dateRange, filters, teachers);
+  1390→    case 'attendance':
+  1391→      return generateAttendanceReport(id, title, now, dateRange, filters, classNames);
+  1392→    case 'grades':
+  1393→      return generateGradesReport(id, title, now, dateRange, filters, grades);
+  1394→    case 'announcements':
+  1395→      return generateAnnouncementsReport(id, title, now, dateRange, filters);
+  1396→    case 'comprehensive':
+  1397→      return generateComprehensiveReport(id, title, now, dateRange, filters, students, teachers, classNames, grades);
+  1398→    default:
+  1399→      return generateStudentReport(id, title, now, dateRange, filters, students, classNames);
+  1400→  }
+  1401→}
+  1402→
+  1403→function generateStudentReport(
+  1404→  id: string,
+  1405→  title: string,
+  1406→  generatedAt: string,
+  1407→  dateRange: { from: string; to: string },
+  1408→  _filters: ReportFilter,
+  1409→  students: { id: string; name: string; status: string; classId: string | null; createdAt: string }[],
+  1410→  classNames: string[],
+  1411→): GeneratedReport {
+  1412→  // Use store data if available, otherwise mock
+  1413→  const hasRealData = students.length > 0;
+  1414→
+  1415→  const activeCount = hasRealData ? students.filter((s) => s.status === 'active').length : 92;
+  1416→  const inactiveCount = hasRealData ? students.filter((s) => s.status === 'inactive').length : 18;
+  1417→  const graduatedCount = hasRealData ? students.filter((s) => s.status === 'graduated').length : 10;
+  1418→  const totalCount = hasRealData ? students.length : 120;
+  1419→
+  1420→  const tableData = classNames.map((cls, i) => {
+  1421→    const classStudents = hasRealData ? students.filter((s) => {
+  1422→      // Simple match by index for demo
+  1423→      return Math.floor(Number(s.id?.slice(-1) || '0') / 2) === i;
+  1424→    }) : [];
+  1425→    const count = hasRealData ? Math.max(15, Math.round(totalCount / classNames.length) + Math.round(Math.random() * 5 - 2)) : [22, 20, 25, 18, 20, 15][i];
+  1426→    const actv = Math.round(count * (0.7 + Math.random() * 0.2));
+  1427→    const inactv = Math.round((count - actv) * 0.6);
+  1428→    const grad = count - actv - inactv;
+  1429→    return [cls, String(count), String(actv), String(inactv), String(grad)];
+  1430→  });
+  1431→
+  1432→  return {
+  1433→    id,
+  1434→    title,
+  1435→    type: 'students',
+  1436→    generatedAt,
+  1437→    dateRange,
+  1438→    rowCount: totalCount,
+  1439→    summaryStats: [
+  1440→      { label: 'إجمالي الطلاب', value: totalCount, color: '#D4A574' },
+  1441→      { label: 'نشط', value: activeCount, color: '#10b981' },
+  1442→      { label: 'غير نشط', value: inactiveCount, color: '#f59e0b' },
+  1443→      { label: 'متخرّج', value: graduatedCount, color: '#0ea5e9' },
+  1444→    ],
+  1445→    tableHeaders: ['الصف', 'عدد الطلاب', 'نشط', 'غير نشط', 'متخرّج'],
+  1446→    tableData,
+  1447→    chartData: [
+  1448→      { label: 'نشط', value: activeCount, color: '#10b981' },
+  1449→      { label: 'غير نشط', value: inactiveCount, color: '#f59e0b' },
+  1450→      { label: 'متخرّج', value: graduatedCount, color: '#0ea5e9' },
+  1451→    ],
+  1452→    chartType: 'donut',
+  1453→  };
+  1454→}
+  1455→
+  1456→function generateTeacherReport(
+  1457→  id: string,
+  1458→  title: string,
+  1459→  generatedAt: string,
+  1460→  dateRange: { from: string; to: string },
+  1461→  _filters: ReportFilter,
+  1462→  teachers: { id: string; name: string; subject: string; status: string; permissions: string }[],
+  1463→): GeneratedReport {
+  1464→  const hasRealData = teachers.length > 0;
+  1465→  const totalCount = hasRealData ? teachers.length : 24;
+  1466→  const activeCount = hasRealData ? teachers.filter((t) => t.status === 'active').length : 20;
+  1467→  const inactiveCount = totalCount - activeCount;
+  1468→  const adminCount = hasRealData ? teachers.filter((t) => t.permissions === 'admin').length : 3;
+  1469→  const supervisorCount = hasRealData ? teachers.filter((t) => t.permissions === 'supervisor').length : 5;
+  1470→
+  1471→  const subjects = hasRealData
+  1472→    ? [...new Set(teachers.map((t) => t.subject))]
+  1473→    : ['الرياضيات', 'العلوم', 'اللغة العربية', 'اللغة الإنجليزية', 'التربية الإسلامية', 'الاجتماعيات'];
+  1474→
+  1475→  const tableData = subjects.map((sub) => {
+  1476→    const count = hasRealData
+  1477→      ? teachers.filter((t) => t.subject === sub).length
+  1478→      : Math.floor(Math.random() * 3) + 2;
+  1479→    return [sub, String(count), String(Math.round(count * 0.85)), String(Math.round(count * 0.15))];
+  1480→  });
+  1481→
+  1482→  return {
+  1483→    id,
+  1484→    title,
+  1485→    type: 'teachers',
+  1486→    generatedAt,
+  1487→    dateRange,
+  1488→    rowCount: totalCount,
+  1489→    summaryStats: [
+  1490→      { label: 'إجمالي المعلمين', value: totalCount, color: '#D4A574' },
+  1491→      { label: 'نشط', value: activeCount, color: '#10b981' },
+  1492→      { label: 'مشرفين', value: supervisorCount, color: '#8b5cf6' },
+  1493→      { label: 'مديرين', value: adminCount, color: '#f59e0b' },
+  1494→    ],
+  1495→    tableHeaders: ['المادة', 'عدد المعلمين', 'نشط', 'غير نشط'],
+  1496→    tableData,
+  1497→    chartData: [
+  1498→      { label: 'مدير', value: adminCount, color: '#f59e0b' },
+  1499→      { label: 'مشرف', value: supervisorCount, color: '#8b5cf6' },
+  1500→      { label: 'معلم', value: totalCount - adminCount - supervisorCount, color: '#0ea5e9' },
+  1501→    ],
+  1502→    chartType: 'donut',
+  1503→  };
+  1504→}
+  1505→
+  1506→function generateAttendanceReport(
+  1507→  id: string,
+  1508→  title: string,
+  1509→  generatedAt: string,
+  1510→  dateRange: { from: string; to: string },
+  1511→  _filters: ReportFilter,
+  1512→  classNames: string[],
+  1513→): GeneratedReport {
+  1514→  const rates = [96, 92, 95, 90, 93, 88];
+  1515→  const tableData = classNames.map((cls, i) => {
+  1516→    const total = 220;
+  1517→    const present = Math.round(total * rates[i] / 100);
+  1518→    const absent = Math.round(total * (100 - rates[i]) / 100 * 0.5);
+  1519→    const late = Math.round(total * (100 - rates[i]) / 100 * 0.35);
+  1520→    const excused = total - present - absent - late;
+  1521→    return [cls, `${rates[i]}%`, String(present), String(absent), String(late), String(Math.max(excused, 0))];
+  1522→  });
+  1523→
+  1524→  return {
+  1525→    id,
+  1526→    title,
+  1527→    type: 'attendance',
+  1528→    generatedAt,
+  1529→    dateRange,
+  1530→    rowCount: classNames.length * 220,
+  1531→    summaryStats: [
+  1532→      { label: 'نسبة الحضور', value: '94%', color: '#10b981' },
+  1533→      { label: 'حاضر', value: 1128, color: '#10b981' },
+  1534→      { label: 'غائب', value: 48, color: '#ef4444' },
+  1535→      { label: 'متأخر', value: 36, color: '#f59e0b' },
+  1536→    ],
+  1537→    tableHeaders: ['الصف', 'نسبة الحضور', 'حاضر', 'غائب', 'متأخر', 'مستأذن'],
+  1538→    tableData,
+  1539→    chartData: classNames.map((cls, i) => ({
+  1540→      label: cls.replace(/الصف /, '').split(' ')[0],
+  1541→      value: rates[i],
+  1542→      color: ['#10b981', '#0ea5e9', '#8b5cf6', '#f59e0b', '#ec4899', '#f97316'][i],
+  1543→    })),
+  1544→    chartType: 'bar',
+  1545→    trendData: [
+  1546→      { label: 'الأسبوع ١', value: 91 },
+  1547→      { label: 'الأسبوع ٢', value: 94 },
+  1548→      { label: 'الأسبوع ٣', value: 92 },
+  1549→      { label: 'الأسبوع ٤', value: 95 },
+  1550→    ],
+  1551→  };
+  1552→}
+  1553→
+  1554→function generateGradesReport(
+  1555→  id: string,
+  1556→  title: string,
+  1557→  generatedAt: string,
+  1558→  dateRange: { from: string; to: string },
+  1559→  _filters: ReportFilter,
+  1560→  grades: { id: string; subject: string; score: number; maxScore: number; studentName?: string }[],
+  1561→): GeneratedReport {
+  1562→  const hasRealData = grades.length > 0;
+  1563→  const subjects = ['الرياضيات', 'العلوم', 'اللغة العربية', 'اللغة الإنجليزية', 'التربية الإسلامية', 'الاجتماعيات'];
+  1564→  const avgs = hasRealData
+  1565→    ? subjects.map((sub) => {
+  1566→        const subGrades = grades.filter((g) => g.subject === sub);
+  1567→        if (subGrades.length === 0) return 70 + Math.round(Math.random() * 20);
+  1568→        return Math.round(subGrades.reduce((s, g) => s + (g.score / g.maxScore) * 100, 0) / subGrades.length);
+  1569→      })
+  1570→    : [74, 78, 82, 71, 85, 76];
+  1571→
+  1572→  const tableData = subjects.map((sub, i) => {
+  1573→    const avg = avgs[i];
+  1574→    const high = avg + Math.round(Math.random() * 10 + 5);
+  1575→    const low = Math.max(avg - Math.round(Math.random() * 20 + 10), 20);
+  1576→    return [sub, `${avg}%`, `${high}%`, `${low}%`, '120'];
+  1577→  });
+  1578→
+  1579→  return {
+  1580→    id,
+  1581→    title,
+  1582→    type: 'grades',
+  1583→    generatedAt,
+  1584→    dateRange,
+  1585→    rowCount: 65,
+  1586→    summaryStats: [
+  1587→      { label: 'المتوسط العام', value: '76.5%', color: '#D4A574' },
+  1588→      { label: 'ممتاز (90+)', value: 18, color: '#10b981' },
+  1589→      { label: 'جيد جداً', value: 32, color: '#0ea5e9' },
+  1590→      { label: 'مقبول', value: 15, color: '#f59e0b' },
+  1591→    ],
+  1592→    tableHeaders: ['المادة', 'المتوسط', 'أعلى درجة', 'أدنى درجة', 'عدد الطلاب'],
+  1593→    tableData,
+  1594→    chartData: subjects.map((sub, i) => ({
+  1595→      label: sub.replace(/ال /, '').slice(0, 5),
+  1596→      value: avgs[i],
+  1597→      color: ['#f59e0b', '#10b981', '#0ea5e9', '#8b5cf6', '#D4A574', '#ec4899'][i],
+  1598→    })),
+  1599→    chartType: 'bar',
+  1600→    trendData: [
+  1601→      { label: 'محرم', value: 72 },
+  1602→      { label: 'صفر', value: 75 },
+  1603→      { label: 'ربيع أول', value: 78 },
+  1604→      { label: 'ربيع ثاني', value: 76 },
+  1605→      { label: 'جمادى أول', value: 80 },
+  1606→      { label: 'جمادى ثاني', value: 79 },
+  1607→    ],
+  1608→  };
+  1609→}
+  1610→
+  1611→function generateAnnouncementsReport(
+  1612→  id: string,
+  1613→  title: string,
+  1614→  generatedAt: string,
+  1615→  dateRange: { from: string; to: string },
+  1616→  _filters: ReportFilter,
+  1617→): GeneratedReport {
+  1618→  const categories = ['عام', 'أكاديمي', 'فعالية', 'عاجل', 'أولياء الأمور'];
+  1619→  const counts = [15, 12, 8, 5, 10];
+  1620→  const total = counts.reduce((a, b) => a + b, 0);
+  1621→
+  1622→  const tableData = [
+  1623→    ['عام', String(counts[0]), '8', '5', '2'],
+  1624→    ['أكاديمي', String(counts[1]), '10', '1', '1'],
+  1625→    ['فعالية', String(counts[2]), '6', '1', '1'],
+  1626→    ['عاجل', String(counts[3]), '3', '0', '2'],
+  1627→    ['أولياء الأمور', String(counts[4]), '7', '2', '1'],
+  1628→  ];
+  1629→
+  1630→  return {
+  1631→    id,
+  1632→    title,
+  1633→    type: 'announcements',
+  1634→    generatedAt,
+  1635→    dateRange,
+  1636→    rowCount: total,
+  1637→    summaryStats: [
+  1638→      { label: 'إجمالي الإعلانات', value: total, color: '#D4A574' },
+  1639→      { label: 'مثبّت', value: 8, color: '#f59e0b' },
+  1640→      { label: 'نشط', value: 34, color: '#10b981' },
+  1641→      { label: 'منتهي', value: 8, color: '#ef4444' },
+  1642→    ],
+  1643→    tableHeaders: ['الفئة', 'العدد', 'نشط', 'مثبّت', 'عاجل'],
+  1644→    tableData,
+  1645→    chartData: categories.map((cat, i) => ({
+  1646→      label: cat,
+  1647→      value: counts[i],
+  1648→      color: ['#D4A574', '#0ea5e9', '#8b5cf6', '#ef4444', '#10b981'][i],
+  1649→    })),
+  1650→    chartType: 'donut',
+  1651→  };
+  1652→}
+  1653→
+  1654→function generateComprehensiveReport(
+  1655→  id: string,
+  1656→  title: string,
+  1657→  generatedAt: string,
+  1658→  dateRange: { from: string; to: string },
+  1659→  _filters: ReportFilter,
+  1660→  students: { id: string; status: string }[],
+  1661→  teachers: { id: string; status: string }[],
+  1662→  classNames: string[],
+  1663→  grades: { id: string; subject: string; score: number; maxScore: number }[],
+  1664→): GeneratedReport {
+  1665→  const studentCount = students.length > 0 ? students.length : 120;
+  1666→  const teacherCount = teachers.length > 0 ? teachers.length : 24;
+  1667→  const classCount = classNames.length;
+  1668→
+  1669→  const tableData = classNames.map((cls) => {
+  1670→    const avg = 70 + Math.round(Math.random() * 20);
+  1671→    const attendRate = 85 + Math.round(Math.random() * 12);
+  1672→    return [cls, String(Math.round(studentCount / classCount)), `${avg}%`, `${attendRate}%`, 'جيد'];
+  1673→  });
+  1674→
+  1675→  return {
+  1676→    id,
+  1677→    title,
+  1678→    type: 'comprehensive',
+  1679→    generatedAt,
+  1680→    dateRange,
+  1681→    rowCount: studentCount + teacherCount,
+  1682→    summaryStats: [
+  1683→      { label: 'الطلاب', value: studentCount, color: '#10b981' },
+  1684→      { label: 'المعلمون', value: teacherCount, color: '#0ea5e9' },
+  1685→      { label: 'الصفوف', value: classCount, color: '#8b5cf6' },
+  1686→      { label: 'نسبة الحضور', value: '93%', color: '#D4A574' },
+  1687→    ],
+  1688→    tableHeaders: ['الصف', 'عدد الطلاب', 'متوسط الدرجات', 'نسبة الحضور', 'التقييم'],
+  1689→    tableData,
+  1690→    chartData: classNames.map((cls, i) => ({
+  1691→      label: cls.replace(/الصف /, '').split(' ')[0],
+  1692→      value: 85 + Math.round(Math.random() * 12),
+  1693→      color: ['#10b981', '#0ea5e9', '#8b5cf6', '#f59e0b', '#ec4899', '#f97316'][i],
+  1694→    })),
+  1695→    chartType: 'bar',
+  1696→    trendData: [
+  1697→      { label: 'محرم', value: 75 },
+  1698→      { label: 'صفر', value: 78 },
+  1699→      { label: 'ربيع أول', value: 80 },
+  1700→      { label: 'ربيع ثاني', value: 82 },
+  1701→      { label: 'جمادى أول', value: 85 },
+  1702→      { label: 'جمادى ثاني', value: 83 },
+  1703→    ],
+  1704→  };
+  1705→}
+  1706→

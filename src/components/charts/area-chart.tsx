@@ -118,7 +118,7 @@ export default function AreaChart({
 
   // Grid lines
   const gridLines = useMemo(() => {
-    const lines = [];
+    const lines: { y: number; value: number }[] = [];
     const gridCount = 4;
     for (let i = 0; i <= gridCount; i++) {
       const y = padding.top + (i / gridCount) * chartH;

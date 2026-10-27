@@ -1,0 +1,768 @@
+     1→'use client';
+     2→
+     3→import { useState, useEffect, useMemo, useRef } from 'react';
+     4→import {
+     5→  School,
+     6→  Users,
+     7→  UserCheck,
+     8→  MapPin,
+     9→  Pencil,
+    10→  Trash2,
+    11→  Plus,
+    12→  Search,
+    13→  Download,
+    14→} from 'lucide-react';
+    15→import { useAppStore } from '@/lib/store';
+    16→import type { ClassRoom } from '@/lib/types';
+    17→import { cn } from '@/lib/utils';
+    18→import { toast } from 'sonner';
+    19→import { exportToCSV, formatCsvDate } from '@/lib/csv-export';
+    20→import { t } from '@/lib/i18n';
+    21→
+    22→// shadcn/ui
+    23→import { Button } from '@/components/ui/button';
+    24→import { Input } from '@/components/ui/input';
+    25→import { Label } from '@/components/ui/label';
+    26→import { Badge } from '@/components/ui/badge';
+    27→import { Textarea } from '@/components/ui/textarea';
+    28→
+    29→import {
+    30→  Dialog,
+    31→  DialogContent,
+    32→  DialogDescription,
+    33→  DialogFooter,
+    34→  DialogHeader,
+    35→  DialogTitle,
+    36→} from '@/components/ui/dialog';
+    37→import {
+    38→  AlertDialog,
+    39→  AlertDialogAction,
+    40→  AlertDialogCancel,
+    41→  AlertDialogContent,
+    42→  AlertDialogDescription,
+    43→  AlertDialogFooter,
+    44→  AlertDialogHeader,
+    45→  AlertDialogTitle,
+    46→} from '@/components/ui/alert-dialog';
+    47→import {
+    48→  Select,
+    49→  SelectContent,
+    50→  SelectItem,
+    51→  SelectTrigger,
+    52→  SelectValue,
+    53→} from '@/components/ui/select';
+    54→
+    55→// ---------------------------------------------------------------------------
+    56→// Constants
+    57→// ---------------------------------------------------------------------------
+    58→
+    59→const MAX_STUDENTS_PER_CLASS = 35;
+    60→
+    61→function getGradeFilterOptions(locale: 'ar' | 'en') {
+    62→  return [
+    63→    { value: 'all', label: t('classes.allGrades', locale) },
+    64→    { value: 'الأول', label: t('classes.grade1', locale) },
+    65→    { value: 'الثاني', label: t('classes.grade2', locale) },
+    66→    { value: 'الثالث', label: t('classes.grade3', locale) },
+    67→  ];
+    68→}
+    69→
+    70→// ---------------------------------------------------------------------------
+    71→// Mock Data – 6 classes with Arabic names
+    72→// ---------------------------------------------------------------------------
+    73→
+    74→const INITIAL_CLASSES: ClassRoom[] = [
+    75→  {
+    76→    id: 'cls-1',
+    77→    name: 'الصف الأول أ',
+    78→    grade: 'الأول',
+    79→    room: 'قاعة 101',
+    80→    notes: 'صف متقدم في القراءة والكتابة',
+    81→    createdAt: '2024-09-01T08:00:00.000Z',
+    82→    updatedAt: '2024-09-01T08:00:00.000Z',
+    83→    studentCount: 28,
+    84→    teacherNames: ['محمد السالم', 'فاطمة الحربي', 'سارة المطيري'],
+    85→  },
+    86→  {
+    87→    id: 'cls-2',
+    88→    name: 'الصف الأول ب',
+    89→    grade: 'الأول',
+    90→    room: 'قاعة 102',
+    91→    notes: 'صف يحتاج دعم إضافي في الرياضيات',
+    92→    createdAt: '2024-09-01T08:00:00.000Z',
+    93→    updatedAt: '2024-09-02T10:00:00.000Z',
+    94→    studentCount: 32,
+    95→    teacherNames: ['نورة القحطاني'],
+    96→  },
+    97→  {
+    98→    id: 'cls-3',
+    99→    name: 'الصف الثاني أ',
+   100→    grade: 'الثاني',
+   101→    room: 'قاعة 201',
+   102→    notes: 'صف متميز في الأنشطة العلمية',
+   103→    createdAt: '2024-09-01T08:00:00.000Z',
+   104→    updatedAt: '2024-09-03T14:00:00.000Z',
+   105→    studentCount: 30,
+   106→    teacherNames: ['خالد الدوسري', 'سارة المطيري'],
+   107→  },
+   108→  {
+   109→    id: 'cls-4',
+   110→    name: 'الصف الثاني ب',
+   111→    grade: 'الثاني',
+   112→    room: 'قاعة 202',
+   113→    notes: 'صف منتظم ومتميز في السلوك',
+   114→    createdAt: '2024-09-01T08:00:00.000Z',
+   115→    updatedAt: '2024-09-10T11:00:00.000Z',
+   116→    studentCount: 25,
+   117→    teacherNames: ['محمد السالم', 'عبدالرحمن الشمري', 'هند الزهراني'],
+   118→  },
+   119→  {
+   120→    id: 'cls-5',
+   121→    name: 'الصف الثالث أ',
+   122→    grade: 'الثالث',
+   123→    room: 'قاعة 301',
+   124→    notes: 'صف التفوق الأكاديمي',
+   125→    createdAt: '2024-09-01T08:00:00.000Z',
+   126→    updatedAt: '2024-09-20T13:00:00.000Z',
+   127→    studentCount: 22,
+   128→    teacherNames: ['فاطمة الحربي', 'عبدالرحمن الشمري', 'هند الزهراني'],
+   129→  },
+   130→  {
+   131→    id: 'cls-6',
+   132→    name: 'الصف الثالث ب',
+   133→    grade: 'الثالث',
+   134→    room: 'قاعة 302',
+   135→    notes: 'صف تطبيقي في المشاريع البحثية',
+   136→    createdAt: '2024-09-01T08:00:00.000Z',
+   137→    updatedAt: '2024-11-01T10:00:00.000Z',
+   138→    studentCount: 27,
+   139→    teacherNames: ['سلطان العتيبي'],
+   140→  },
+   141→];
+   142→
+   143→// ---------------------------------------------------------------------------
+   144→// Helper: capacity color
+   145→// ---------------------------------------------------------------------------
+   146→
+   147→function getCapacityColor(percentage: number): { bar: string; text: string } {
+   148→  if (percentage >= 90) {
+   149→    return { bar: 'bg-rose-500', text: 'text-rose-400' };
+   150→  }
+   151→  if (percentage >= 70) {
+   152→    return { bar: 'bg-amber-500', text: 'text-amber-400' };
+   153→  }
+   154→  return { bar: 'bg-emerald-500', text: 'text-emerald-400' };
+   155→}
+   156→
+   157→// ---------------------------------------------------------------------------
+   158→// Sub-components
+   159→// ---------------------------------------------------------------------------
+   160→
+   161→/** Empty state */
+   162→function EmptyState({ onAdd }: { onAdd: () => void }) {
+   163→  return (
+   164→    <div className="flex flex-col items-center justify-center py-16 px-4 animate-fade-in-up" style={{ animationDuration: '0.5s' }}>
+   165→      <div className="flex items-center justify-center h-20 w-20 rounded-2xl bg-[#D4A574]/10 border border-[#D4A574]/20 mb-6 animate-bounce" style={{ animationDuration: '2s', animationIterationCount: 1 }}>
+   166→        <School className="h-10 w-10 text-[#D4A574]" />
+   167→      </div>
+   168→      <h3 className="text-lg font-semibold text-slate-300 mb-2">
+   169→        لا يوجد صفوف مسجلة بعد
+   170→      </h3>
+   171→      <p className="text-sm text-muted-foreground mb-6 text-center max-w-sm">
+   172→        ابدأ بإضافة صفوف دراسية جديدة إلى النظام لإدارة الطلاب والمعلمين
+   173→      </p>
+   174→      <Button
+   175→        onClick={onAdd}
+   176→        className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold gap-2 rounded-lg px-6"
+   177→      >
+   178→        <Plus className="h-4 w-4" />
+   179→        إضافة صف جديد
+   180→      </Button>
+   181→    </div>
+   182→  );
+   183→}
+   184→
+   185→// ---------------------------------------------------------------------------
+   186→// Class Card
+   187→// ---------------------------------------------------------------------------
+   188→
+   189→function ClassCard({
+   190→  cls,
+   191→  onEdit,
+   192→  onDelete,
+   193→}: {
+   194→  cls: ClassRoom;
+   195→  onEdit: (c: ClassRoom) => void;
+   196→  onDelete: (c: ClassRoom) => void;
+   197→}) {
+   198→  const studentCount = cls.studentCount ?? 0;
+   199→  const percentage = Math.min(100, Math.round((studentCount / MAX_STUDENTS_PER_CLASS) * 100));
+   200→  const capacityColor = getCapacityColor(percentage);
+   201→
+   202→  return (
+   203→    <div
+   204→      className="group card-interactive rounded-xl p-5 transition-all duration-200 hover:bg-white/[0.04]"
+   205→      style={{
+   206→        backgroundColor: 'rgba(255,255,255,0.02)',
+   207→        border: '1px solid rgba(255,255,255,0.06)',
+   208→      }}
+   209→    >
+   210→      {/* Top row: icon + name + actions */}
+   211→      <div className="flex items-start justify-between gap-3 mb-4">
+   212→        <div className="flex items-center gap-3 min-w-0">
+   213→          <div className="flex items-center justify-center h-11 w-11 rounded-xl bg-gradient-to-br from-[#D4A574]/20 to-[#D4A574]/5 shrink-0 border border-[#D4A574]/10">
+   214→            <School className="h-5 w-5 text-[#D4A574]" />
+   215→          </div>
+   216→          <div className="min-w-0">
+   217→            <h3 className="text-sm font-semibold text-slate-100 truncate">
+   218→              {cls.name}
+   219→            </h3>
+   220→            <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+   221→              <MapPin className="h-3 w-3" />
+   222→              {cls.room}
+   223→            </p>
+   224→          </div>
+   225→        </div>
+   226→
+   227→        {/* Action buttons */}
+   228→        <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+   229→          <Button
+   230→            variant="ghost"
+   231→            size="icon"
+   232→            onClick={() => onEdit(cls)}
+   233→            className="h-8 w-8 text-slate-400 hover:text-amber-400 hover:bg-amber-400/10 rounded-lg"
+   234→            title="تعديل"
+   235→          >
+   236→            <Pencil className="h-4 w-4" />
+   237→          </Button>
+   238→          <Button
+   239→            variant="ghost"
+   240→            size="icon"
+   241→            onClick={() => onDelete(cls)}
+   242→            className="h-8 w-8 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg"
+   243→            title="حذف"
+   244→          >
+   245→            <Trash2 className="h-4 w-4" />
+   246→          </Button>
+   247→        </div>
+   248→      </div>
+   249→
+   250→      {/* Grade badge */}
+   251→      <div className="mb-4">
+   252→        <Badge
+   253→          variant="outline"
+   254→          className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-[#D4A574]/10 text-[#D4A574] border-[#D4A574]/20"
+   255→        >
+   256→          {cls.grade}
+   257→        </Badge>
+   258→      </div>
+   259→
+   260→      {/* Student count + capacity bar */}
+   261→      <div className="mb-4">
+   262→        <div className="flex items-center justify-between mb-2">
+   263→          <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+   264→            <Users className="h-3.5 w-3.5 text-slate-500" />
+   265→            عدد الطلاب
+   266→          </span>
+   267→          <span className={cn('text-xs font-semibold tabular-nums', capacityColor.text)}>
+   268→            {studentCount} / {MAX_STUDENTS_PER_CLASS}
+   269→          </span>
+   270→        </div>
+   271→        <div className="relative h-2 w-full overflow-hidden rounded-full bg-white/[0.06]">
+   272→          <div
+   273→            className={cn('h-full rounded-full transition-all duration-500', capacityColor.bar)}
+   274→            style={{ width: `${percentage}%` }}
+   275→          />
+   276→        </div>
+   277→      </div>
+   278→
+   279→      {/* Assigned teachers */}
+   280→      {cls.teacherNames && cls.teacherNames.length > 0 && (
+   281→        <div className="pt-3 border-t border-white/[0.05]">
+   282→          <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1.5">
+   283→            <UserCheck className="h-3.5 w-3.5 text-slate-500" />
+   284→            المعلمون المسندون
+   285→          </p>
+   286→          <div className="flex flex-wrap gap-1.5">
+   287→            {cls.teacherNames.slice(0, 3).map((teacher, idx) => (
+   288→              <Badge
+   289→                key={idx}
+   290→                variant="outline"
+   291→                className="text-[10px] font-medium px-2 py-0 rounded-full bg-sky-500/8 border-sky-500/15 text-sky-300"
+   292→              >
+   293→                {teacher}
+   294→              </Badge>
+   295→            ))}
+   296→            {cls.teacherNames.length > 3 && (
+   297→              <Badge
+   298→                variant="outline"
+   299→                className="text-[10px] font-medium px-2 py-0 rounded-full bg-white/[0.03] border-white/[0.08] text-slate-500"
+   300→              >
+   301→                +{cls.teacherNames.length - 3}
+   302→              </Badge>
+   303→            )}
+   304→          </div>
+   305→        </div>
+   306→      )}
+   307→    </div>
+   308→  );
+   309→}
+   310→
+   311→// ---------------------------------------------------------------------------
+   312→// Add / Edit form – inner content (mounts only when dialog is open)
+   313→// ---------------------------------------------------------------------------
+   314→
+   315→function ClassFormContent({
+   316→  editingClass,
+   317→  onClose,
+   318→}: {
+   319→  editingClass: ClassRoom | null;
+   320→  onClose: () => void;
+   321→}) {
+   322→  const { addClass, updateClass } = useAppStore();
+   323→  const isEditing = !!editingClass;
+   324→
+   325→  // Form state
+   326→  const [name, setName] = useState(editingClass?.name ?? '');
+   327→  const [grade, setGrade] = useState(editingClass?.grade ?? 'الأول');
+   328→  const [room, setRoom] = useState(editingClass?.room ?? '');
+   329→  const [notes, setNotes] = useState(editingClass?.notes ?? '');
+   330→
+   331→  const handleSubmit = (e: React.FormEvent) => {
+   332→    e.preventDefault();
+   333→    if (!name.trim() || !room.trim()) return;
+   334→
+   335→    const now = new Date().toISOString();
+   336→
+   337→    if (isEditing && editingClass) {
+   338→      updateClass(editingClass.id, {
+   339→        name: name.trim(),
+   340→        grade,
+   341→        room: room.trim(),
+   342→        notes: notes.trim(),
+   343→        updatedAt: now,
+   344→      });
+   345→      toast.success('تم تحديث بيانات الصف');
+   346→    } else {
+   347→      const newClass: ClassRoom = {
+   348→        id: `cls-${Date.now()}`,
+   349→        name: name.trim(),
+   350→        grade,
+   351→        room: room.trim(),
+   352→        notes: notes.trim(),
+   353→        createdAt: now,
+   354→        updatedAt: now,
+   355→        studentCount: 0,
+   356→        teacherNames: [],
+   357→      };
+   358→      addClass(newClass);
+   359→      toast.success('تم إضافة الصف بنجاح');
+   360→    }
+   361→
+   362→    onClose();
+   363→  };
+   364→
+   365→  return (
+   366→    <form onSubmit={handleSubmit} className="flex flex-col gap-5 mt-2">
+   367→      {/* Class name */}
+   368→      <div className="flex flex-col gap-2">
+   369→        <Label className="text-slate-300 text-sm">اسم الصف</Label>
+   370→        <Input
+   371→          value={name}
+   372→          onChange={(e) => setName(e.target.value)}
+   373→          placeholder="مثال: الصف الأول أ"
+   374→          className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   375→          required
+   376→        />
+   377→      </div>
+   378→
+   379→      {/* Grade & Room row */}
+   380→      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   381→        {/* Grade dropdown */}
+   382→        <div className="flex flex-col gap-2">
+   383→          <Label className="text-slate-300 text-sm">المرحلة الدراسية</Label>
+   384→          <Select value={grade} onValueChange={setGrade}>
+   385→            <SelectTrigger className="w-full bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20">
+   386→              <SelectValue placeholder="اختر المرحلة" />
+   387→            </SelectTrigger>
+   388→            <SelectContent className="bg-[#1A1A24] border-white/[0.08]">
+   389→              <SelectItem value="الأول" className="text-slate-200 focus:bg-white/[0.05] focus:text-white">
+   390→                الصف الأول
+   391→              </SelectItem>
+   392→              <SelectItem value="الثاني" className="text-slate-200 focus:bg-white/[0.05] focus:text-white">
+   393→                الصف الثاني
+   394→              </SelectItem>
+   395→              <SelectItem value="الثالث" className="text-slate-200 focus:bg-white/[0.05] focus:text-white">
+   396→                الصف الثالث
+   397→              </SelectItem>
+   398→            </SelectContent>
+   399→          </Select>
+   400→        </div>
+   401→
+   402→        {/* Room */}
+   403→        <div className="flex flex-col gap-2">
+   404→          <Label className="text-slate-300 text-sm">رقم القاعة</Label>
+   405→          <Input
+   406→            value={room}
+   407→            onChange={(e) => setRoom(e.target.value)}
+   408→            placeholder="مثال: قاعة 101"
+   409→            className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   410→            required
+   411→          />
+   412→        </div>
+   413→      </div>
+   414→
+   415→      {/* Notes */}
+   416→      <div className="flex flex-col gap-2">
+   417→        <Label className="text-slate-300 text-sm">ملاحظات</Label>
+   418→        <Textarea
+   419→          value={notes}
+   420→          onChange={(e) => setNotes(e.target.value)}
+   421→          placeholder="أضف ملاحظات حول الصف الدراسي..."
+   422→          className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 min-h-[80px] resize-none"
+   423→        />
+   424→      </div>
+   425→
+   426→      {/* Actions */}
+   427→      <DialogFooter className="flex-row gap-3 sm:justify-start pt-2">
+   428→        <Button
+   429→          type="submit"
+   430→          className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold rounded-lg px-6 gap-2"
+   431→        >
+   432→          {isEditing ? (
+   433→            <>
+   434→              <Pencil className="h-4 w-4" />
+   435→              حفظ التغييرات
+   436→            </>
+   437→          ) : (
+   438→            <>
+   439→              <Plus className="h-4 w-4" />
+   440→              إضافة الصف
+   441→            </>
+   442→          )}
+   443→        </Button>
+   444→        <Button
+   445→          type="button"
+   446→          variant="outline"
+   447→          onClick={onClose}
+   448→          className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-6"
+   449→        >
+   450→          إلغاء
+   451→        </Button>
+   452→      </DialogFooter>
+   453→    </form>
+   454→  );
+   455→}
+   456→
+   457→/** Add / Edit class form dialog */
+   458→function ClassFormDialog({
+   459→  open,
+   460→  onOpenChange,
+   461→  editingClass,
+   462→}: {
+   463→  open: boolean;
+   464→  onOpenChange: (open: boolean) => void;
+   465→  editingClass: ClassRoom | null;
+   466→}) {
+   467→  return (
+   468→    <Dialog open={open} onOpenChange={onOpenChange}>
+   469→      <DialogContent
+   470→        className="sm:max-w-lg max-h-[90vh] overflow-y-auto"
+   471→        dir="rtl"
+   472→        style={{
+   473→          backgroundColor: '#1A1A24',
+   474→          border: '1px solid rgba(255,255,255,0.06)',
+   475→        }}
+   476→      >
+   477→        <DialogHeader>
+   478→          <DialogTitle className="text-white text-xl">
+   479→            {editingClass ? 'تعديل بيانات الصف' : 'إضافة صف جديد'}
+   480→          </DialogTitle>
+   481→          <DialogDescription className="text-muted-foreground">
+   482→            {editingClass
+   483→              ? 'قم بتعديل بيانات الصف الدراسي ثم اضغط حفظ التغييرات'
+   484→              : 'أدخل بيانات الصف الدراسي الجديد لإضافته إلى النظام'}
+   485→          </DialogDescription>
+   486→        </DialogHeader>
+   487→        {open && (
+   488→          <ClassFormContent
+   489→            editingClass={editingClass}
+   490→            onClose={() => onOpenChange(false)}
+   491→          />
+   492→        )}
+   493→      </DialogContent>
+   494→    </Dialog>
+   495→  );
+   496→}
+   497→
+   498→/** Delete confirmation dialog */
+   499→function DeleteClassDialog({
+   500→  cls,
+   501→  open,
+   502→  onOpenChange,
+   503→}: {
+   504→  cls: ClassRoom | null;
+   505→  open: boolean;
+   506→  onOpenChange: (open: boolean) => void;
+   507→}) {
+   508→  const { deleteClass, addToTrash } = useAppStore();
+   509→
+   510→  const handleDelete = () => {
+   511→    if (cls) {
+   512→      addToTrash({
+   513→        id: `trash-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+   514→        itemType: 'class',
+   515→        itemId: cls.id,
+   516→        itemName: cls.name,
+   517→        deletedBy: 'المدير',
+   518→        dataJson: JSON.stringify(cls),
+   519→        restoredAt: null,
+   520→        createdAt: new Date().toISOString(),
+   521→      });
+   522→      deleteClass(cls.id);
+   523→      toast.success('تم حذف الصف');
+   524→      onOpenChange(false);
+   525→    }
+   526→  };
+   527→
+   528→  return (
+   529→    <AlertDialog open={open} onOpenChange={onOpenChange}>
+   530→      <AlertDialogContent
+   531→        dir="rtl"
+   532→        style={{
+   533→          backgroundColor: '#1A1A24',
+   534→          border: '1px solid rgba(255,255,255,0.06)',
+   535→        }}
+   536→      >
+   537→        <AlertDialogHeader>
+   538→          <AlertDialogTitle className="text-white text-lg">
+   539→            تأكيد حذف الصف
+   540→          </AlertDialogTitle>
+   541→          <AlertDialogDescription className="text-muted-foreground leading-relaxed">
+   542→            هل أنت متأكد من حذف الصف{' '}
+   543→            <span className="font-semibold text-slate-200">{cls?.name}</span>؟
+   544→            <br />
+   545→            لا يمكن التراجع عن هذا الإجراء. سيتم إلغاء ارتباط جميع الطلاب والمعلمين بهذا الصف.
+   546→          </AlertDialogDescription>
+   547→        </AlertDialogHeader>
+   548→        <AlertDialogFooter className="flex-row gap-3 sm:justify-start mt-2">
+   549→          <AlertDialogCancel
+   550→            className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-6 mt-0"
+   551→          >
+   552→            إلغاء
+   553→          </AlertDialogCancel>
+   554→          <AlertDialogAction
+   555→            onClick={handleDelete}
+   556→            className="bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-lg px-6 gap-2"
+   557→          >
+   558→            <Trash2 className="h-4 w-4" />
+   559→            نعم، احذف
+   560→          </AlertDialogAction>
+   561→        </AlertDialogFooter>
+   562→      </AlertDialogContent>
+   563→    </AlertDialog>
+   564→  );
+   565→}
+   566→
+   567→// ---------------------------------------------------------------------------
+   568→// Main Component
+   569→// ---------------------------------------------------------------------------
+   570→
+   571→export default function ClassesSection() {
+   572→  const { classes, setClasses, locale } = useAppStore();
+   573→
+   574→  // Local UI state
+   575→  const [localSearch, setLocalSearch] = useState('');
+   576→  const [formOpen, setFormOpen] = useState(false);
+   577→  const [deleteOpen, setDeleteOpen] = useState(false);
+   578→  const [selectedClass, setSelectedClass] = useState<ClassRoom | null>(null);
+   579→  const [gradeFilter, setGradeFilter] = useState<string>('all');
+   580→
+   581→  // Initialize mock data once
+   582→  const initialized = useRef(false);
+   583→  useEffect(() => {
+   584→    if (!initialized.current && classes.length === 0) {
+   585→      initialized.current = true;
+   586→      setClasses(INITIAL_CLASSES);
+   587→    }
+   588→  }, []);  
+   589→
+   590→  // Filtered & searched list
+   591→  const filteredClasses = useMemo(() => {
+   592→    let result = [...classes];
+   593→
+   594→    // Grade filter
+   595→    if (gradeFilter !== 'all') {
+   596→      result = result.filter((c) => c.grade === gradeFilter);
+   597→    }
+   598→
+   599→    // Search filter
+   600→    if (localSearch.trim()) {
+   601→      const query = localSearch.trim().toLowerCase();
+   602→      result = result.filter(
+   603→        (c) =>
+   604→          c.name.toLowerCase().includes(query) ||
+   605→          c.grade.toLowerCase().includes(query) ||
+   606→          c.room.toLowerCase().includes(query)
+   607→      );
+   608→    }
+   609→
+   610→    return result;
+   611→  }, [classes, gradeFilter, localSearch]);
+   612→
+   613→  // Handlers
+   614→  const handleAdd = () => {
+   615→    setSelectedClass(null);
+   616→    setFormOpen(true);
+   617→  };
+   618→
+   619→  const handleEdit = (cls: ClassRoom) => {
+   620→    setSelectedClass(cls);
+   621→    setFormOpen(true);
+   622→  };
+   623→
+   624→  const handleDelete = (cls: ClassRoom) => {
+   625→    setSelectedClass(cls);
+   626→    setDeleteOpen(true);
+   627→  };
+   628→
+   629→  const handleExportClasses = () => {
+   630→    const exportData = classes.map((c) => ({
+   631→      name: c.name,
+   632→      grade: c.grade,
+   633→      room: c.room,
+   634→      notes: c.notes || '',
+   635→      createdAt: formatCsvDate(c.createdAt),
+   636→    }));
+   637→    exportToCSV(exportData, 'classes', [
+   638→      { key: 'name', label: 'اسم الصف' },
+   639→      { key: 'grade', label: 'المرحلة' },
+   640→      { key: 'room', label: 'القاعة' },
+   641→      { key: 'notes', label: 'الملاحظات' },
+   642→      { key: 'createdAt', label: 'تاريخ الإنشاء' },
+   643→    ]);
+   644→    toast.success('تم تصدير بيانات الصفوف بنجاح');
+   645→  };
+   646→
+   647→  return (
+   648→    <div className="flex flex-col gap-6" dir="rtl">
+   649→      {/* ── Page Title ── */}
+   650→      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+   651→        <div className="flex items-center gap-3 inner-shadow-top rounded-xl p-4">
+   652→          <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-[#D4A574]/10">
+   653→            <School className="h-5 w-5 text-[#D4A574]" />
+   654→          </div>
+   655→          <div>
+   656→            <h1 className="text-2xl font-bold text-white tracking-tight sm:text-3xl flex items-center gap-3">
+   657→              إدارة الصفوف
+   658→              <Badge className="bg-[#D4A574]/15 text-[#D4A574] border-[#D4A574]/20 hover:bg-[#D4A574]/20 text-sm px-2.5 py-0.5 rounded-full font-semibold tabular-nums">
+   659→                {classes.length}
+   660→              </Badge>
+   661→            </h1>
+   662→            <p className="mt-0.5 text-sm text-muted-foreground">
+   663→              إدارة الصفوف الدراسية وتوزيع الطلاب والمعلمين
+   664→            </p>
+   665→          </div>
+   666→        </div>
+   667→      </div>
+   668→
+   669→      {/* ── Action Bar ── */}
+   670→      <div
+   671→        className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl p-4"
+   672→        style={{
+   673→          backgroundColor: '#1A1A24',
+   674→          border: '1px solid rgba(255,255,255,0.06)',
+   675→        }}
+   676→      >
+   677→        {/* Add & Export buttons */}
+   678→        <div className="flex items-center gap-2">
+   679→          <Button
+   680→            onClick={handleAdd}
+   681→            className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold gap-2 rounded-lg px-5 h-10 btn-shine"
+   682→          >
+   683→            <Plus className="h-4 w-4" />
+   684→            إضافة صف جديد
+   685→          </Button>
+   686→          <Button
+   687→            variant="outline"
+   688→            onClick={handleExportClasses}
+   689→            className="border-[#D4A574]/30 text-[#D4A574] hover:bg-[#D4A574]/10 gap-2 rounded-lg px-4 h-10 btn-amber-glow"
+   690→          >
+   691→            <Download className="h-4 w-4" />
+   692→            تصدير CSV
+   693→          </Button>
+   694→        </div>
+   695→
+   696→        {/* Search & Filter */}
+   697→        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+   698→          {/* Search */}
+   699→          <div className="relative">
+   700→            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+   701→            <Input
+   702→              value={localSearch}
+   703→              onChange={(e) => setLocalSearch(e.target.value)}
+   704→              placeholder="بحث بالاسم أو المرحلة أو القاعة..."
+   705→              className="pr-10 w-full sm:w-72 bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 h-10"
+   706→            />
+   707→          </div>
+   708→
+   709→          {/* Filter dropdown */}
+   710→          <Select value={gradeFilter} onValueChange={setGradeFilter}>
+   711→            <SelectTrigger className="w-full sm:w-40 bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 h-10">
+   712→              <SelectValue />
+   713→            </SelectTrigger>
+   714→            <SelectContent className="bg-[#1A1A24] border-white/[0.08]">
+   715→              {getGradeFilterOptions(locale).map((opt) => (
+   716→                <SelectItem
+   717→                  key={opt.value}
+   718→                  value={opt.value}
+   719→                  className="text-slate-200 focus:bg-white/[0.05] focus:text-white"
+   720→                >
+   721→                  {opt.label}
+   722→                </SelectItem>
+   723→              ))}
+   724→            </SelectContent>
+   725→          </Select>
+   726→        </div>
+   727→      </div>
+   728→
+   729→      {/* ── Classes Card Grid ── */}
+   730→      {filteredClasses.length === 0 ? (
+   731→        <div
+   732→          className="rounded-xl"
+   733→          style={{
+   734→            backgroundColor: '#1A1A24',
+   735→            border: '1px solid rgba(255,255,255,0.06)',
+   736→          }}
+   737→        >
+   738→          <EmptyState onAdd={handleAdd} />
+   739→        </div>
+   740→      ) : (
+   741→        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+   742→          {filteredClasses.map((cls) => (
+   743→            <ClassCard
+   744→              key={cls.id}
+   745→              cls={cls}
+   746→              onEdit={handleEdit}
+   747→              onDelete={handleDelete}
+   748→            />
+   749→          ))}
+   750→        </div>
+   751→      )}
+   752→
+   753→      {/* ── Dialogs ── */}
+   754→      <ClassFormDialog
+   755→        open={formOpen}
+   756→        onOpenChange={setFormOpen}
+   757→        editingClass={selectedClass}
+   758→      />
+   759→
+   760→      <DeleteClassDialog
+   761→        cls={selectedClass}
+   762→        open={deleteOpen}
+   763→        onOpenChange={setDeleteOpen}
+   764→      />
+   765→    </div>
+   766→  );
+   767→}
+   768→

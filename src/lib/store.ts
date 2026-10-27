@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { ActiveSection, Student, Teacher, ClassRoom, Exam, Session, TrashItem, AppNotification, ChatMessage, GradeRecord, ReportCard, Message, BehaviorRecord, ScheduleBlock, LibraryBook, FeeRecord, Announcement } from './types';
+import type { Locale } from './i18n';
 
 interface CalendarEventItem {
   id: string;
@@ -52,6 +53,17 @@ interface LanguageSettings {
 }
 
 interface AppState {
+  // Locale (multi-language)
+  locale: Locale;
+  setLocale: (locale: Locale) => void;
+  toggleLocale: () => void;
+
+  // Camera settings
+  cameraAutoRotate: boolean;
+  setCameraAutoRotate: (v: boolean) => void;
+  cameraRotateSeconds: number;
+  setCameraRotateSeconds: (v: number) => void;
+
   // Navigation
   activeSection: ActiveSection;
   setActiveSection: (section: ActiveSection) => void;
@@ -238,6 +250,17 @@ interface AppState {
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
+      // Locale
+      locale: 'ar',
+      setLocale: (locale) => set({ locale }),
+      toggleLocale: () => set((state) => ({ locale: state.locale === 'ar' ? 'en' : 'ar' })),
+
+      // Camera settings
+      cameraAutoRotate: false,
+      setCameraAutoRotate: (v) => set({ cameraAutoRotate: v }),
+      cameraRotateSeconds: 8,
+      setCameraRotateSeconds: (v) => set({ cameraRotateSeconds: v }),
+
       // Navigation
       activeSection: 'dashboard',
       setActiveSection: (section) => set({ activeSection: section }),
@@ -608,6 +631,9 @@ export const useAppStore = create<AppState>()(
     {
       name: 'auralab-store',
       partialize: (state) => ({
+        locale: state.locale,
+        cameraAutoRotate: state.cameraAutoRotate,
+        cameraRotateSeconds: state.cameraRotateSeconds,
         students: state.students,
         teachers: state.teachers,
         classes: state.classes,

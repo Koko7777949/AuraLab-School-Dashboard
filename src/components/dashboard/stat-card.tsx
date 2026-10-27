@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import CountUp from '@/components/reactbits/CountUp/CountUp'
 
 type Status = 'stable' | 'improved' | 'needs-attention' | 'active' | 'completed' | 'critical'
 type Trend = 'up' | 'down' | 'neutral'
@@ -57,33 +58,10 @@ const statusConfig: Record<Status, { text: string; colorClass: string; bgClass: 
   },
 }
 
-/** Animated number counter — counts from 0 to target */
+/** Animated number counter — ReactBits CountUp for numeric values, plain text fallback */
 function AnimatedValue({ value }: { value: string | number }) {
   const numericValue = typeof value === 'number' ? value : parseFloat(value)
   const isNumeric = typeof value === 'number' || (!isNaN(numericValue) && String(value) === String(numericValue))
-  const [displayed, setDisplayed] = useState(0)
-  const hasAnimated = useRef(false)
-
-  useEffect(() => {
-    if (!isNumeric || hasAnimated.current) return
-    hasAnimated.current = true
-
-    const duration = 800
-    const startTime = performance.now()
-    const target = numericValue
-
-    function step(now: number) {
-      const elapsed = now - startTime
-      const progress = Math.min(elapsed / duration, 1)
-      // Ease out cubic
-      const eased = 1 - Math.pow(1 - progress, 3)
-      setDisplayed(Math.round(eased * target))
-      if (progress < 1) {
-        requestAnimationFrame(step)
-      }
-    }
-    requestAnimationFrame(step)
-  }, [isNumeric, numericValue])
 
   if (!isNumeric) {
     return <span className="animate-number-pop">{value}</span>
@@ -91,7 +69,14 @@ function AnimatedValue({ value }: { value: string | number }) {
 
   return (
     <span className="animate-number-pop tabular-nums">
-      {displayed}
+      <CountUp
+        to={numericValue}
+        from={0}
+        duration={0.9}
+        separator=","
+        easing="easeOut"
+        trigger="view"
+      />
     </span>
   )
 }

@@ -1,0 +1,1424 @@
+     1→'use client';
+     2→
+     3→import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+     4→import {
+     5→  UserPlus,
+     6→  Pencil,
+     7→  Trash2,
+     8→  Eye,
+     9→  Search,
+    10→  GraduationCap,
+    11→  Users,
+    12→  ChevronLeft,
+    13→  ChevronRight,
+    14→  BookOpen,
+    15→  Download,
+    16→  Upload,
+    17→  ArrowUpDown,
+    18→  ArrowUp,
+    19→  ArrowDown,
+    20→  MessageSquare,
+    21→  Mail,
+    22→  Printer,
+    23→  Hash,
+    24→  ScanSearch,
+    25→} from 'lucide-react';
+    26→import { useAppStore } from '@/lib/store';
+    27→import type { Student } from '@/lib/types';
+    28→import { cn } from '@/lib/utils';
+    29→import { toast } from 'sonner';
+    30→import { exportToCSV, formatCsvDate } from '@/lib/csv-export';
+    31→import { STUDENT_IMPORT_COLUMNS } from '@/lib/csv-import';
+    32→import ImportDialog from '@/components/dashboard/import-dialog';
+    33→import StudentProfile from '@/components/dashboard/student-profile';
+    34→
+    35→// shadcn/ui
+    36→import { Button } from '@/components/ui/button';
+    37→import { Input } from '@/components/ui/input';
+    38→import { Label } from '@/components/ui/label';
+    39→import { Badge } from '@/components/ui/badge';
+    40→import { Textarea } from '@/components/ui/textarea';
+    41→import {
+    42→  Table,
+    43→  TableHeader,
+    44→  TableBody,
+    45→  TableHead,
+    46→  TableRow,
+    47→  TableCell,
+    48→} from '@/components/ui/table';
+    49→import {
+    50→  Dialog,
+    51→  DialogContent,
+    52→  DialogDescription,
+    53→  DialogFooter,
+    54→  DialogHeader,
+    55→  DialogTitle,
+    56→} from '@/components/ui/dialog';
+    57→import {
+    58→  AlertDialog,
+    59→  AlertDialogAction,
+    60→  AlertDialogCancel,
+    61→  AlertDialogContent,
+    62→  AlertDialogDescription,
+    63→  AlertDialogFooter,
+    64→  AlertDialogHeader,
+    65→  AlertDialogTitle,
+    66→} from '@/components/ui/alert-dialog';
+    67→import {
+    68→  Select,
+    69→  SelectContent,
+    70→  SelectItem,
+    71→  SelectTrigger,
+    72→  SelectValue,
+    73→} from '@/components/ui/select';
+    74→import {
+    75→  Sheet,
+    76→  SheetContent,
+    77→  SheetHeader,
+    78→  SheetTitle,
+    79→  SheetDescription,
+    80→} from '@/components/ui/sheet';
+    81→
+    82→// ---------------------------------------------------------------------------
+    83→// Constants
+    84→// ---------------------------------------------------------------------------
+    85→
+    86→const ITEMS_PER_PAGE = 10;
+    87→
+    88→type SortField = 'name' | 'studentId' | 'className' | 'status' | 'notes';
+    89→type SortDir = 'asc' | 'desc';
+    90→
+    91→const STATUS_MAP: Record<Student['status'], { label: string; className: string }> = {
+    92→  active: {
+    93→    label: 'نشط',
+    94→    className: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20',
+    95→  },
+    96→  inactive: {
+    97→    label: 'غير نشط',
+    98→    className: 'bg-amber-500/15 text-amber-400 border-amber-500/20 hover:bg-amber-500/20',
+    99→  },
+   100→  graduated: {
+   101→    label: 'متخرج',
+   102→    className: 'bg-sky-500/15 text-sky-400 border-sky-500/20 hover:bg-sky-500/20',
+   103→  },
+   104→};
+   105→
+   106→const FILTER_OPTIONS: { value: string; label: string }[] = [
+   107→  { value: 'all', label: 'الكل' },
+   108→  { value: 'active', label: 'نشط' },
+   109→  { value: 'inactive', label: 'غير نشط' },
+   110→  { value: 'graduated', label: 'متخرج' },
+   111→];
+   112→
+   113→const CLASS_OPTIONS = [
+   114→  { value: 'cls-1', label: 'الصف الأول أ' },
+   115→  { value: 'cls-2', label: 'الصف الأول ب' },
+   116→  { value: 'cls-3', label: 'الصف الثاني أ' },
+   117→  { value: 'cls-4', label: 'الصف الثاني ب' },
+   118→  { value: 'cls-5', label: 'الصف الثالث أ' },
+   119→  { value: 'cls-6', label: 'الصف الثالث ب' },
+   120→];
+   121→
+   122→// ---------------------------------------------------------------------------
+   123→// Mock Data
+   124→// ---------------------------------------------------------------------------
+   125→
+   126→const INITIAL_STUDENTS: Student[] = [
+   127→  {
+   128→    id: 'std-001',
+   129→    name: 'أحمد محمد علي',
+   130→    studentId: 'STU-2401',
+   131→    classId: 'cls-1',
+   132→    status: 'active',
+   133→    notes: 'طالب متفوق في الرياضيات',
+   134→    psychBackground: 'متوازن نفسياً، يتمتع بذكاء اجتماعي عالي',
+   135→    avatar: '',
+   136→    createdAt: '2024-09-01T08:00:00.000Z',
+   137→    updatedAt: '2024-09-01T08:00:00.000Z',
+   138→  },
+   139→  {
+   140→    id: 'std-002',
+   141→    name: 'فاطمة أحمد حسن',
+   142→    studentId: 'STU-2402',
+   143→    classId: 'cls-2',
+   144→    status: 'active',
+   145→    notes: 'مشاركة نشطة في الأنشطة المدرسية',
+   146→    psychBackground: 'هادئة ومركزة، تحتاج تشجيع إضافي في العروض',
+   147→    avatar: '',
+   148→    createdAt: '2024-09-01T08:00:00.000Z',
+   149→    updatedAt: '2024-09-02T10:00:00.000Z',
+   150→  },
+   151→  {
+   152→    id: 'std-003',
+   153→    name: 'عبدالله خالد العتيبي',
+   154→    studentId: 'STU-2403',
+   155→    classId: 'cls-3',
+   156→    status: 'active',
+   157→    notes: 'قائد فريق المنافسات العلمية',
+   158→    psychBackground: 'مبادر وقيادي، يحتاج تنمية مهارات الاستماع',
+   159→    avatar: '',
+   160→    createdAt: '2024-09-01T08:00:00.000Z',
+   161→    updatedAt: '2024-09-03T14:00:00.000Z',
+   162→  },
+   163→  {
+   164→    id: 'std-004',
+   165→    name: 'نورة سعيد القحطاني',
+   166→    studentId: 'STU-2404',
+   167→    classId: 'cls-1',
+   168→    status: 'inactive',
+   169→    notes: 'متغيب بسبب ظروف عائلية',
+   170→    psychBackground: 'حساسة، تحتاج دعم نفسي مستمر',
+   171→    avatar: '',
+   172→    createdAt: '2024-09-01T08:00:00.000Z',
+   173→    updatedAt: '2024-10-15T09:00:00.000Z',
+   174→  },
+   175→  {
+   176→    id: 'std-005',
+   177→    name: 'محمد عبدالرحمن الدوسري',
+   178→    studentId: 'STU-2405',
+   179→    classId: 'cls-5',
+   180→    status: 'active',
+   181→    notes: 'موهوب في الرسم والتصميم',
+   182→    psychBackground: 'إبداعي، يميل للعزلة أحياناً',
+   183→    avatar: '',
+   184→    createdAt: '2024-09-01T08:00:00.000Z',
+   185→    updatedAt: '2024-09-10T11:00:00.000Z',
+   186→  },
+   187→  {
+   188→    id: 'std-006',
+   189→    name: 'ريم فهد المطيري',
+   190→    studentId: 'STU-2406',
+   191→    classId: 'cls-4',
+   192→    status: 'graduated',
+   193→    notes: 'تخرجت بتقدير ممتاز',
+   194→    psychBackground: 'طموحة ومثابرة',
+   195→    avatar: '',
+   196→    createdAt: '2024-09-01T08:00:00.000Z',
+   197→    updatedAt: '2024-06-01T08:00:00.000Z',
+   198→  },
+   199→  {
+   200→    id: 'std-007',
+   201→    name: 'سلطان فيصل الشمري',
+   202→    studentId: 'STU-2407',
+   203→    classId: 'cls-3',
+   204→    status: 'active',
+   205→    notes: 'مشارك في برنامج القراءة الحرة',
+   206→    psychBackground: 'اجتماعي ومحب للتعلم',
+   207→    avatar: '',
+   208→    createdAt: '2024-09-01T08:00:00.000Z',
+   209→    updatedAt: '2024-09-05T08:00:00.000Z',
+   210→  },
+   211→  {
+   212→    id: 'std-008',
+   213→    name: 'لطيفة عايض الحربي',
+   214→    studentId: 'STU-2408',
+   215→    classId: 'cls-6',
+   216→    status: 'active',
+   217→    notes: 'أفضل طالبة في مادة العلوم',
+   218→    psychBackground: 'واثقة من نفسها، تحتاج تحديات إضافية',
+   219→    avatar: '',
+   220→    createdAt: '2024-09-01T08:00:00.000Z',
+   221→    updatedAt: '2024-09-20T13:00:00.000Z',
+   222→  },
+   223→  {
+   224→    id: 'std-009',
+   225→    name: 'يزيد ناصر البقمي',
+   226→    studentId: 'STU-2409',
+   227→    classId: 'cls-2',
+   228→    status: 'inactive',
+   229→    notes: 'محال للعلاج الطبي',
+   230→    psychBackground: 'يحتاج متابعة خاصة بعد العودة',
+   231→    avatar: '',
+   232→    createdAt: '2024-09-01T08:00:00.000Z',
+   233→    updatedAt: '2024-11-01T10:00:00.000Z',
+   234→  },
+   235→  {
+   236→    id: 'std-010',
+   237→    name: 'سارة ماجد العنزي',
+   238→    studentId: 'STU-2410',
+   239→    classId: 'cls-5',
+   240→    status: 'active',
+   241→    notes: 'رئيسة نادي البيئة المدرسي',
+   242→    psychBackground: 'قيادية ومسؤولة',
+   243→    avatar: '',
+   244→    createdAt: '2024-09-01T08:00:00.000Z',
+   245→    updatedAt: '2024-09-15T08:00:00.000Z',
+   246→  },
+   247→  {
+   248→    id: 'std-011',
+   249→    name: 'عمر إبراهيم الزهراني',
+   250→    studentId: 'STU-2411',
+   251→    classId: 'cls-4',
+   252→    status: 'active',
+   253→    notes: 'متفوق في اللغة الإنجليزية',
+   254→    psychBackground: 'منفتح ومحب للحوار',
+   255→    avatar: '',
+   256→    createdAt: '2024-09-01T08:00:00.000Z',
+   257→    updatedAt: '2024-09-18T15:00:00.000Z',
+   258→  },
+   259→  {
+   260→    id: 'std-012',
+   261→    name: 'هند تركي السبيعي',
+   262→    studentId: 'STU-2412',
+   263→    classId: 'cls-6',
+   264→    status: 'graduated',
+   265→    notes: 'تخرجت بمرتبة الشرف',
+   266→    psychBackground: 'مستقرة وناجحة أكاديمياً',
+   267→    avatar: '',
+   268→    createdAt: '2024-09-01T08:00:00.000Z',
+   269→    updatedAt: '2024-06-01T08:00:00.000Z',
+   270→  },
+   271→];
+   272→
+   273→// ---------------------------------------------------------------------------
+   274→// Helper: get class name
+   275→// ---------------------------------------------------------------------------
+   276→
+   277→function getClassName(classId: string | null, classes: { id: string; name: string }[]): string {
+   278→  if (!classId) return '—';
+   279→  const found = classes.find((c) => c.id === classId);
+   280→  if (found) return found.name;
+   281→  const legacy = CLASS_OPTIONS.find((c) => c.value === classId);
+   282→  return legacy ? legacy.label : '—';
+   283→}
+   284→
+   285→/** Highlight matching text in amber color */
+   286→function HighlightText({ text, query }: { text: string; query: string }) {
+   287→  if (!query.trim()) return <>{text}</>;
+   288→  const lowerText = text.toLowerCase();
+   289→  const lowerQuery = query.trim().toLowerCase();
+   290→  const index = lowerText.indexOf(lowerQuery);
+   291→  if (index === -1) return <>{text}</>;
+   292→  return (
+   293→    <>
+   294→      {text.slice(0, index)}
+   295→      <span className="text-[#D4A574] font-bold">{text.slice(index, index + query.trim().length)}</span>
+   296→      {text.slice(index + query.trim().length)}
+   297→    </>
+   298→  );
+   299→}
+   300→
+   301→// ---------------------------------------------------------------------------
+   302→// Sub-components
+   303→// ---------------------------------------------------------------------------
+   304→
+   305→/** Status badge with colored dot + text */
+   306→function StatusBadge({ status }: { status: Student['status'] }) {
+   307→  const config = STATUS_MAP[status];
+   308→  const dotColor = status === 'active' ? '#34d399' : status === 'inactive' ? '#fbbf24' : '#38bdf8';
+   309→  return (
+   310→    <span className="inline-flex items-center gap-2">
+   311→      <span
+   312→        className="h-2 w-2 rounded-full shrink-0"
+   313→        style={{ backgroundColor: dotColor, boxShadow: `0 0 6px ${dotColor}40` }}
+   314→      />
+   315→      <Badge
+   316→        variant="outline"
+   317→        className={cn('text-xs font-medium px-2.5 py-0.5 rounded-full', config.className)}
+   318→      >
+   319→        {config.label}
+   320→      </Badge>
+   321→    </span>
+   322→  );
+   323→}
+   324→
+   325→/** Empty state */
+   326→function EmptyState({ onAdd }: { onAdd: () => void }) {
+   327→  return (
+   328→    <div className="flex flex-col items-center justify-center py-16 px-4 animate-fade-in-up" style={{ animationDuration: '0.5s' }}>
+   329→      <div className="flex items-center justify-center h-20 w-20 rounded-2xl bg-[#D4A574]/10 border border-[#D4A574]/20 mb-6 animate-bounce" style={{ animationDuration: '2s', animationIterationCount: 1 }}>
+   330→        <GraduationCap className="h-10 w-10 text-[#D4A574]" />
+   331→      </div>
+   332→      <h3 className="text-lg font-semibold text-slate-300 mb-2">
+   333→        لا يوجد طلاب مسجلون بعد
+   334→      </h3>
+   335→      <p className="text-sm text-muted-foreground mb-6 text-center max-w-sm">
+   336→        ابدأ بإضافة طلاب جدد إلى النظام لإدارة بياناتهم ومتابعة تقدمهم الأكاديمي
+   337→      </p>
+   338→      <Button
+   339→        onClick={onAdd}
+   340→        className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold gap-2 rounded-lg px-6"
+   341→      >
+   342→        <UserPlus className="h-4 w-4" />
+   343→        إضافة طالب جديد
+   344→      </Button>
+   345→    </div>
+   346→  );
+   347→}
+   348→
+   349→/** Student view dialog */
+   350→function ViewStudentDialog({
+   351→  student,
+   352→  open,
+   353→  onOpenChange,
+   354→}: {
+   355→  student: Student | null;
+   356→  open: boolean;
+   357→  onOpenChange: (open: boolean) => void;
+   358→}) {
+   359→  const { classes } = useAppStore();
+   360→  if (!student) return null;
+   361→
+   362→  const fields = [
+   363→    { label: 'الاسم الكامل', value: student.name, icon: Users },
+   364→    { label: 'الرقم التعريفي', value: student.studentId, icon: BookOpen },
+   365→    { label: 'الفصل', value: getClassName(student.classId, classes), icon: GraduationCap },
+   366→    {
+   367→      label: 'الحالة',
+   368→      value: STATUS_MAP[student.status].label,
+   369→      icon: Eye,
+   370→      badge: true,
+   371→      status: student.status,
+   372→    },
+   373→  ];
+   374→
+   375→  return (
+   376→    <Dialog open={open} onOpenChange={onOpenChange}>
+   377→      <DialogContent
+   378→        className="sm:max-w-lg"
+   379→        dir="rtl"
+   380→        style={{
+   381→          backgroundColor: '#1A1A24',
+   382→          border: '1px solid rgba(255,255,255,0.06)',
+   383→        }}
+   384→      >
+   385→        <DialogHeader>
+   386→          <DialogTitle className="text-white text-xl">
+   387→            بيانات الطالب
+   388→          </DialogTitle>
+   389→          <DialogDescription className="text-muted-foreground">
+   390→            عرض تفاصيل بيانات الطالب والتاريخ الأكاديمي
+   391→          </DialogDescription>
+   392→        </DialogHeader>
+   393→
+   394→        <div className="flex flex-col gap-4 mt-2">
+   395→          {/* Info fields */}
+   396→          <div className="rounded-xl p-4" style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+   397→            <div className="grid grid-cols-1 gap-4">
+   398→              {fields.map((field) => (
+   399→                <div key={field.label} className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04] last:border-0">
+   400→                  <div className="flex items-center gap-3">
+   401→                    <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#D4A574]/10">
+   402→                      <field.icon className="h-4 w-4 text-[#D4A574]" />
+   403→                    </div>
+   404→                    <span className="text-sm text-muted-foreground">{field.label}</span>
+   405→                  </div>
+   406→                  {field.badge ? (
+   407→                    <StatusBadge status={field.status as Student['status']} />
+   408→                  ) : (
+   409→                    <span className="text-sm font-medium text-slate-200">{field.value}</span>
+   410→                  )}
+   411→                </div>
+   412→              ))}
+   413→            </div>
+   414→          </div>
+   415→
+   416→          {/* Notes */}
+   417→          {student.notes && (
+   418→            <div className="rounded-xl p-4" style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+   419→              <h4 className="text-sm font-semibold text-slate-300 mb-2">ملاحظات</h4>
+   420→              <p className="text-sm text-muted-foreground leading-relaxed">{student.notes}</p>
+   421→            </div>
+   422→          )}
+   423→
+   424→          {/* Psychological background */}
+   425→          {student.psychBackground && (
+   426→            <div className="rounded-xl p-4" style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+   427→              <h4 className="text-sm font-semibold text-slate-300 mb-2">الخلفية النفسية</h4>
+   428→              <p className="text-sm text-muted-foreground leading-relaxed">{student.psychBackground}</p>
+   429→            </div>
+   430→          )}
+   431→
+   432→          {/* Dates */}
+   433→          <div className="flex items-center gap-6 text-xs text-muted-foreground/60">
+   434→            <span>تاريخ التسجيل: {new Date(student.createdAt).toLocaleDateString('ar-SA')}</span>
+   435→            <span>آخر تحديث: {new Date(student.updatedAt).toLocaleDateString('ar-SA')}</span>
+   436→          </div>
+   437→        </div>
+   438→      </DialogContent>
+   439→    </Dialog>
+   440→  );
+   441→}
+   442→
+   443→// ---------------------------------------------------------------------------
+   444→// Add / Edit form – inner content (mounts only when dialog is open)
+   445→// ---------------------------------------------------------------------------
+   446→
+   447→function StudentFormContent({
+   448→  editingStudent,
+   449→  onClose,
+   450→}: {
+   451→  editingStudent: Student | null;
+   452→  onClose: () => void;
+   453→}) {
+   454→  const { addStudent, updateStudent } = useAppStore();
+   455→  const isEditing = !!editingStudent;
+   456→
+   457→  // Form state – initialised from props on mount
+   458→  const [name, setName] = useState(editingStudent?.name ?? '');
+   459→  const [studentId, setStudentId] = useState(editingStudent?.studentId ?? '');
+   460→  const [classId, setClassId] = useState<string>(editingStudent?.classId ?? 'cls-1');
+   461→  const [status, setStatus] = useState<Student['status']>(editingStudent?.status ?? 'active');
+   462→  const [notes, setNotes] = useState(editingStudent?.notes ?? '');
+   463→  const [psychBackground, setPsychBackground] = useState(editingStudent?.psychBackground ?? '');
+   464→
+   465→  const handleSubmit = (e: React.FormEvent) => {
+   466→    e.preventDefault();
+   467→
+   468→    if (!name.trim() || !studentId.trim()) return;
+   469→
+   470→    const now = new Date().toISOString();
+   471→
+   472→    if (isEditing && editingStudent) {
+   473→      updateStudent(editingStudent.id, {
+   474→        name: name.trim(),
+   475→        studentId: studentId.trim(),
+   476→        classId,
+   477→        status,
+   478→        notes: notes.trim(),
+   479→        psychBackground: psychBackground.trim(),
+   480→        updatedAt: now,
+   481→      });
+   482→      toast.success('تم تحديث بيانات الطالب');
+   483→    } else {
+   484→      const newStudent: Student = {
+   485→        id: `std-${Date.now()}`,
+   486→        name: name.trim(),
+   487→        studentId: studentId.trim(),
+   488→        classId,
+   489→        status,
+   490→        notes: notes.trim(),
+   491→        psychBackground: psychBackground.trim(),
+   492→        avatar: '',
+   493→        createdAt: now,
+   494→        updatedAt: now,
+   495→      };
+   496→      addStudent(newStudent);
+   497→      toast.success('تم إضافة الطالب بنجاح');
+   498→    }
+   499→
+   500→    onClose();
+   501→  };
+   502→
+   503→  return (
+   504→    <form onSubmit={handleSubmit} className="flex flex-col gap-5 mt-2">
+   505→      {/* Name */}
+   506→      <div className="flex flex-col gap-2">
+   507→        <Label className="text-slate-300 text-sm">اسم الطالب الكامل</Label>
+   508→        <Input
+   509→          value={name}
+   510→          onChange={(e) => setName(e.target.value)}
+   511→          placeholder="مثال: أحمد محمد علي"
+   512→          className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   513→          required
+   514→        />
+   515→      </div>
+   516→
+   517→      {/* Student ID */}
+   518→      <div className="flex flex-col gap-2">
+   519→        <Label className="text-slate-300 text-sm">الرقم التعريفي</Label>
+   520→        <Input
+   521→          value={studentId}
+   522→          onChange={(e) => setStudentId(e.target.value)}
+   523→          placeholder="مثال: STU-2413"
+   524→          className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   525→          dir="ltr"
+   526→          required
+   527→        />
+   528→      </div>
+   529→
+   530→      {/* Class & Status row */}
+   531→      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   532→        {/* Class dropdown */}
+   533→        <div className="flex flex-col gap-2">
+   534→          <Label className="text-slate-300 text-sm">الفصل</Label>
+   535→          <Select value={classId} onValueChange={setClassId}>
+   536→            <SelectTrigger className="w-full bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20">
+   537→              <SelectValue placeholder="اختر الفصل" />
+   538→            </SelectTrigger>
+   539→            <SelectContent className="bg-[#1A1A24] border-white/[0.08]">
+   540→              {CLASS_OPTIONS.map((cls) => (
+   541→                <SelectItem key={cls.value} value={cls.value} className="text-slate-200 focus:bg-white/[0.05] focus:text-white">
+   542→                  {cls.label}
+   543→                </SelectItem>
+   544→              ))}
+   545→            </SelectContent>
+   546→          </Select>
+   547→        </div>
+   548→
+   549→        {/* Status dropdown */}
+   550→        <div className="flex flex-col gap-2">
+   551→          <Label className="text-slate-300 text-sm">الحالة</Label>
+   552→          <Select
+   553→            value={status}
+   554→            onValueChange={(val) => setStatus(val as Student['status'])}
+   555→          >
+   556→            <SelectTrigger className="w-full bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20">
+   557→              <SelectValue placeholder="اختر الحالة" />
+   558→            </SelectTrigger>
+   559→            <SelectContent className="bg-[#1A1A24] border-white/[0.08]">
+   560→              <SelectItem value="active" className="text-slate-200 focus:bg-white/[0.05] focus:text-white">
+   561→                نشط
+   562→              </SelectItem>
+   563→              <SelectItem value="inactive" className="text-slate-200 focus:bg-white/[0.05] focus:text-white">
+   564→                غير نشط
+   565→              </SelectItem>
+   566→              <SelectItem value="graduated" className="text-slate-200 focus:bg-white/[0.05] focus:text-white">
+   567→                متخرج
+   568→              </SelectItem>
+   569→            </SelectContent>
+   570→          </Select>
+   571→        </div>
+   572→      </div>
+   573→
+   574→      {/* Notes */}
+   575→      <div className="flex flex-col gap-2">
+   576→        <Label className="text-slate-300 text-sm">ملاحظات</Label>
+   577→        <Textarea
+   578→          value={notes}
+   579→          onChange={(e) => setNotes(e.target.value)}
+   580→          placeholder="أضف ملاحظات حول الطالب..."
+   581→          className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 min-h-[80px] resize-none"
+   582→        />
+   583→      </div>
+   584→
+   585→      {/* Psychological background */}
+   586→      <div className="flex flex-col gap-2">
+   587→        <Label className="text-slate-300 text-sm">الخلفية النفسية</Label>
+   588→        <Textarea
+   589→          value={psychBackground}
+   590→          onChange={(e) => setPsychBackground(e.target.value)}
+   591→          placeholder="أضف معلومات عن الخلفية النفسية للطالب..."
+   592→          className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 min-h-[80px] resize-none"
+   593→        />
+   594→      </div>
+   595→
+   596→      {/* Actions */}
+   597→      <DialogFooter className="flex-row gap-3 sm:justify-start pt-2">
+   598→        <Button
+   599→          type="submit"
+   600→          className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold rounded-lg px-6 gap-2"
+   601→        >
+   602→          {isEditing ? (
+   603→            <>
+   604→              <Pencil className="h-4 w-4" />
+   605→              حفظ التغييرات
+   606→            </>
+   607→          ) : (
+   608→            <>
+   609→              <UserPlus className="h-4 w-4" />
+   610→              إضافة الطالب
+   611→            </>
+   612→          )}
+   613→        </Button>
+   614→        <Button
+   615→          type="button"
+   616→          variant="outline"
+   617→          onClick={onClose}
+   618→          className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-6"
+   619→        >
+   620→          إلغاء
+   621→        </Button>
+   622→      </DialogFooter>
+   623→    </form>
+   624→  );
+   625→}
+   626→
+   627→/** Add / Edit student form dialog – conditionally mounts form to avoid stale state */
+   628→function StudentFormDialog({
+   629→  open,
+   630→  onOpenChange,
+   631→  editingStudent,
+   632→}: {
+   633→  open: boolean;
+   634→  onOpenChange: (open: boolean) => void;
+   635→  editingStudent: Student | null;
+   636→}) {
+   637→  return (
+   638→    <Dialog open={open} onOpenChange={onOpenChange}>
+   639→      <DialogContent
+   640→        className="sm:max-w-lg max-h-[90vh] overflow-y-auto"
+   641→        dir="rtl"
+   642→        style={{
+   643→          backgroundColor: '#1A1A24',
+   644→          border: '1px solid rgba(255,255,255,0.06)',
+   645→        }}
+   646→      >
+   647→        <DialogHeader>
+   648→          <DialogTitle className="text-white text-xl">
+   649→            {editingStudent ? 'تعديل بيانات الطالب' : 'إضافة طالب جديد'}
+   650→          </DialogTitle>
+   651→          <DialogDescription className="text-muted-foreground">
+   652→            {editingStudent
+   653→              ? 'قم بتعديل بيانات الطالب المطلوبة ثم اضغط حفظ التغييرات'
+   654→              : 'أدخل بيانات الطالب الجديد لإضافته إلى النظام'}
+   655→          </DialogDescription>
+   656→        </DialogHeader>
+   657→        {open && (
+   658→          <StudentFormContent
+   659→            editingStudent={editingStudent}
+   660→            onClose={() => onOpenChange(false)}
+   661→          />
+   662→        )}
+   663→      </DialogContent>
+   664→    </Dialog>
+   665→  );
+   666→}
+   667→
+   668→/** Delete confirmation dialog */
+   669→function DeleteStudentDialog({
+   670→  student,
+   671→  open,
+   672→  onOpenChange,
+   673→}: {
+   674→  student: Student | null;
+   675→  open: boolean;
+   676→  onOpenChange: (open: boolean) => void;
+   677→}) {
+   678→  const { deleteStudent, addToTrash } = useAppStore();
+   679→
+   680→  const handleDelete = () => {
+   681→    if (student) {
+   682→      addToTrash({
+   683→        id: `trash-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+   684→        itemType: 'student',
+   685→        itemId: student.id,
+   686→        itemName: student.name,
+   687→        deletedBy: 'المدير',
+   688→        dataJson: JSON.stringify(student),
+   689→        restoredAt: null,
+   690→        createdAt: new Date().toISOString(),
+   691→      });
+   692→      deleteStudent(student.id);
+   693→      toast.success('تم حذف الطالب');
+   694→      onOpenChange(false);
+   695→    }
+   696→  };
+   697→
+   698→  return (
+   699→    <AlertDialog open={open} onOpenChange={onOpenChange}>
+   700→      <AlertDialogContent
+   701→        dir="rtl"
+   702→        style={{
+   703→          backgroundColor: '#1A1A24',
+   704→          border: '1px solid rgba(255,255,255,0.06)',
+   705→        }}
+   706→      >
+   707→        <AlertDialogHeader>
+   708→          <AlertDialogTitle className="text-white text-lg">
+   709→            تأكيد حذف الطالب
+   710→          </AlertDialogTitle>
+   711→          <AlertDialogDescription className="text-muted-foreground leading-relaxed">
+   712→            هل أنت متأكد من حذف الطالب{' '}
+   713→            <span className="font-semibold text-slate-200">{student?.name}</span>؟
+   714→            <br />
+   715→            لا يمكن التراجع عن هذا الإجراء. سيتم حذف جميع بيانات الطالب بشكل نهائي.
+   716→          </AlertDialogDescription>
+   717→        </AlertDialogHeader>
+   718→        <AlertDialogFooter className="flex-row gap-3 sm:justify-start mt-2">
+   719→          <AlertDialogCancel
+   720→            className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-6 mt-0"
+   721→          >
+   722→            إلغاء
+   723→          </AlertDialogCancel>
+   724→          <AlertDialogAction
+   725→            onClick={handleDelete}
+   726→            className="bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-lg px-6 gap-2"
+   727→          >
+   728→            <Trash2 className="h-4 w-4" />
+   729→            نعم، احذف
+   730→          </AlertDialogAction>
+   731→        </AlertDialogFooter>
+   732→      </AlertDialogContent>
+   733→    </AlertDialog>
+   734→  );
+   735→}
+   736→
+   737→// ---------------------------------------------------------------------------
+   738→// Main Component
+   739→// ---------------------------------------------------------------------------
+   740→
+   741→/** Avatar initials circle */
+   742→function AvatarInitials({ name }: { name: string }) {
+   743→  const initials = name.split(' ').slice(0, 2).map(w => w.charAt(0)).join('');
+   744→  return (
+   745→    <div className="flex items-center justify-center h-9 w-9 rounded-full bg-gradient-to-br from-[#D4A574]/25 to-[#D4A574]/8 shrink-0 border border-[#D4A574]/15">
+   746→      <span className="text-sm font-bold text-[#D4A574]">{initials}</span>
+   747→    </div>
+   748→  );
+   749→}
+   750→
+   751→/** Sortable column header */
+   752→function SortableHeader({ label, field, sortField, sortDir, onSort }: { label: string; field: SortField; sortField: SortField; sortDir: SortDir; onSort: (f: SortField) => void }) {
+   753→  const isActive = sortField === field;
+   754→  return (
+   755→    <button
+   756→      onClick={() => onSort(field)}
+   757→      className="flex items-center gap-1 text-slate-400 font-semibold text-xs uppercase tracking-wider hover:text-[#D4A574] transition-colors"
+   758→    >
+   759→      {label}
+   760→      {isActive ? (
+   761→        sortDir === 'asc' ? <ArrowUp className="h-3 w-3 text-[#D4A574]" /> : <ArrowDown className="h-3 w-3 text-[#D4A574]" />
+   762→      ) : (
+   763→        <ArrowUpDown className="h-3 w-3 opacity-30" />
+   764→      )}
+   765→    </button>
+   766→  );
+   767→}
+   768→
+   769→export default function StudentsSection() {
+   770→  const { students, setStudents, addStudent, classes } = useAppStore();
+   771→
+   772→  // Local UI state
+   773→  const [localSearch, setLocalSearch] = useState('');
+   774→  const [searchMode, setSearchMode] = useState<'name' | 'id' | 'all'>('all');
+   775→  const [formOpen, setFormOpen] = useState(false);
+   776→  const [viewOpen, setViewOpen] = useState(false);
+   777→  const [deleteOpen, setDeleteOpen] = useState(false);
+   778→  const [importOpen, setImportOpen] = useState(false);
+   779→  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+   780→  const [statusFilter, setStatusFilter] = useState<string>('all');
+   781→  const [currentPage, setCurrentPage] = useState(1);
+   782→  const [sortField, setSortField] = useState<SortField>('name');
+   783→  const [sortDir, setSortDir] = useState<SortDir>('asc');
+   784→  const [sheetOpen, setSheetOpen] = useState(false);
+   785→  const [sheetStudent, setSheetStudent] = useState<Student | null>(null);
+   786→
+   787→  // Initialize mock data once
+   788→  const initialized = useRef(false);
+   789→  useEffect(() => {
+   790→    if (!initialized.current && students.length === 0) {
+   791→      initialized.current = true;
+   792→      setStudents(INITIAL_STUDENTS);
+   793→    }
+   794→  }, []);  
+   795→
+   796→  // Sort handler
+   797→  const handleSort = useCallback((field: SortField) => {
+   798→    if (sortField === field) {
+   799→      setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+   800→    } else {
+   801→      setSortField(field);
+   802→      setSortDir('asc');
+   803→    }
+   804→  }, [sortField]);
+   805→
+   806→  // Filtered, searched & sorted list
+   807→  const filteredStudents = useMemo(() => {
+   808→    let result = [...students];
+   809→
+   810→    // Status filter
+   811→    if (statusFilter !== 'all') {
+   812→      result = result.filter((s) => s.status === statusFilter);
+   813→    }
+   814→
+   815→    // Search filter (mode-aware)
+   816→    if (localSearch.trim()) {
+   817→      const query = localSearch.trim().toLowerCase();
+   818→      result = result.filter((s) => {
+   819→        if (searchMode === 'name') return s.name.toLowerCase().includes(query);
+   820→        if (searchMode === 'id') return s.studentId.toLowerCase().includes(query);
+   821→        return s.name.toLowerCase().includes(query) || s.studentId.toLowerCase().includes(query);
+   822→      });
+   823→    }
+   824→
+   825→    // Sort
+   826→    result.sort((a, b) => {
+   827→      let cmp = 0;
+   828→      switch (sortField) {
+   829→        case 'name': cmp = a.name.localeCompare(b.name, 'ar'); break;
+   830→        case 'studentId': cmp = a.studentId.localeCompare(b.studentId); break;
+   831→        case 'className': cmp = getClassName(a.classId, classes).localeCompare(getClassName(b.classId, classes), 'ar'); break;
+   832→        case 'status': cmp = a.status.localeCompare(b.status); break;
+   833→        case 'notes': cmp = (a.notes || '').localeCompare(b.notes || '', 'ar'); break;
+   834→      }
+   835→      return sortDir === 'asc' ? cmp : -cmp;
+   836→    });
+   837→
+   838→    return result;
+   839→  }, [students, statusFilter, localSearch, searchMode, sortField, sortDir, classes]);
+   840→
+   841→  // Pagination
+   842→  const totalPages = Math.max(1, Math.ceil(filteredStudents.length / ITEMS_PER_PAGE));
+   843→  const paginatedStudents = filteredStudents.slice(
+   844→    (currentPage - 1) * ITEMS_PER_PAGE,
+   845→    currentPage * ITEMS_PER_PAGE
+   846→  );
+   847→
+   848→  // Handlers
+   849→  const handleAdd = () => {
+   850→    setSelectedStudent(null);
+   851→    setFormOpen(true);
+   852→  };
+   853→
+   854→  const handleEdit = (student: Student) => {
+   855→    setSelectedStudent(student);
+   856→    setFormOpen(true);
+   857→  };
+   858→
+   859→  const handleView = (student: Student) => {
+   860→    setSelectedStudent(student);
+   861→    setViewOpen(true);
+   862→  };
+   863→
+   864→  const handleRowClick = (student: Student) => {
+   865→    setSheetStudent(student);
+   866→    setSheetOpen(true);
+   867→  };
+   868→
+   869→  const handleCloseProfile = useCallback(() => {
+   870→    setViewOpen(false);
+   871→    setSelectedStudent(null);
+   872→  }, []);
+   873→
+   874→  const handleDelete = (student: Student) => {
+   875→    setSelectedStudent(student);
+   876→    setDeleteOpen(true);
+   877→  };
+   878→
+   879→  const handleImportStudents = (data: Record<string, unknown>[]) => {
+   880→    const now = new Date().toISOString();
+   881→    data.forEach((row) => {
+   882→      const newStudent: Student = {
+   883→        id: `std-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+   884→        name: String(row.name ?? ''),
+   885→        studentId: String(row.studentId ?? ''),
+   886→        classId: String(row.classId ?? '') || null,
+   887→        status: (row.status as Student['status']) ?? 'active',
+   888→        notes: String(row.notes ?? ''),
+   889→        psychBackground: String(row.psychBackground ?? ''),
+   890→        avatar: '',
+   891→        createdAt: now,
+   892→        updatedAt: now,
+   893→      };
+   894→      addStudent(newStudent);
+   895→    });
+   896→  };
+   897→
+   898→  const handleExportStudents = () => {
+   899→    const exportData = students.map((s) => ({
+   900→      name: s.name,
+   901→      studentId: s.studentId,
+   902→      classId: getClassName(s.classId, classes),
+   903→      status: STATUS_MAP[s.status].label,
+   904→      notes: s.notes || '',
+   905→      createdAt: formatCsvDate(s.createdAt),
+   906→    }));
+   907→    exportToCSV(exportData, 'students', [
+   908→      { key: 'name', label: 'الاسم' },
+   909→      { key: 'studentId', label: 'الرقم التعريفي' },
+   910→      { key: 'classId', label: 'الفصل' },
+   911→      { key: 'status', label: 'الحالة' },
+   912→      { key: 'notes', label: 'الملاحظات' },
+   913→      { key: 'createdAt', label: 'تاريخ التسجيل' },
+   914→    ]);
+   915→    toast.success('تم تصدير بيانات الطلاب بنجاح');
+   916→  };
+   917→
+   918→  const handlePrintReport = () => {
+   919→    // Add a print-specific class to the body for print CSS styling
+   920→    document.body.classList.add('printing-report');
+   921→    // Small delay so CSS applies, then trigger print
+   922→    setTimeout(() => {
+   923→      window.print();
+   924→      // Remove the class after print dialog closes
+   925→      setTimeout(() => {
+   926→        document.body.classList.remove('printing-report');
+   927→      }, 500);
+   928→    }, 100);
+   929→    toast.success('جارٍ تجهيز التقرير للطباعة...');
+   930→  };
+   931→
+   932→  const handlePrevPage = () => {
+   933→    setCurrentPage((p) => Math.max(1, p - 1));
+   934→  };
+   935→
+   936→  const handleNextPage = () => {
+   937→    setCurrentPage((p) => Math.min(totalPages, p + 1));
+   938→  };
+   939→
+   940→  return (
+   941→    <div className="flex flex-col gap-6 hover-glow-amber" dir="rtl">
+   942→      {/* ── Page Title ── */}
+   943→      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+   944→        <div className="flex items-center gap-3">
+   945→          <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-[#D4A574]/10">
+   946→            <Users className="h-5 w-5 text-[#D4A574]" />
+   947→          </div>
+   948→          <div>
+   949→            <h1 className="text-2xl font-bold text-white tracking-tight sm:text-3xl flex items-center gap-3">
+   950→              إدارة الطلاب
+   951→              <Badge className="bg-[#D4A574]/15 text-[#D4A574] border-[#D4A574]/20 hover:bg-[#D4A574]/20 text-sm px-2.5 py-0.5 rounded-full font-semibold tabular-nums">
+   952→                {students.length}
+   953→              </Badge>
+   954→            </h1>
+   955→            <p className="mt-0.5 text-sm text-muted-foreground">
+   956→              إدارة بيانات الطلاب ومتابعة تقدمهم الأكاديمي
+   957→            </p>
+   958→          </div>
+   959→        </div>
+   960→      </div>
+   961→
+   962→      {/* ── Action Bar ── */}
+   963→      <div
+   964→        className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl p-4"
+   965→        style={{
+   966→          backgroundColor: '#1A1A24',
+   967→          border: '1px solid rgba(255,255,255,0.06)',
+   968→        }}
+   969→      >
+   970→        {/* Add & Export buttons */}
+   971→        <div className="flex items-center gap-2">
+   972→          <Button
+   973→            onClick={handleAdd}
+   974→            className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold gap-2 rounded-lg px-5 h-10 btn-shine"
+   975→          >
+   976→            <UserPlus className="h-4 w-4" />
+   977→            إضافة طالب جديد
+   978→          </Button>
+   979→          <Button
+   980→            variant="outline"
+   981→            onClick={() => setImportOpen(true)}
+   982→            className="border-[#D4A574]/30 text-[#D4A574] hover:bg-[#D4A574]/10 gap-2 rounded-lg px-4 h-10"
+   983→          >
+   984→            <Upload className="h-4 w-4" />
+   985→            استيراد CSV
+   986→          </Button>
+   987→          <Button
+   988→            variant="outline"
+   989→            onClick={handleExportStudents}
+   990→            className="border-[#D4A574]/30 text-[#D4A574] hover:bg-[#D4A574]/10 gap-2 rounded-lg px-4 h-10 btn-amber-glow"
+   991→          >
+   992→            <Download className="h-4 w-4" />
+   993→            تصدير CSV
+   994→          </Button>
+   995→          <Button
+   996→            variant="outline"
+   997→            onClick={handlePrintReport}
+   998→            className="border-[#D4A574]/30 text-[#D4A574] hover:bg-[#D4A574]/10 gap-2 rounded-lg px-4 h-10 btn-amber-glow"
+   999→          >
+  1000→            <Printer className="h-4 w-4" />
+  1001→            طباعة تقرير
+  1002→          </Button>
+  1003→        </div>
+  1004→
+  1005→        {/* Search & Filter */}
+  1006→        <div className="flex flex-col gap-3">
+  1007→          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+  1008→            {/* Search */}
+  1009→            <div className="relative">
+  1010→              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+  1011→              <Input
+  1012→                value={localSearch}
+  1013→                onChange={(e) => { setLocalSearch(e.target.value); setCurrentPage(1); }}
+  1014→                placeholder={searchMode === 'name' ? 'بحث بالاسم...' : searchMode === 'id' ? 'بحث بالرقم التعريفي...' : 'بحث شامل بالاسم أو الرقم...'}
+  1015→                className="pr-10 w-full sm:w-72 bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 h-10"
+  1016→              />
+  1017→            </div>
+  1018→
+  1019→            {/* Search Mode Toggle */}
+  1020→            <div className="flex items-center gap-1 rounded-lg p-1 bg-white/[0.03] border border-white/[0.06]">
+  1021→              {([
+  1022→                { mode: 'name' as const, label: 'بحث بالاسم', icon: Users },
+  1023→                { mode: 'id' as const, label: 'بحث بالرقم', icon: Hash },
+  1024→                { mode: 'all' as const, label: 'بحث شامل', icon: ScanSearch },
+  1025→              ]).map(({ mode, label, icon: ModeIcon }) => (
+  1026→                <button
+  1027→                  key={mode}
+  1028→                  onClick={() => { setSearchMode(mode); setCurrentPage(1); }}
+  1029→                  className={cn(
+  1030→                    'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200',
+  1031→                    searchMode === mode
+  1032→                      ? 'bg-[#D4A574]/15 text-[#D4A574] border border-[#D4A574]/30'
+  1033→                      : 'text-muted-foreground/60 hover:text-[#D4A574]/70 hover:bg-white/[0.03] border border-transparent'
+  1034→                  )}
+  1035→                >
+  1036→                  <ModeIcon className="h-3.5 w-3.5" />
+  1037→                  <span className="hidden sm:inline">{label}</span>
+  1038→                </button>
+  1039→              ))}
+  1040→            </div>
+  1041→
+  1042→            {/* Filter dropdown */}
+  1043→            <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); setCurrentPage(1); }}>
+  1044→              <SelectTrigger className="w-full sm:w-36 bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 h-10">
+  1045→                <SelectValue />
+  1046→              </SelectTrigger>
+  1047→              <SelectContent className="bg-[#1A1A24] border-white/[0.08]">
+  1048→                {FILTER_OPTIONS.map((opt) => (
+  1049→                  <SelectItem
+  1050→                    key={opt.value}
+  1051→                    value={opt.value}
+  1052→                    className="text-slate-200 focus:bg-white/[0.05] focus:text-white"
+  1053→                  >
+  1054→                    {opt.label}
+  1055→                  </SelectItem>
+  1056→                ))}
+  1057→              </SelectContent>
+  1058→            </Select>
+  1059→          </div>
+  1060→
+  1061→          {/* Result count */}
+  1062→          {localSearch.trim() && (
+  1063→            <div className="text-xs text-[#8B8B9E]">
+  1064→              عرض <span className="text-[#D4A574] font-semibold tabular-nums">{filteredStudents.length}</span> من <span className="font-semibold tabular-nums">{students.length}</span> طالب
+  1065→            </div>
+  1066→          )}
+  1067→        </div>
+  1068→      </div>
+  1069→
+  1070→      {/* ── Students Table ── */}
+  1071→      {filteredStudents.length === 0 ? (
+  1072→        <div
+  1073→          className="rounded-xl"
+  1074→          style={{
+  1075→            backgroundColor: '#1A1A24',
+  1076→            border: '1px solid rgba(255,255,255,0.06)',
+  1077→          }}
+  1078→        >
+  1079→          <EmptyState onAdd={handleAdd} />
+  1080→        </div>
+  1081→      ) : (
+  1082→        <div
+  1083→          className="rounded-xl overflow-hidden"
+  1084→          style={{
+  1085→            backgroundColor: '#1A1A24',
+  1086→            border: '1px solid rgba(255,255,255,0.06)',
+  1087→          }}
+  1088→        >
+  1089→          <Table>
+  1090→            <TableHeader>
+  1091→              <TableRow className="border-b border-white/[0.06] hover:bg-transparent">
+  1092→                <TableHead className="py-3.5 px-4">
+  1093→                  <SortableHeader label="الاسم" field="name" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
+  1094→                </TableHead>
+  1095→                <TableHead className="py-3.5 px-4">
+  1096→                  <SortableHeader label="الرقم التعريفي" field="studentId" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
+  1097→                </TableHead>
+  1098→                <TableHead className="py-3.5 px-4 hidden md:table-cell">
+  1099→                  <SortableHeader label="الفصل" field="className" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
+  1100→                </TableHead>
+  1101→                <TableHead className="py-3.5 px-4">
+  1102→                  <SortableHeader label="الحالة" field="status" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
+  1103→                </TableHead>
+  1104→                <TableHead className="py-3.5 px-4 hidden lg:table-cell">
+  1105→                  <SortableHeader label="الملاحظات" field="notes" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
+  1106→                </TableHead>
+  1107→                <TableHead className="text-slate-400 font-semibold text-xs uppercase tracking-wider py-3.5 px-4 text-center">
+  1108→                  إجراءات
+  1109→                </TableHead>
+  1110→              </TableRow>
+  1111→            </TableHeader>
+  1112→            <TableBody>
+  1113→              {paginatedStudents.map((student, index) => (
+  1114→                <TableRow
+  1115→                  key={student.id}
+  1116→                  className={cn(
+  1117→                    'border-b border-white/[0.04] transition-all duration-300 ease-out cursor-pointer group/row',
+  1118→                    'hover:bg-[#D4A574]/5 hover:shadow-[inset_3px_0_8px_-3px_rgba(212,165,116,0.2)]',
+  1119→                    index % 2 === 1 ? 'bg-white/[0.015]' : 'bg-transparent',
+  1120→                  )}
+  1121→                  onClick={() => handleRowClick(student)}
+  1122→                >
+  1123→                  {/* Name with status left-border indicator */}
+  1124→                  <TableCell className="py-3.5 px-4 relative">
+  1125→                    <span
+  1126→                      className={cn(
+  1127→                        'absolute right-0 top-2 bottom-2 w-[3px] rounded-l-full transition-all duration-300',
+  1128→                        student.status === 'active' && 'bg-emerald-400/60 group-hover/row:bg-emerald-400',
+  1129→                        student.status === 'inactive' && 'bg-amber-400/60 group-hover/row:bg-amber-400',
+  1130→                        student.status === 'graduated' && 'bg-sky-400/60 group-hover/row:bg-sky-400',
+  1131→                      )}
+  1132→                    />
+  1133→                    <div className="flex items-center gap-3">
+  1134→                      <AvatarInitials name={student.name} />
+  1135→                      <span className="text-sm font-medium text-slate-200 truncate max-w-[160px]">
+  1136→                        <HighlightText text={student.name} query={localSearch} />
+  1137→                      </span>
+  1138→                    </div>
+  1139→                  </TableCell>
+  1140→
+  1141→                  {/* Student ID */}
+  1142→                  <TableCell className="py-3.5 px-4">
+  1143→                    <span className="text-sm text-muted-foreground font-mono tabular-nums" dir="ltr">
+  1144→                      <HighlightText text={student.studentId} query={localSearch} />
+  1145→                    </span>
+  1146→                  </TableCell>
+  1147→
+  1148→                  {/* Class */}
+  1149→                  <TableCell className="py-3.5 px-4 hidden md:table-cell">
+  1150→                    <span className="text-sm text-slate-300">
+  1151→                      {getClassName(student.classId, classes)}
+  1152→                    </span>
+  1153→                  </TableCell>
+  1154→
+  1155→                  {/* Status */}
+  1156→                  <TableCell className="py-3.5 px-4">
+  1157→                    <StatusBadge status={student.status} />
+  1158→                  </TableCell>
+  1159→
+  1160→                  {/* Notes */}
+  1161→                  <TableCell className="py-3.5 px-4 hidden lg:table-cell">
+  1162→                    <span className="text-sm text-muted-foreground truncate block max-w-[200px]">
+  1163→                      {student.notes || '—'}
+  1164→                    </span>
+  1165→                  </TableCell>
+  1166→
+  1167→                  {/* Actions */}
+  1168→                  <TableCell className="py-3.5 px-4">
+  1169→                    <div className="flex items-center justify-center gap-1">
+  1170→                      {/* View */}
+  1171→                      <Button
+  1172→                        variant="ghost"
+  1173→                        size="icon"
+  1174→                        onClick={(e) => { e.stopPropagation(); handleView(student); }}
+  1175→                        className="h-8 w-8 text-slate-400 hover:text-sky-400 hover:bg-sky-400/10 rounded-lg"
+  1176→                        title="عرض"
+  1177→                      >
+  1178→                        <Eye className="h-4 w-4" />
+  1179→                      </Button>
+  1180→
+  1181→                      {/* Edit */}
+  1182→                      <Button
+  1183→                        variant="ghost"
+  1184→                        size="icon"
+  1185→                        onClick={(e) => { e.stopPropagation(); handleEdit(student); }}
+  1186→                        className="h-8 w-8 text-slate-400 hover:text-amber-400 hover:bg-amber-400/10 rounded-lg"
+  1187→                        title="تعديل"
+  1188→                      >
+  1189→                        <Pencil className="h-4 w-4" />
+  1190→                      </Button>
+  1191→
+  1192→                      {/* Delete */}
+  1193→                      <Button
+  1194→                        variant="ghost"
+  1195→                        size="icon"
+  1196→                        onClick={(e) => { e.stopPropagation(); handleDelete(student); }}
+  1197→                        className="h-8 w-8 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg"
+  1198→                        title="حذف"
+  1199→                      >
+  1200→                        <Trash2 className="h-4 w-4" />
+  1201→                      </Button>
+  1202→                    </div>
+  1203→                  </TableCell>
+  1204→                </TableRow>
+  1205→              ))}
+  1206→            </TableBody>
+  1207→          </Table>
+  1208→
+  1209→          {/* ── Pagination ── */}
+  1210→          {totalPages > 1 && (
+  1211→            <div
+  1212→              className="flex items-center justify-between px-4 py-3 border-t"
+  1213→              style={{ borderColor: 'rgba(255,255,255,0.06)' }}
+  1214→            >
+  1215→              {/* Info */}
+  1216→              <div className="text-xs text-muted-foreground/60">
+  1217→                عرض{' '}
+  1218→                <span className="font-semibold text-slate-300 tabular-nums">
+  1219→                  {(currentPage - 1) * ITEMS_PER_PAGE + 1}
+  1220→                </span>
+  1221→                {' '}-{' '}
+  1222→                <span className="font-semibold text-slate-300 tabular-nums">
+  1223→                  {Math.min(currentPage * ITEMS_PER_PAGE, filteredStudents.length)}
+  1224→                </span>
+  1225→                {' '}من{' '}
+  1226→                <span className="font-semibold text-slate-300 tabular-nums">
+  1227→                  {filteredStudents.length}
+  1228→                </span>
+  1229→                {' '}طالب
+  1230→              </div>
+  1231→
+  1232→              {/* Page controls */}
+  1233→              <div className="flex items-center gap-1.5">
+  1234→                <Button
+  1235→                  variant="ghost"
+  1236→                  size="icon"
+  1237→                  onClick={handlePrevPage}
+  1238→                  disabled={currentPage === 1}
+  1239→                  className="h-8 w-8 text-slate-400 hover:text-white hover:bg-white/[0.05] disabled:opacity-30 disabled:cursor-not-allowed rounded-lg"
+  1240→                >
+  1241→                  <ChevronRight className="h-4 w-4" />
+  1242→                </Button>
+  1243→
+  1244→                {/* Page numbers */}
+  1245→                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+  1246→                  <Button
+  1247→                    key={page}
+  1248→                    variant={currentPage === page ? 'outline' : 'ghost'}
+  1249→                    size="icon"
+  1250→                    onClick={() => setCurrentPage(page)}
+  1251→                    className={cn(
+  1252→                      'h-8 w-8 text-sm font-medium tabular-nums rounded-lg transition-all',
+  1253→                      currentPage === page
+  1254→                        ? 'bg-[#D4A574]/15 text-[#D4A574] border-[#D4A574]/30 hover:bg-[#D4A574]/20'
+  1255→                        : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'
+  1256→                    )}
+  1257→                  >
+  1258→                    {page}
+  1259→                  </Button>
+  1260→                ))}
+  1261→
+  1262→                <Button
+  1263→                  variant="ghost"
+  1264→                  size="icon"
+  1265→                  onClick={handleNextPage}
+  1266→                  disabled={currentPage === totalPages}
+  1267→                  className="h-8 w-8 text-slate-400 hover:text-white hover:bg-white/[0.05] disabled:opacity-30 disabled:cursor-not-allowed rounded-lg"
+  1268→                >
+  1269→                  <ChevronLeft className="h-4 w-4" />
+  1270→                </Button>
+  1271→              </div>
+  1272→            </div>
+  1273→          )}
+  1274→        </div>
+  1275→      )}
+  1276→
+  1277→      {/* ── Student Quick View Sheet ── */}
+  1278→      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+  1279→        <SheetContent
+  1280→          side="left"
+  1281→          dir="rtl"
+  1282→          className="bg-[#1A1A24] border-r border-white/[0.06] overflow-y-auto"
+  1283→        >
+  1284→          <SheetHeader>
+  1285→            <SheetTitle className="text-white text-lg">الملف السريع للطالب</SheetTitle>
+  1286→            <SheetDescription className="text-muted-foreground text-sm">نظرة سريعة على بيانات الطالب</SheetDescription>
+  1287→          </SheetHeader>
+  1288→          {sheetStudent && (
+  1289→            <div className="flex flex-col gap-5 px-4 pb-6">
+  1290→              {/* Avatar + Name */}
+  1291→              <div className="flex items-center gap-4">
+  1292→                <div className="flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-br from-[#D4A574]/30 to-[#D4A574]/10 border-2 border-[#D4A574]/20 shrink-0">
+  1293→                  <span className="text-2xl font-bold text-[#D4A574]">
+  1294→                    {sheetStudent.name.split(' ').slice(0, 2).map(w => w.charAt(0)).join('')}
+  1295→                  </span>
+  1296→                </div>
+  1297→                <div>
+  1298→                  <h3 className="text-lg font-bold text-white">{sheetStudent.name}</h3>
+  1299→                  <p className="text-sm text-muted-foreground font-mono" dir="ltr">{sheetStudent.studentId}</p>
+  1300→                </div>
+  1301→              </div>
+  1302→
+  1303→              {/* Class + Status */}
+  1304→              <div className="grid grid-cols-2 gap-3">
+  1305→                <div className="rounded-lg p-3" style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+  1306→                  <p className="text-[10px] text-muted-foreground mb-1">الفصل</p>
+  1307→                  <p className="text-sm font-semibold text-slate-200">{getClassName(sheetStudent.classId, classes)}</p>
+  1308→                </div>
+  1309→                <div className="rounded-lg p-3" style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+  1310→                  <p className="text-[10px] text-muted-foreground mb-1">الحالة</p>
+  1311→                  <StatusBadge status={sheetStudent.status} />
+  1312→                </div>
+  1313→              </div>
+  1314→
+  1315→              {/* Grades summary (mock) */}
+  1316→              <div className="rounded-lg p-4" style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+  1317→                <h4 className="text-sm font-semibold text-slate-300 mb-3">ملخص الدرجات</h4>
+  1318→                <div className="grid grid-cols-3 gap-3 text-center">
+  1319→                  <div>
+  1320→                    <p className="text-xl font-bold text-[#D4A574]">87%</p>
+  1321→                    <p className="text-[10px] text-muted-foreground">المعدل</p>
+  1322→                  </div>
+  1323→                  <div>
+  1324→                    <p className="text-xl font-bold text-emerald-400">92</p>
+  1325→                    <p className="text-[10px] text-muted-foreground">أعلى درجة</p>
+  1326→                  </div>
+  1327→                  <div>
+  1328→                    <p className="text-xl font-bold text-sky-400">5</p>
+  1329→                    <p className="text-[10px] text-muted-foreground">مواد</p>
+  1330→                  </div>
+  1331→                </div>
+  1332→              </div>
+  1333→
+  1334→              {/* Recent attendance (mock) */}
+  1335→              <div className="rounded-lg p-4" style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+  1336→                <h4 className="text-sm font-semibold text-slate-300 mb-3">الحضور الأخير</h4>
+  1337→                <div className="flex gap-1.5">
+  1338→                  {['ح', 'ح', 'ح', 'غ', 'ح', 'ح', 'م', 'ح', 'ح', 'ح', 'ح', 'ح', 'م', 'ح'].map((d, i) => (
+  1339→                    <span
+  1340→                      key={i}
+  1341→                      className={cn(
+  1342→                        'inline-flex items-center justify-center h-6 w-6 rounded text-[10px] font-bold',
+  1343→                        d === 'ح' ? 'bg-emerald-500/15 text-emerald-400' :
+  1344→                        d === 'غ' ? 'bg-rose-500/15 text-rose-400' :
+  1345→                        'bg-amber-500/15 text-amber-400'
+  1346→                      )}
+  1347→                    >
+  1348→                      {d}
+  1349→                    </span>
+  1350→                  ))}
+  1351→                </div>
+  1352→              </div>
+  1353→
+  1354→              {/* Notes */}
+  1355→              {sheetStudent.notes && (
+  1356→                <div className="rounded-lg p-4" style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+  1357→                  <h4 className="text-sm font-semibold text-slate-300 mb-2">ملاحظات</h4>
+  1358→                  <p className="text-sm text-muted-foreground leading-relaxed">{sheetStudent.notes}</p>
+  1359→                </div>
+  1360→              )}
+  1361→
+  1362→              {/* Quick action buttons */}
+  1363→              <div className="flex flex-col gap-2">
+  1364→                <Button
+  1365→                  onClick={() => { setSheetOpen(false); handleEdit(sheetStudent); }}
+  1366→                  className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold gap-2 rounded-lg w-full"
+  1367→                >
+  1368→                  <Pencil className="h-4 w-4" />
+  1369→                  تعديل البيانات
+  1370→                </Button>
+  1371→                <Button
+  1372→                  variant="outline"
+  1373→                  className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white gap-2 rounded-lg w-full"
+  1374→                >
+  1375→                  <MessageSquare className="h-4 w-4" />
+  1376→                  إرسال رسالة
+  1377→                </Button>
+  1378→                <Button
+  1379→                  variant="outline"
+  1380→                  onClick={() => { setSheetOpen(false); handleView(sheetStudent); }}
+  1381→                  className="border-[#D4A574]/30 text-[#D4A574] hover:bg-[#D4A574]/10 gap-2 rounded-lg w-full"
+  1382→                >
+  1383→                  <Eye className="h-4 w-4" />
+  1384→                  عرض الملف الكامل
+  1385→                </Button>
+  1386→              </div>
+  1387→            </div>
+  1388→          )}
+  1389→        </SheetContent>
+  1390→      </Sheet>
+  1391→
+  1392→      {/* ── Dialogs ── */}
+  1393→      <StudentFormDialog
+  1394→        open={formOpen}
+  1395→        onOpenChange={setFormOpen}
+  1396→        editingStudent={selectedStudent}
+  1397→      />
+  1398→
+  1399→      {/* Student Profile Dialog (replaces simple ViewStudentDialog) */}
+  1400→      {viewOpen && selectedStudent && (
+  1401→        <StudentProfile
+  1402→          student={selectedStudent}
+  1403→          onClose={handleCloseProfile}
+  1404→        />
+  1405→      )}
+  1406→
+  1407→      <DeleteStudentDialog
+  1408→        student={selectedStudent}
+  1409→        open={deleteOpen}
+  1410→        onOpenChange={setDeleteOpen}
+  1411→      />
+  1412→
+  1413→      <ImportDialog
+  1414→        open={importOpen}
+  1415→        onOpenChange={setImportOpen}
+  1416→        type="students"
+  1417→        columns={STUDENT_IMPORT_COLUMNS}
+  1418→        onImport={handleImportStudents}
+  1419→        templateFilename="students-template"
+  1420→      />
+  1421→    </div>
+  1422→  );
+  1423→}
+  1424→

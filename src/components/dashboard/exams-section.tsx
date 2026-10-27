@@ -16,6 +16,7 @@ import {
   Target,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
+import { t } from '@/lib/i18n';
 import type { Exam } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -645,6 +646,7 @@ function StatCard({
 
 /** Empty state */
 function EmptyState({ onAdd }: { onAdd: () => void }) {
+  const locale = useAppStore((s) => s.locale);
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4">
       <div className="flex items-center justify-center h-20 w-20 rounded-2xl bg-white/[0.03] border border-white/[0.06] mb-6">
@@ -658,10 +660,10 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
       </p>
       <Button
         onClick={onAdd}
-        className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold gap-2 rounded-lg px-6"
+        className="bg-emerald-500/90 hover:bg-emerald-500 text-white border-transparent font-semibold gap-2 rounded-lg px-6"
       >
         <Plus className="h-4 w-4" />
-        إضافة امتحان جديد
+        {t('crud.addExam', locale)}
       </Button>
     </div>
   );
@@ -789,14 +791,14 @@ function ExamFormContent({
   editingExam: Exam | null;
   onClose: () => void;
 }) {
-  const { addExam, updateExam } = useAppStore();
+  const { addExam, updateExam, locale } = useAppStore();
   const isEditing = !!editingExam;
 
   const [title, setTitle] = useState(editingExam?.title ?? '');
   const [subject, setSubject] = useState(editingExam?.subject ?? 'رياضيات');
   const [studentId, setStudentId] = useState<string>(editingExam?.studentId ?? STUDENT_DROPDOWN[0]?.value ?? '');
   const [classId, setClassId] = useState<string>(editingExam?.classId ?? CLASS_DROPDOWN[0]?.value ?? '');
-  const [score, setScore] = useState<string>(editingExam?.score !== null ? String(editingExam.score) : '');
+  const [score, setScore] = useState<string>(editingExam?.score != null ? String(editingExam.score) : '');
   const [maxScore, setMaxScore] = useState<string>(String(editingExam?.maxScore ?? 100));
   const [date, setDate] = useState(editingExam?.date ?? new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState(editingExam?.notes ?? '');
@@ -971,17 +973,17 @@ function ExamFormContent({
       <DialogFooter className="flex-row gap-3 sm:justify-start pt-2">
         <Button
           type="submit"
-          className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold rounded-lg px-6 gap-2"
+          className="bg-emerald-500/90 hover:bg-emerald-500 text-white border-transparent font-semibold rounded-lg px-6 gap-2"
         >
           {isEditing ? (
             <>
               <Pencil className="h-4 w-4" />
-              حفظ التغييرات
+              {t('general.save', locale)}
             </>
           ) : (
             <>
               <Plus className="h-4 w-4" />
-              إضافة الامتحان
+              {t('general.add', locale)}
             </>
           )}
         </Button>
@@ -991,7 +993,7 @@ function ExamFormContent({
           onClick={onClose}
           className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-6"
         >
-          إلغاء
+          {t('general.cancel', locale)}
         </Button>
       </DialogFooter>
     </form>
@@ -1008,6 +1010,7 @@ function ExamFormDialog({
   onOpenChange: (open: boolean) => void;
   editingExam: Exam | null;
 }) {
+  const locale = useAppStore((s) => s.locale);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -1020,7 +1023,7 @@ function ExamFormDialog({
       >
         <DialogHeader>
           <DialogTitle className="text-white text-xl">
-            {editingExam ? 'تعديل الامتحان' : 'إضافة امتحان جديد'}
+            {editingExam ? t('crud.editExam', locale) : t('crud.addExam', locale)}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
             {editingExam
@@ -1049,7 +1052,7 @@ function DeleteExamDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { deleteExam, addToTrash } = useAppStore();
+  const { deleteExam, addToTrash, locale } = useAppStore();
 
   const handleDelete = () => {
     if (exam) {
@@ -1080,27 +1083,26 @@ function DeleteExamDialog({
       >
         <AlertDialogHeader>
           <AlertDialogTitle className="text-white text-lg">
-            تأكيد حذف الامتحان
+            {t('general.confirmDelete', locale)}
           </AlertDialogTitle>
           <AlertDialogDescription className="text-muted-foreground leading-relaxed">
-            هل أنت متأكد من حذف الامتحان{' '}
-            <span className="font-semibold text-slate-200">{exam?.title}</span>؟
+            {t('general.deleteWarning', locale)}
             <br />
-            لا يمكن التراجع عن هذا الإجراء. سيتم حذف جميع بيانات الامتحان بشكل نهائي.
+            <span className="font-semibold text-slate-200">{exam?.title}</span>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="flex-row gap-3 sm:justify-start mt-2">
           <AlertDialogCancel
             className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-6 mt-0"
           >
-            إلغاء
+            {t('general.cancel', locale)}
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={handleDelete}
             className="bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-lg px-6 gap-2"
           >
             <Trash2 className="h-4 w-4" />
-            نعم، احذف
+            {t('general.delete', locale)}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -1113,7 +1115,7 @@ function DeleteExamDialog({
 // ---------------------------------------------------------------------------
 
 export default function ExamsSection() {
-  const { exams, setExams } = useAppStore();
+  const { exams, setExams, locale } = useAppStore();
 
   // Local UI state
   const [localSearch, setLocalSearch] = useState('');
@@ -1234,13 +1236,13 @@ export default function ExamsSection() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white tracking-tight sm:text-3xl flex items-center gap-3">
-              إدارة الامتحانات
+              {t('sections.exams', locale)}
               <Badge className="bg-[#D4A574]/15 text-[#D4A574] border-[#D4A574]/20 hover:bg-[#D4A574]/20 text-sm px-2.5 py-0.5 rounded-full font-semibold tabular-nums">
                 {exams.length}
               </Badge>
             </h1>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              إدارة الامتحانات ومتابعة نتائج الطلاب
+              {t('sections.examsSub', locale)}
             </p>
           </div>
         </div>
@@ -1283,10 +1285,10 @@ export default function ExamsSection() {
         <div className="flex items-center gap-2">
           <Button
             onClick={handleAdd}
-            className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold gap-2 rounded-lg px-5 h-10 btn-shine"
+            className="bg-emerald-500/90 hover:bg-emerald-500 text-white border-transparent font-semibold gap-2 rounded-lg px-5 h-10 btn-shine"
           >
             <Plus className="h-4 w-4" />
-            إضافة امتحان جديد
+            {t('crud.addExam', locale)}
           </Button>
           <Button
             variant="outline"
@@ -1306,7 +1308,7 @@ export default function ExamsSection() {
             <Input
               value={localSearch}
               onChange={(e) => setLocalSearch(e.target.value)}
-              placeholder="بحث بالعنوان أو المادة أو الطالب..."
+              placeholder={t('general.search', locale)}
               className="pr-10 w-full sm:w-64 bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 h-10"
             />
           </div>
@@ -1445,7 +1447,7 @@ export default function ExamsSection() {
                     التاريخ
                   </TableHead>
                   <TableHead className="text-slate-400 font-semibold text-xs uppercase tracking-wider py-3.5 px-4 text-center">
-                    إجراءات
+                    {t('general.actions', locale)}
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -1515,8 +1517,8 @@ export default function ExamsSection() {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleView(exam)}
-                          className="h-8 w-8 text-slate-400 hover:text-sky-400 hover:bg-sky-400/10 rounded-lg"
-                          title="عرض"
+                          className="h-8 w-8 text-slate-300 hover:bg-white/5 rounded-lg"
+                          title={t('general.view', locale)}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -1526,8 +1528,8 @@ export default function ExamsSection() {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleEdit(exam)}
-                          className="h-8 w-8 text-slate-400 hover:text-amber-400 hover:bg-amber-400/10 rounded-lg"
-                          title="تعديل"
+                          className="h-8 w-8 text-[#D4A574] hover:bg-[#D4A574]/10 rounded-lg"
+                          title={t('general.edit', locale)}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -1537,8 +1539,8 @@ export default function ExamsSection() {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleDelete(exam)}
-                          className="h-8 w-8 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg"
-                          title="حذف"
+                          className="h-8 w-8 text-rose-400 hover:bg-rose-500/10 rounded-lg"
+                          title={t('general.delete', locale)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

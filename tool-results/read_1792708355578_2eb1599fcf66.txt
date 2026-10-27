@@ -1,0 +1,877 @@
+     1→     1→// ---------------------------------------------------------------------------
+     2→     2→// AuraLab i18n — Lightweight key-value translation system
+     3→     3→// Arabic (ar) is default / RTL, English (en) is secondary / LTR
+     4→     4→// ---------------------------------------------------------------------------
+     5→     5→
+     6→     6→export type Locale = 'ar' | 'en';
+     7→     7→
+     8→     8→export const RTL_LOCALES: Locale[] = ['ar'];
+     9→     9→
+    10→    10→export function isRTL(locale: Locale): boolean {
+    11→    11→  return RTL_LOCALES.includes(locale);
+    12→    12→}
+    13→    13→
+    14→    14→// ---------------------------------------------------------------------------
+    15→    15→// Translation dictionaries
+    16→    16→// ---------------------------------------------------------------------------
+    17→    17→
+    18→    18→const translations: Record<Locale, Record<string, string>> = {
+    19→    19→  ar: {
+    20→    20→    // ── App ──
+    21→    21→    'app.name': 'AuraLab',
+    22→    22→    'app.tagline': 'نظام إدارة المدرسة الذكية',
+    23→    23→    'app.loading': 'جارٍ تحميل لوحة التحكم...',
+    24→    24→    'app.poweredBy': 'مدعوم بـ AuraLab',
+    25→    25→    'app.version': 'الإصدار 2.7.0',
+    26→    26→
+    27→    27→    // ── Sidebar Groups ──
+    28→    28→    'sidebar.group.main': 'الرئيسية',
+    29→    29→    'sidebar.group.academic': 'الأكاديمي',
+    30→    30→    'sidebar.group.tools': 'الأدوات',
+    31→    31→    'sidebar.group.system': 'النظام',
+    32→    32→
+    33→    33→    // ── Sidebar Nav Items ──
+    34→    34→    'nav.dashboard': 'لوحة التحكم',
+    35→    35→    'nav.students': 'الطلاب',
+    36→    36→    'nav.teachers': 'المعلمون',
+    37→    37→    'nav.classes': 'الصفوف',
+    38→    38→    'nav.exams': 'الامتحانات',
+    39→    39→    'nav.sessions': 'الجلسات',
+    40→    40→    'nav.attendance': 'الحضور',
+    41→    41→    'nav.grades': 'الدرجات',
+    42→    42→    'nav.behavior': 'سلوك الطلاب',
+    43→    43→    'nav.timetable': 'الجدول الدراسي',
+    44→    44→    'nav.analytics': 'التحليلات',
+    45→    45→    'nav.reports': 'التقارير',
+    46→    46→    'nav.announcements': 'الإعلانات',
+    47→    47→    'nav.messages': 'الرسائل',
+    48→    48→    'nav.notifications': 'الإشعارات',
+    49→    49→    'nav.ai-assistant': 'المساعد الذكي',
+    50→    50→    'nav.trash': 'المحذوفات',
+    51→    51→    'nav.library': 'المكتبة',
+    52→    52→    'nav.fees': 'الرسوم',
+    53→    53→    'nav.classroom-camera': 'كاميرات الفصول',
+    54→    54→    'nav.settings': 'الإعدادات',
+    55→    55→
+    56→    56→    // ── Header ──
+    57→    57→    'header.search': 'بحث...',
+    58→    58→    'header.searchStudents': 'اضغط Enter للبحث في الطلاب',
+    59→    59→    'header.lastRefresh': 'آخر تحديث:',
+    60→    60→    'header.refreshData': 'تحديث البيانات',
+    61→    61→    'header.exportPdf': 'تصدير PDF',
+    62→    62→    'header.export': 'تصدير',
+    63→    63→    'header.import': 'استيراد',
+    64→    64→    'header.changeLanguage': 'تغيير اللغة',
+    65→    65→    'header.settings': 'الإعدادات',
+    66→    66→    'header.notifications': 'الإشعارات',
+    67→    67→    'header.userMenu': 'قائمة المستخدم',
+    68→    68→    'header.profile': 'الملف الشخصي',
+    69→    69→    'header.comingSoon': 'قريبًا',
+    70→    70→    'header.logout': 'تسجيل الخروج',
+    71→    71→    'header.admin': 'مدير النظام',
+    72→    72→
+    73→    73→    // ── Breadcrumb ──
+    74→    74→    'breadcrumb.home': 'الرئيسية',
+    75→    75→    'breadcrumb.nav': 'مسار التنقل',
+    76→    76→
+    77→    77→    // ── Footer ──
+    78→    78→    'footer.copyright': 'نظام إدارة المدرسة الذكية',
+    79→    79→    'footer.quickLinks': 'روابط سريعة',
+    80→    80→    'footer.privacy': 'سياسة الخصوصية',
+    81→    81→    'footer.terms': 'الشروط والأحكام',
+    82→    82→    'footer.help': 'المساعدة',
+    83→    83→
+    84→    84→    // ── Status ──
+    85→    85→    'status.stable': 'مستقر',
+    86→    86→    'status.improved': 'تحسّن',
+    87→    87→    'status.needsAttention': 'يحتاج انتباه',
+    88→    88→    'status.critical': 'حرج',
+    89→    89→    'status.active': 'نشط',
+    90→    90→    'status.completed': 'مكتمل',
+    91→    91→    'status.inactive': 'غير نشط',
+    92→    92→    'status.present': 'حاضر',
+    93→    93→    'status.late': 'متأخر',
+    94→    94→    'status.absent': 'غائب',
+    95→    95→    'status.trendUp': 'صعود',
+    96→    96→    'status.trendDown': 'هبوط',
+    97→    97→
+    98→    98→    // ── Dashboard ──
+    99→    99→    'dashboard.title': 'لوحة التحكم',
+   100→   100→    'dashboard.totalStudents': 'إجمالي الطلاب',
+   101→   101→    'dashboard.totalTeachers': 'إجمالي المعلمين',
+   102→   102→    'dashboard.totalClasses': 'إجمالي الصفوف',
+   103→   103→    'dashboard.attendanceRate': 'نسبة الحضور',
+   104→   104→    'dashboard.weeklyActivity': 'النشاط الأسبوعي',
+   105→   105→    'dashboard.quickAttendance': 'الحضور السريع',
+   106→   106→    'dashboard.recentNotifications': 'آخر الإشعارات',
+   107→   107→    'dashboard.upcomingSessions': 'الحصص القادمة',
+   108→   108→    'dashboard.quickActions': 'إجراءات سريعة',
+   109→   109→    'dashboard.todaySchedule': 'جدول اليوم',
+   110→   110→    'dashboard.examResults': 'نتائج الامتحانات',
+   111→   111→    'dashboard.feeCollection': 'تحصيل الرسوم',
+   112→   112→
+   113→   113→    // ── Dashboard Stat Labels ──
+   114→   114→    'dashboard.stat.students': 'الطلاب',
+   115→   115→    'dashboard.stat.teachers': 'المعلمون',
+   116→   116→    'dashboard.stat.classes': 'الصفوف',
+   117→   117→    'dashboard.stat.attendance': 'الحضور',
+   118→   118→    'dashboard.stat.exams': 'الامتحانات',
+   119→   119→    'dashboard.stat.avgGrade': 'متوسط الدرجة',
+   120→   120→
+   121→   121→    // ── Dashboard Days ──
+   122→   122→    'day.sat': 'السبت',
+   123→   123→    'day.sun': 'الأحد',
+   124→   124→    'day.mon': 'الاثنين',
+   125→   125→    'day.tue': 'الثلاثاء',
+   126→   126→    'day.wed': 'الأربعاء',
+   127→   127→    'day.thu': 'الخميس',
+   128→   128→    'day.fri': 'الجمعة',
+   129→   129→
+   130→   130→    // ── Dashboard Notifications (template strings) ──
+   131→   131→    'dashboard.notif.1': 'تم تسجيل حضور 28 طالب من أصل 32 في حصة الرياضيات',
+   132→   132→    'dashboard.notif.2': 'تنبيه: الطالب أحمد محمد غاب عن 3 حصص متتالية',
+   133→   133→    'dashboard.notif.3': 'نتائج اختبار العلوم متاحة الآن للمراجعة',
+   134→   134→    'dashboard.notif.4': 'تم تحديث المنهج الدراسي لمادة اللغة العربية',
+   135→   135→    'dashboard.notif.5': 'موعد اجتماع أولياء الأمور يوم الخميس القادم',
+   136→   136→    'dashboard.notif.time.5m': 'منذ 5 دقائق',
+   137→   137→    'dashboard.notif.time.20m': 'منذ 20 دقيقة',
+   138→   138→    'dashboard.notif.time.1h': 'منذ ساعة',
+   139→   139→    'dashboard.notif.time.2h': 'منذ ساعتين',
+   140→   140→    'dashboard.notif.time.3h': 'منذ 3 ساعات',
+   141→   141→
+   142→   142→    // ── Students Section ──
+   143→   143→    'students.title': 'إدارة الطلاب',
+   144→   144→    'students.add': 'إضافة طالب',
+   145→   145→    'students.edit': 'تعديل',
+   146→   146→    'students.delete': 'حذف',
+   147→   147→    'students.view': 'عرض',
+   148→   148→    'students.search': 'بحث في الطلاب...',
+   149→   149→    'students.name': 'الاسم',
+   150→   150→    'students.grade': 'الصف',
+   151→   151→    'students.class': 'الفصل',
+   152→   152→    'students.phone': 'الهاتف',
+   153→   153→    'students.email': 'البريد الإلكتروني',
+   154→   154→    'students.status': 'الحالة',
+   155→   155→    'students.enrollDate': 'تاريخ التسجيل',
+   156→   156→    'students.actions': 'الإجراءات',
+   157→   157→    'students.noStudents': 'لا يوجد طلاب',
+   158→   158→    'students.confirmDelete': 'هل أنت متأكد من حذف هذا الطالب؟',
+   159→   159→    'students.export': 'تصدير',
+   160→   160→    'students.import': 'استيراد',
+   161→   161→
+   162→   162→    // ── Teachers Section ──
+   163→   163→    'teachers.title': 'إدارة المعلمين',
+   164→   164→    'teachers.add': 'إضافة معلم',
+   165→   165→    'teachers.edit': 'تعديل',
+   166→   166→    'teachers.delete': 'حذف',
+   167→   167→    'teachers.search': 'بحث في المعلمين...',
+   168→   168→    'teachers.name': 'الاسم',
+   169→   169→    'teachers.subject': 'المادة',
+   170→   170→    'teachers.phone': 'الهاتف',
+   171→   171→    'teachers.email': 'البريد الإلكتروني',
+   172→   172→    'teachers.status': 'الحالة',
+   173→   173→    'teachers.permissions': 'الصلاحيات',
+   174→   174→    'teachers.admin': 'مدير',
+   175→   175→    'teachers.teacher': 'معلم',
+   176→   176→    'teachers.supervisor': 'مشرف',
+   177→   177→
+   178→   178→    // ── Classes Section ──
+   179→   179→    'classes.title': 'إدارة الصفوف',
+   180→   180→    'classes.add': 'إضافة صف',
+   181→   181→    'classes.name': 'اسم الصف',
+   182→   182→    'classes.grade': 'المرحلة',
+   183→   183→    'classes.room': 'القاعة',
+   184→   184→    'classes.students': 'الطلاب',
+   185→   185→    'classes.allGrades': 'جميع المراحل',
+   186→   186→    'classes.grade1': 'الصف الأول',
+   187→   187→    'classes.grade2': 'الصف الثاني',
+   188→   188→    'classes.grade3': 'الصف الثالث',
+   189→   189→
+   190→   190→    // ── Exams Section ──
+   191→   191→    'exams.title': 'الامتحانات',
+   192→   192→    'exams.add': 'إضافة اختبار',
+   193→   193→    'exams.management': 'إدارة الامتحانات',
+   194→   194→    'exams.managementDesc': 'إدارة الامتحانات ومتابعة نتائج الطلاب',
+   195→   195→    'exams.subject': 'المادة',
+   196→   196→    'exams.date': 'التاريخ',
+   197→   197→    'exams.score': 'الدرجة',
+   198→   198→    'exams.maxScore': 'الدرجة القصوى',
+   199→   199→    'exams.selectSubject': 'اختر المادة',
+   200→   200→    'exams.search': 'بحث بالعنوان أو المادة أو الطالب...',
+   201→   201→    'exams.allExams': 'من جميع الامتحانات',
+   202→   202→    'exams.totalExams': 'إجمالي الامتحانات',
+   203→   203→    'exams.analysisBySubject': 'تحليل نتائج الامتحانات حسب المادة',
+   204→   204→    'exams.scoreObtained': 'الدرجة المحصلة',
+   205→   205→
+   206→   206→    // ── Sessions Section ──
+   207→   207→    'sessions.title': 'الجلسات',
+   208→   208→
+   209→   209→    // ── Attendance Section ──
+   210→   210→    'attendance.title': 'الحضور والغياب',
+   211→   211→    'attendance.present': 'حاضر',
+   212→   212→    'attendance.absent': 'غائب',
+   213→   213→    'attendance.late': 'متأخر',
+   214→   214→    'attendance.excused': 'مستأذن',
+   215→   215→    'attendance.student': 'الطالب',
+   216→   216→    'attendance.date': 'التاريخ',
+   217→   217→    'attendance.studentName': 'اسم الطالب',
+   218→   218→    'attendance.search': 'بحث باسم الطالب...',
+   219→   219→    'attendance.noData': 'لا توجد بيانات',
+   220→   220→    'attendance.viewDetails': 'عرض تفاصيل سجل حضور الطالب',
+   221→   221→
+   222→   222→    // ── Grades Section ──
+   223→   223→    'grades.title': 'الدرجات',
+   224→   224→    'grades.add': 'إضافة درجة',
+   225→   225→    'grades.addNew': 'إضافة درجة جديدة',
+   226→   226→    'grades.edit': 'تعديل الدرجة',
+   227→   227→    'grades.student': 'الطالب',
+   228→   228→    'grades.studentName': 'اسم الطالب',
+   229→   229→    'grades.subject': 'المادة',
+   230→   230→    'grades.term': 'الفصل',
+   231→   231→    'grades.score': 'الدرجة',
+   232→   232→    'grades.maxScore': 'الدرجة القصوى',
+   233→   233→    'grades.date': 'التاريخ',
+   234→   234→    'grades.search': 'بحث باسم الطالب...',
+   235→   235→    'grades.selectStudent': 'اختر الطالب',
+   236→   236→    'grades.selectSubject': 'اختر المادة',
+   237→   237→    'grades.record': 'سجل الدرجات',
+   238→   238→    'grades.details': 'تفاصيل الدرجة',
+   239→   239→    'grades.reportCard': 'كشف درجات الطالب',
+   240→   240→    'grades.bySubject': 'الدرجات حسب المادة',
+   241→   241→    'grades.classRank': 'الترتيب في الفصل',
+   242→   242→    'grades.scoreObtained': 'الدرجة المحصلة',
+   243→   243→    'grades.avgGrade': 'متوسط الدرجات',
+   244→   244→    'grades.distribution': 'توزيع الدرجات',
+   245→   245→    'grades.exportCsv': 'تصدير CSV',
+   246→   246→
+   247→   247→    // ── Behavior Section ──
+   248→   248→    'behavior.title': 'سلوك الطلاب',
+   249→   249→    'behavior.add': 'تسجيل سلوك',
+   250→   250→    'behavior.addNew': 'تسجيل سلوك جديد',
+   251→   251→    'behavior.edit': 'تعديل سجل السلوك',
+   252→   252→    'behavior.student': 'الطالب',
+   253→   253→    'behavior.studentName': 'اسم الطالب',
+   254→   254→    'behavior.type': 'النوع',
+   255→   255→    'behavior.category': 'الفئة',
+   256→   256→    'behavior.severity': 'الشدة',
+   257→   257→    'behavior.description': 'الوصف',
+   258→   258→    'behavior.date': 'التاريخ',
+   259→   259→    'behavior.search': 'البحث باسم الطالب...',
+   260→   260→    'behavior.exportCsv': 'تصدير CSV',
+   261→   261→    'behavior.summary': 'ملخص سلوك الطلاب',
+   262→   262→    'behavior.tracking': 'متابعة وتسجيل سلوكيات الطلاب',
+   263→   263→    'behavior.selectStudent': 'اختر الطالب...',
+   264→   264→    'behavior.selectCategory': 'اختر الفئة...',
+   265→   265→    'behavior.behaviorType': 'نوع السلوك',
+   266→   266→
+   267→   267→    // ── Timetable Section ──
+   268→   268→    'timetable.title': 'الجدول الدراسي',
+   269→   269→
+   270→   270→    // ── Analytics Section ──
+   271→   271→    'analytics.title': 'التحليلات',
+   272→   272→
+   273→   273→    // ── Reports Section ──
+   274→   274→    'reports.title': 'التقارير',
+   275→   275→
+   276→   276→    // ── Announcements Section ──
+   277→   277→    'announcements.title': 'الإعلانات',
+   278→   278→    'announcements.add': 'إضافة إعلان',
+   279→   279→    'announcements.addNew': 'إضافة إعلان جديد',
+   280→   280→    'announcements.edit': 'تعديل الإعلان',
+   281→   281→    'announcements.board': 'لوحة الإعلانات',
+   282→   282→    'announcements.managementDesc': 'إدارة الإعلانات والملاحظات الموجهة للطلاب والمعلمين وأولياء الأمور',
+   283→   283→    'announcements.search': 'بحث في العناوين والمحتوى...',
+   284→   284→    'announcements.pinned': 'الإعلانات المثبتة',
+   285→   285→    'announcements.all': 'جميع الإعلانات',
+   286→   286→
+   287→   287→    // ── Messages Section ──
+   288→   288→    'messages.title': 'الرسائل',
+   289→   289→    'messages.description': 'التواصل مع أولياء الأمور والمعلمين',
+   290→   290→    'messages.search': 'بحث في الرسائل...',
+   291→   291→    'messages.compose': 'رسالة جديدة',
+   292→   292→    'messages.to': 'المرسل إليه',
+   293→   293→    'messages.unread': 'الرسائل غير المقروءة',
+   294→   294→    'messages.sentToday': 'الرسائل المرسلة اليوم',
+   295→   295→
+   296→   296→    // ── Notifications Section ──
+   297→   297→    'notifications.title': 'الإشعارات',
+   298→   298→    'notifications.center': 'مركز الإشعارات',
+   299→   299→    'notifications.markAllRead': 'تحديد الكل كمقروء',
+   300→   300→    'notifications.soundOn': 'صوت مفعل',
+   301→   301→    'notifications.soundOff': 'صوت مكتوم',
+   302→   302→    'notifications.urgent': 'عاجل',
+   303→   303→    'notifications.new': 'جديد',
+   304→   304→    'notifications.description': 'متابعة جميع التنبيهات والأخبار وتحديثات النظام',
+   305→   305→    'notifications.all': 'الكل',
+   306→   306→    'notifications.unread': 'غير مقروء',
+   307→   307→    'notifications.info': 'معلومات',
+   308→   308→    'notifications.warning': 'تحذير',
+   309→   309→    'notifications.success': 'نجاح',
+   310→   310→    'notifications.error_label': 'خطأ',
+   311→   311→    'notifications.today': 'اليوم',
+   312→   312→    'notifications.yesterday': 'أمس',
+   313→   313→    'notifications.thisWeek': 'هذا الأسبوع',
+   314→   314→    'notifications.older': 'أقدم',
+   315→   315→    'notifications.now': 'الآن',
+   316→   316→    'notifications.empty': 'لا توجد إشعارات',
+   317→   317→    'notifications.markAsRead': 'تحديد كمقروء',
+   318→   318→    'notifications.delete': 'حذف',
+   319→   319→
+   320→   320→    // ── AI Assistant ──
+   321→   321→    'ai.title': 'المساعد الذكي',
+   322→   322→
+   323→   323→    // ── Trash Section ──
+   324→   324→    'trash.title': 'المحذوفات',
+   325→   325→    'trash.bin': 'سلة المحذوفات',
+   326→   326→    'trash.restore': 'استعادة',
+   327→   327→    'trash.restoreAll': 'استعادة الكل',
+   328→   328→    'trash.permanentDelete': 'حذف نهائي',
+   329→   329→    'trash.emptyTrash': 'إفراغ سلة المحذوفات',
+   330→   330→    'trash.confirmEmpty': 'تأكيد تفريغ سلة المحذوفات',
+   331→   331→    'trash.confirmEmptyDesc': 'هل أنت متأكد من تفريغ سلة المحذوفات بالكامل؟',
+   332→   332→    'trash.confirmPermanentDelete': 'تأكيد الحذف النهائي',
+   333→   333→    'trash.deletedBy': 'بواسطة',
+   334→   334→    'trash.item': 'عنصر',
+   335→   335→    'trash.deletedItems': 'العناصر المحذوفة مؤخراً - يمكنك استعادتها أو حذفها نهائياً',
+   336→   336→    'trash.emptyState': 'سلة المحذوفات فارغة',
+   337→   337→    'trash.emptyStateDesc': 'لا توجد عناصر محذوفة.',
+   338→   338→    'trash.yesPermanentDelete': 'نعم، حذف نهائي',
+   339→   339→
+   340→   340→    // ── Library Section ──
+   341→   341→    'library.title': 'المكتبة',
+   342→   342→    'library.add': 'إضافة كتاب',
+   343→   343→    'library.addNew': 'إضافة كتاب جديد',
+   344→   344→    'library.edit': 'تعديل الكتاب',
+   345→   345→    'library.titleField': 'العنوان',
+   346→   346→    'library.author': 'المؤلف',
+   347→   347→    'library.authorName': 'اسم المؤلف',
+   348→   348→    'library.category': 'التصنيف',
+   349→   349→    'library.status': 'الحالة',
+   350→   350→    'library.search': 'ابحث بالعنوان، المؤلف، أو ISBN...',
+   351→   351→    'library.exportCsv': 'تصدير CSV',
+   352→   352→    'library.selectCategory': 'اختر التصنيف...',
+   353→   353→    'library.allCategories': 'جميع التصنيفات',
+   354→   354→    'library.categories': 'التصنيفات',
+   355→   355→    'library.empty': 'المكتبة فارغة',
+   356→   356→    'library.noResults': 'لا توجد نتائج مطابقة للبحث',
+   357→   357→
+   358→   358→    // ── Fees Section ──
+   359→   359→    'fees.title': 'الرسوم',
+   360→   360→    'fees.management': 'إدارة الرسوم والمدفوعات',
+   361→   361→    'fees.managementDesc': 'تتبع الرسوم الدراسية والمدفوعات والحسابات المالية',
+   362→   362→    'fees.add': 'إضافة رسوم جديدة',
+   363→   363→    'fees.edit': 'تعديل الرسوم',
+   364→   364→    'fees.student': 'الطالب',
+   365→   365→    'fees.studentName': 'اسم الطالب',
+   366→   366→    'fees.feeType': 'نوع الرسوم',
+   367→   367→    'fees.amount': 'المبلغ',
+   368→   368→    'fees.status': 'الحالة',
+   369→   369→    'fees.search': 'بحث عن طالب أو صف...',
+   370→   370→    'fees.exportCsv': 'تصدير CSV',
+   371→   371→    'fees.totalFees': 'إجمالي الرسوم',
+   372→   372→    'fees.details': 'تفاصيل الرسوم',
+   373→   373→    'fees.selectFeeType': 'نوع الرسوم',
+   374→   374→    'fees.selectStatus': 'الحالة',
+   375→   375→    'fees.noResults': 'لم يتم العثور على سجلات تطابق معايير البحث',
+   376→   376→
+   377→   377→    // ── Classroom Camera ──
+   378→   378→    'classroom-camera.title': 'كاميرات الفصول',
+   379→   379→    'classroom-camera.class': 'الفصل',
+   380→   380→    'classroom-camera.teacher': 'المعلم',
+   381→   381→    'classroom-camera.studentCount': 'عدد الطلاب',
+   382→   382→    'classroom-camera.status': 'الحالة',
+   383→   383→    'classroom-camera.online': 'متصل',
+   384→   384→    'classroom-camera.offline': 'غير متصل',
+   385→   385→    'classroom-camera.recording': 'يسجّل',
+   386→   386→    'classroom-camera.totalCameras': 'إجمالي الكاميرات',
+   387→   387→    'classroom-camera.connected': 'متصل',
+   388→   388→
+   389→   389→    // ── Settings Section ──
+   390→   390→    'settings.title': 'الإعدادات',
+   391→   391→    'settings.general': 'عام',
+   392→   392→    'settings.appearance': 'المظهر',
+   393→   393→    'settings.notifications': 'الإشعارات',
+   394→   394→    'settings.security': 'الأمان',
+   395→   395→    'settings.language': 'اللغة',
+   396→   396→    'settings.academicYear': 'العام الدراسي',
+   397→   397→    'settings.customizeAppearance': 'تخصيص المظهر',
+   398→   398→    'settings.darkMode': 'الوضع الداكن',
+   399→   399→    'settings.darkModeDesc': 'تفعيل المظهر الداكن (موصى به)',
+   400→   400→    'settings.soundNotifications': 'إشعارات الصوت',
+   401→   401→    'settings.soundNotificationsDesc': 'تنبيهات صوتية عند الإشعارات الجديدة',
+   402→   402→    'settings.generalSettings': 'إعدادات عامة',
+   403→   403→    'settings.description': 'تخصيص إعدادات النظام والملف الشخصي والإشعارات',
+   404→   404→
+   405→   405→    // ── Common ──
+   406→   406→    'common.save': 'حفظ',
+   407→   407→    'common.cancel': 'إلغاء',
+   408→   408→    'common.confirm': 'تأكيد',
+   409→   409→    'common.delete': 'حذف',
+   410→   410→    'common.edit': 'تعديل',
+   411→   411→    'common.add': 'إضافة',
+   412→   412→    'common.search': 'بحث',
+   413→   413→    'common.filter': 'تصفية',
+   414→   414→    'common.export': 'تصدير',
+   415→   415→    'common.import': 'استيراد',
+   416→   416→    'common.close': 'إغلاق',
+   417→   417→    'common.back': 'رجوع',
+   418→   418→    'common.next': 'التالي',
+   419→   419→    'common.previous': 'السابق',
+   420→   420→    'common.loading': 'جارٍ التحميل...',
+   421→   421→    'common.noData': 'لا توجد بيانات',
+   422→   422→    'common.success': 'تمت العملية بنجاح',
+   423→   423→    'common.error': 'حدث خطأ',
+   424→   424→    'common.yes': 'نعم',
+   425→   425→    'common.no': 'لا',
+   426→   426→
+   427→   427→    // ── Sidebar toggle ──
+   428→   428→    'sidebar.collapse': 'طي القائمة',
+   429→   429→    'sidebar.expand': 'توسيع القائمة',
+   430→   430→
+   431→   431→    // ── Greeting ──
+   432→   432→    'greeting.morning': 'صباح الخير',
+   433→   433→    'greeting.afternoon': 'مساء الخير',
+   434→   434→    'greeting.evening': 'طاب مساؤك',
+   435→   435→  },
+   436→   436→
+   437→   437→  en: {
+   438→   438→    // ── App ──
+   439→   439→    'app.name': 'AuraLab',
+   440→   440→    'app.tagline': 'Smart School Management System',
+   441→   441→    'app.loading': 'Loading dashboard...',
+   442→   442→    'app.poweredBy': 'Powered by AuraLab',
+   443→   443→    'app.version': 'Version 2.7.0',
+   444→   444→
+   445→   445→    // ── Sidebar Groups ──
+   446→   446→    'sidebar.group.main': 'Main',
+   447→   447→    'sidebar.group.academic': 'Academic',
+   448→   448→    'sidebar.group.tools': 'Tools',
+   449→   449→    'sidebar.group.system': 'System',
+   450→   450→
+   451→   451→    // ── Sidebar Nav Items ──
+   452→   452→    'nav.dashboard': 'Dashboard',
+   453→   453→    'nav.students': 'Students',
+   454→   454→    'nav.teachers': 'Teachers',
+   455→   455→    'nav.classes': 'Classes',
+   456→   456→    'nav.exams': 'Exams',
+   457→   457→    'nav.sessions': 'Sessions',
+   458→   458→    'nav.attendance': 'Attendance',
+   459→   459→    'nav.grades': 'Grades',
+   460→   460→    'nav.behavior': 'Student Behavior',
+   461→   461→    'nav.timetable': 'Timetable',
+   462→   462→    'nav.analytics': 'Analytics',
+   463→   463→    'nav.reports': 'Reports',
+   464→   464→    'nav.announcements': 'Announcements',
+   465→   465→    'nav.messages': 'Messages',
+   466→   466→    'nav.notifications': 'Notifications',
+   467→   467→    'nav.ai-assistant': 'AI Assistant',
+   468→   468→    'nav.trash': 'Trash',
+   469→   469→    'nav.library': 'Library',
+   470→   470→    'nav.fees': 'Fees',
+   471→   471→    'nav.classroom-camera': 'Classroom Cameras',
+   472→   472→    'nav.settings': 'Settings',
+   473→   473→
+   474→   474→    // ── Header ──
+   475→   475→    'header.search': 'Search...',
+   476→   476→    'header.searchStudents': 'Press Enter to search students',
+   477→   477→    'header.lastRefresh': 'Last refresh:',
+   478→   478→    'header.refreshData': 'Refresh data',
+   479→   479→    'header.exportPdf': 'Export PDF',
+   480→   480→    'header.export': 'Export',
+   481→   481→    'header.import': 'Import',
+   482→   482→    'header.changeLanguage': 'Change language',
+   483→   483→    'header.settings': 'Settings',
+   484→   484→    'header.notifications': 'Notifications',
+   485→   485→    'header.userMenu': 'User menu',
+   486→   486→    'header.profile': 'Profile',
+   487→   487→    'header.comingSoon': 'Soon',
+   488→   488→    'header.logout': 'Logout',
+   489→   489→    'header.admin': 'Admin',
+   490→   490→
+   491→   491→    // ── Breadcrumb ──
+   492→   492→    'breadcrumb.home': 'Home',
+   493→   493→    'breadcrumb.nav': 'Navigation path',
+   494→   494→
+   495→   495→    // ── Footer ──
+   496→   496→    'footer.copyright': 'Smart School Management System',
+   497→   497→    'footer.quickLinks': 'Quick links',
+   498→   498→    'footer.privacy': 'Privacy Policy',
+   499→   499→    'footer.terms': 'Terms & Conditions',
+   500→   500→    'footer.help': 'Help',
+   501→   501→
+   502→   502→    // ── Status ──
+   503→   503→    'status.stable': 'Stable',
+   504→   504→    'status.improved': 'Improved',
+   505→   505→    'status.needsAttention': 'Needs Attention',
+   506→   506→    'status.critical': 'Critical',
+   507→   507→    'status.active': 'Active',
+   508→   508→    'status.completed': 'Completed',
+   509→   509→    'status.inactive': 'Inactive',
+   510→   510→    'status.present': 'Present',
+   511→   511→    'status.late': 'Late',
+   512→   512→    'status.absent': 'Absent',
+   513→   513→    'status.trendUp': 'Up',
+   514→   514→    'status.trendDown': 'Down',
+   515→   515→
+   516→   516→    // ── Dashboard ──
+   517→   517→    'dashboard.title': 'Dashboard',
+   518→   518→    'dashboard.totalStudents': 'Total Students',
+   519→   519→    'dashboard.totalTeachers': 'Total Teachers',
+   520→   520→    'dashboard.totalClasses': 'Total Classes',
+   521→   521→    'dashboard.attendanceRate': 'Attendance Rate',
+   522→   522→    'dashboard.weeklyActivity': 'Weekly Activity',
+   523→   523→    'dashboard.quickAttendance': 'Quick Attendance',
+   524→   524→    'dashboard.recentNotifications': 'Recent Notifications',
+   525→   525→    'dashboard.upcomingSessions': 'Upcoming Sessions',
+   526→   526→    'dashboard.quickActions': 'Quick Actions',
+   527→   527→    'dashboard.todaySchedule': "Today's Schedule",
+   528→   528→    'dashboard.examResults': 'Exam Results',
+   529→   529→    'dashboard.feeCollection': 'Fee Collection',
+   530→   530→
+   531→   531→    // ── Dashboard Stat Labels ──
+   532→   532→    'dashboard.stat.students': 'Students',
+   533→   533→    'dashboard.stat.teachers': 'Teachers',
+   534→   534→    'dashboard.stat.classes': 'Classes',
+   535→   535→    'dashboard.stat.attendance': 'Attendance',
+   536→   536→    'dashboard.stat.exams': 'Exams',
+   537→   537→    'dashboard.stat.avgGrade': 'Avg Grade',
+   538→   538→
+   539→   539→    // ── Dashboard Days ──
+   540→   540→    'day.sat': 'Sat',
+   541→   541→    'day.sun': 'Sun',
+   542→   542→    'day.mon': 'Mon',
+   543→   543→    'day.tue': 'Tue',
+   544→   544→    'day.wed': 'Wed',
+   545→   545→    'day.thu': 'Thu',
+   546→   546→    'day.fri': 'Fri',
+   547→   547→
+   548→   548→    // ── Dashboard Notifications ──
+   549→   549→    'dashboard.notif.1': '28 of 32 students marked present in Math class',
+   550→   550→    'dashboard.notif.2': 'Alert: Student Ahmed Mohamed absent for 3 consecutive sessions',
+   551→   551→    'dashboard.notif.3': 'Science exam results now available for review',
+   552→   552→    'dashboard.notif.4': 'Arabic Language curriculum has been updated',
+   553→   553→    'dashboard.notif.5': 'Parents meeting scheduled for next Thursday',
+   554→   554→    'dashboard.notif.time.5m': '5 min ago',
+   555→   555→    'dashboard.notif.time.20m': '20 min ago',
+   556→   556→    'dashboard.notif.time.1h': '1 hour ago',
+   557→   557→    'dashboard.notif.time.2h': '2 hours ago',
+   558→   558→    'dashboard.notif.time.3h': '3 hours ago',
+   559→   559→
+   560→   560→    // ── Students Section ──
+   561→   561→    'students.title': 'Student Management',
+   562→   562→    'students.add': 'Add Student',
+   563→   563→    'students.edit': 'Edit',
+   564→   564→    'students.delete': 'Delete',
+   565→   565→    'students.view': 'View',
+   566→   566→    'students.search': 'Search students...',
+   567→   567→    'students.name': 'Name',
+   568→   568→    'students.grade': 'Grade',
+   569→   569→    'students.class': 'Class',
+   570→   570→    'students.phone': 'Phone',
+   571→   571→    'students.email': 'Email',
+   572→   572→    'students.status': 'Status',
+   573→   573→    'students.enrollDate': 'Enroll Date',
+   574→   574→    'students.actions': 'Actions',
+   575→   575→    'students.noStudents': 'No students',
+   576→   576→    'students.confirmDelete': 'Are you sure you want to delete this student?',
+   577→   577→    'students.export': 'Export',
+   578→   578→    'students.import': 'Import',
+   579→   579→
+   580→   580→    // ── Teachers Section ──
+   581→   581→    'teachers.title': 'Teacher Management',
+   582→   582→    'teachers.add': 'Add Teacher',
+   583→   583→    'teachers.edit': 'Edit',
+   584→   584→    'teachers.delete': 'Delete',
+   585→   585→    'teachers.search': 'Search teachers...',
+   586→   586→    'teachers.name': 'Name',
+   587→   587→    'teachers.subject': 'Subject',
+   588→   588→    'teachers.phone': 'Phone',
+   589→   589→    'teachers.email': 'Email',
+   590→   590→    'teachers.status': 'Status',
+   591→   591→    'teachers.permissions': 'Permissions',
+   592→   592→    'teachers.admin': 'Admin',
+   593→   593→    'teachers.teacher': 'Teacher',
+   594→   594→    'teachers.supervisor': 'Supervisor',
+   595→   595→
+   596→   596→    // ── Classes Section ──
+   597→   597→    'classes.title': 'Class Management',
+   598→   598→    'classes.add': 'Add Class',
+   599→   599→    'classes.name': 'Class Name',
+   600→   600→    'classes.grade': 'Grade',
+   601→   601→    'classes.room': 'Room',
+   602→   602→    'classes.students': 'Students',
+   603→   603→    'classes.allGrades': 'All Grades',
+   604→   604→    'classes.grade1': 'Grade 1',
+   605→   605→    'classes.grade2': 'Grade 2',
+   606→   606→    'classes.grade3': 'Grade 3',
+   607→   607→
+   608→   608→    // ── Exams Section ──
+   609→   609→    'exams.title': 'Exams',
+   610→   610→    'exams.add': 'Add Exam',
+   611→   611→    'exams.management': 'Exam Management',
+   612→   612→    'exams.managementDesc': 'Manage exams and track student results',
+   613→   613→    'exams.subject': 'Subject',
+   614→   614→    'exams.date': 'Date',
+   615→   615→    'exams.score': 'Score',
+   616→   616→    'exams.maxScore': 'Max Score',
+   617→   617→    'exams.selectSubject': 'Select subject',
+   618→   618→    'exams.search': 'Search by title, subject, or student...',
+   619→   619→    'exams.allExams': 'from all exams',
+   620→   620→    'exams.totalExams': 'Total Exams',
+   621→   621→    'exams.analysisBySubject': 'Exam results analysis by subject',
+   622→   622→    'exams.scoreObtained': 'Score obtained',
+   623→   623→
+   624→   624→    // ── Sessions Section ──
+   625→   625→    'sessions.title': 'Sessions',
+   626→   626→
+   627→   627→    // ── Attendance Section ──
+   628→   628→    'attendance.title': 'Attendance',
+   629→   629→    'attendance.present': 'Present',
+   630→   630→    'attendance.absent': 'Absent',
+   631→   631→    'attendance.late': 'Late',
+   632→   632→    'attendance.excused': 'Excused',
+   633→   633→    'attendance.student': 'Student',
+   634→   634→    'attendance.date': 'Date',
+   635→   635→    'attendance.studentName': 'Student Name',
+   636→   636→    'attendance.search': 'Search by student name...',
+   637→   637→    'attendance.noData': 'No data',
+   638→   638→    'attendance.viewDetails': 'View student attendance record details',
+   639→   639→
+   640→   640→    // ── Grades Section ──
+   641→   641→    'grades.title': 'Grades',
+   642→   642→    'grades.add': 'Add Grade',
+   643→   643→    'grades.addNew': 'Add New Grade',
+   644→   644→    'grades.edit': 'Edit Grade',
+   645→   645→    'grades.student': 'Student',
+   646→   646→    'grades.studentName': 'Student Name',
+   647→   647→    'grades.subject': 'Subject',
+   648→   648→    'grades.term': 'Term',
+   649→   649→    'grades.score': 'Score',
+   650→   650→    'grades.maxScore': 'Max Score',
+   651→   651→    'grades.date': 'Date',
+   652→   652→    'grades.search': 'Search by student name...',
+   653→   653→    'grades.selectStudent': 'Select student',
+   654→   654→    'grades.selectSubject': 'Select subject',
+   655→   655→    'grades.record': 'Grade Record',
+   656→   656→    'grades.details': 'Grade Details',
+   657→   657→    'grades.reportCard': 'Student Report Card',
+   658→   658→    'grades.bySubject': 'Grades by Subject',
+   659→   659→    'grades.classRank': 'Class Rank',
+   660→   660→    'grades.scoreObtained': 'Score obtained',
+   661→   661→    'grades.avgGrade': 'Average Grade',
+   662→   662→    'grades.distribution': 'Grade Distribution',
+   663→   663→    'grades.exportCsv': 'Export CSV',
+   664→   664→
+   665→   665→    // ── Behavior Section ──
+   666→   666→    'behavior.title': 'Student Behavior',
+   667→   667→    'behavior.add': 'Record Behavior',
+   668→   668→    'behavior.addNew': 'Record New Behavior',
+   669→   669→    'behavior.edit': 'Edit Behavior Record',
+   670→   670→    'behavior.student': 'Student',
+   671→   671→    'behavior.studentName': 'Student Name',
+   672→   672→    'behavior.type': 'Type',
+   673→   673→    'behavior.category': 'Category',
+   674→   674→    'behavior.severity': 'Severity',
+   675→   675→    'behavior.description': 'Description',
+   676→   676→    'behavior.date': 'Date',
+   677→   677→    'behavior.search': 'Search by student name...',
+   678→   678→    'behavior.exportCsv': 'Export CSV',
+   679→   679→    'behavior.summary': 'Behavior Summary',
+   680→   680→    'behavior.tracking': 'Track and record student behavior',
+   681→   681→    'behavior.selectStudent': 'Select student...',
+   682→   682→    'behavior.selectCategory': 'Select category...',
+   683→   683→    'behavior.behaviorType': 'Behavior Type',
+   684→   684→
+   685→   685→    // ── Timetable Section ──
+   686→   686→    'timetable.title': 'Timetable',
+   687→   687→
+   688→   688→    // ── Analytics Section ──
+   689→   689→    'analytics.title': 'Analytics',
+   690→   690→
+   691→   691→    // ── Reports Section ──
+   692→   692→    'reports.title': 'Reports',
+   693→   693→
+   694→   694→    // ── Announcements Section ──
+   695→   695→    'announcements.title': 'Announcements',
+   696→   696→    'announcements.add': 'Add Announcement',
+   697→   697→    'announcements.addNew': 'Add New Announcement',
+   698→   698→    'announcements.edit': 'Edit Announcement',
+   699→   699→    'announcements.board': 'Announcement Board',
+   700→   700→    'announcements.managementDesc': 'Manage announcements and notices for students, teachers, and parents',
+   701→   701→    'announcements.search': 'Search titles and content...',
+   702→   702→    'announcements.pinned': 'Pinned Announcements',
+   703→   703→    'announcements.all': 'All Announcements',
+   704→   704→
+   705→   705→    // ── Messages Section ──
+   706→   706→    'messages.title': 'Messages',
+   707→   707→    'messages.description': 'Communicate with parents and teachers',
+   708→   708→    'messages.search': 'Search messages...',
+   709→   709→    'messages.compose': 'New Message',
+   710→   710→    'messages.to': 'To',
+   711→   711→    'messages.unread': 'Unread Messages',
+   712→   712→    'messages.sentToday': 'Sent Today',
+   713→   713→
+   714→   714→    // ── Notifications Section ──
+   715→   715→    'notifications.title': 'Notifications',
+   716→   716→    'notifications.center': 'Notification Center',
+   717→   717→    'notifications.markAllRead': 'Mark all as read',
+   718→   718→    'notifications.soundOn': 'Sound on',
+   719→   719→    'notifications.soundOff': 'Sound muted',
+   720→   720→    'notifications.urgent': 'Urgent',
+   721→   721→    'notifications.new': 'new',
+   722→   722→    'notifications.description': 'Track all alerts, news, and system updates',
+   723→   723→    'notifications.all': 'All',
+   724→   724→    'notifications.unread': 'Unread',
+   725→   725→    'notifications.info': 'Info',
+   726→   726→    'notifications.warning': 'Warning',
+   727→   727→    'notifications.success': 'Success',
+   728→   728→    'notifications.error_label': 'Error',
+   729→   729→    'notifications.today': 'Today',
+   730→   730→    'notifications.yesterday': 'Yesterday',
+   731→   731→    'notifications.thisWeek': 'This Week',
+   732→   732→    'notifications.older': 'Older',
+   733→   733→    'notifications.now': 'Now',
+   734→   734→    'notifications.empty': 'No notifications',
+   735→   735→    'notifications.markAsRead': 'Mark as read',
+   736→   736→    'notifications.delete': 'Delete',
+   737→   737→
+   738→   738→    // ── AI Assistant ──
+   739→   739→    'ai.title': 'AI Assistant',
+   740→   740→
+   741→   741→    // ── Trash Section ──
+   742→   742→    'trash.title': 'Trash',
+   743→   743→    'trash.bin': 'Trash Bin',
+   744→   744→    'trash.restore': 'Restore',
+   745→   745→    'trash.restoreAll': 'Restore All',
+   746→   746→    'trash.permanentDelete': 'Permanent Delete',
+   747→   747→    'trash.emptyTrash': 'Empty Trash',
+   748→   748→    'trash.confirmEmpty': 'Confirm empty trash',
+   749→   749→    'trash.confirmEmptyDesc': 'Are you sure you want to empty the trash completely?',
+   750→   750→    'trash.confirmPermanentDelete': 'Confirm Permanent Delete',
+   751→   751→    'trash.deletedBy': 'Deleted by',
+   752→   752→    'trash.item': 'item',
+   753→   753→    'trash.deletedItems': 'Recently deleted items - you can restore or permanently delete them',
+   754→   754→    'trash.emptyState': 'Trash bin is empty',
+   755→   755→    'trash.emptyStateDesc': 'No deleted items.',
+   756→   756→    'trash.yesPermanentDelete': 'Yes, delete permanently',
+   757→   757→
+   758→   758→    // ── Library Section ──
+   759→   759→    'library.title': 'Library',
+   760→   760→    'library.add': 'Add Book',
+   761→   761→    'library.addNew': 'Add New Book',
+   762→   762→    'library.edit': 'Edit Book',
+   763→   763→    'library.titleField': 'Title',
+   764→   764→    'library.author': 'Author',
+   765→   765→    'library.authorName': 'Author Name',
+   766→   766→    'library.category': 'Category',
+   767→   767→    'library.status': 'Status',
+   768→   768→    'library.search': 'Search by title, author, or ISBN...',
+   769→   769→    'library.exportCsv': 'Export CSV',
+   770→   770→    'library.selectCategory': 'Select category...',
+   771→   771→    'library.allCategories': 'All Categories',
+   772→   772→    'library.categories': 'Categories',
+   773→   773→    'library.empty': 'Library is empty',
+   774→   774→    'library.noResults': 'No matching results found',
+   775→   775→
+   776→   776→    // ── Fees Section ──
+   777→   777→    'fees.title': 'Fees',
+   778→   778→    'fees.management': 'Fee & Payment Management',
+   779→   779→    'fees.managementDesc': 'Track tuition fees, payments, and financial accounts',
+   780→   780→    'fees.add': 'Add New Fee',
+   781→   781→    'fees.edit': 'Edit Fee',
+   782→   782→    'fees.student': 'Student',
+   783→   783→    'fees.studentName': 'Student Name',
+   784→   784→    'fees.feeType': 'Fee Type',
+   785→   785→    'fees.amount': 'Amount',
+   786→   786→    'fees.status': 'Status',
+   787→   787→    'fees.search': 'Search by student or class...',
+   788→   788→    'fees.exportCsv': 'Export CSV',
+   789→   789→    'fees.totalFees': 'Total Fees',
+   790→   790→    'fees.details': 'Fee Details',
+   791→   791→    'fees.selectFeeType': 'Fee Type',
+   792→   792→    'fees.selectStatus': 'Status',
+   793→   793→    'fees.noResults': 'No records match the search criteria',
+   794→   794→
+   795→   795→    // ── Classroom Camera ──
+   796→   796→    'classroom-camera.title': 'Classroom Cameras',
+   797→   797→    'classroom-camera.class': 'Class',
+   798→   798→    'classroom-camera.teacher': 'Teacher',
+   799→   799→    'classroom-camera.studentCount': 'Students',
+   800→   800→    'classroom-camera.status': 'Status',
+   801→   801→    'classroom-camera.online': 'Online',
+   802→   802→    'classroom-camera.offline': 'Offline',
+   803→   803→    'classroom-camera.recording': 'Recording',
+   804→   804→    'classroom-camera.totalCameras': 'Total Cameras',
+   805→   805→    'classroom-camera.connected': 'Connected',
+   806→   806→
+   807→   807→    // ── Settings Section ──
+   808→   808→    'settings.title': 'Settings',
+   809→   809→    'settings.general': 'General',
+   810→   810→    'settings.appearance': 'Appearance',
+   811→   811→    'settings.notifications': 'Notifications',
+   812→   812→    'settings.security': 'Security',
+   813→   813→    'settings.language': 'Language',
+   814→   814→    'settings.academicYear': 'Academic Year',
+   815→   815→    'settings.customizeAppearance': 'Customize Appearance',
+   816→   816→    'settings.darkMode': 'Dark Mode',
+   817→   817→    'settings.darkModeDesc': 'Enable dark mode (recommended)',
+   818→   818→    'settings.soundNotifications': 'Sound Notifications',
+   819→   819→    'settings.soundNotificationsDesc': 'Audio alerts for new notifications',
+   820→   820→    'settings.generalSettings': 'General Settings',
+   821→   821→    'settings.description': 'Customize system settings, profile, and notifications',
+   822→   822→
+   823→   823→    // ── Common ──
+   824→   824→    'common.save': 'Save',
+   825→   825→    'common.cancel': 'Cancel',
+   826→   826→    'common.confirm': 'Confirm',
+   827→   827→    'common.delete': 'Delete',
+   828→   828→    'common.edit': 'Edit',
+   829→   829→    'common.add': 'Add',
+   830→   830→    'common.search': 'Search',
+   831→   831→    'common.filter': 'Filter',
+   832→   832→    'common.export': 'Export',
+   833→   833→    'common.import': 'Import',
+   834→   834→    'common.close': 'Close',
+   835→   835→    'common.back': 'Back',
+   836→   836→    'common.next': 'Next',
+   837→   837→    'common.previous': 'Previous',
+   838→   838→    'common.loading': 'Loading...',
+   839→   839→    'common.noData': 'No data',
+   840→   840→    'common.success': 'Operation successful',
+   841→   841→    'common.error': 'An error occurred',
+   842→   842→    'common.yes': 'Yes',
+   843→   843→    'common.no': 'No',
+   844→   844→
+   845→   845→    // ── Sidebar toggle ──
+   846→   846→    'sidebar.collapse': 'Collapse sidebar',
+   847→   847→    'sidebar.expand': 'Expand sidebar',
+   848→   848→
+   849→   849→    // ── Greeting ──
+   850→   850→    'greeting.morning': 'Good Morning',
+   851→   851→    'greeting.afternoon': 'Good Afternoon',
+   852→   852→    'greeting.evening': 'Good Evening',
+   853→   853→  },
+   854→   854→};
+   855→   855→
+   856→   856→// ---------------------------------------------------------------------------
+   857→   857→// t() — Main translation function
+   858→   858→// ---------------------------------------------------------------------------
+   859→   859→
+   860→   860→/**
+   861→   861→ * Translate a key to the current locale string.
+   862→   862→ * Falls back to Arabic if key not found in the target locale.
+   863→   863→ * Falls back to the key itself if not found anywhere.
+   864→   864→ */
+   865→   865→export function t(key: string, locale: Locale = 'ar'): string {
+   866→   866→  return translations[locale]?.[key] ?? translations.ar[key] ?? key;
+   867→   867→}
+   868→   868→
+   869→   869→// ---------------------------------------------------------------------------
+   870→   870→// Convenience hook-friendly getter
+   871→   871→// ---------------------------------------------------------------------------
+   872→   872→
+   873→   873→/** Get all translations for a locale (for bulk use) */
+   874→   874→export function getTranslations(locale: Locale): Record<string, string> {
+   875→   875→  return translations[locale];
+   876→   876→}
+   877→   877→

@@ -22,7 +22,12 @@ import {
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
 import type { Message } from '@/lib/types';
+import { t } from '@/lib/i18n';
 import { toast } from 'sonner';
+import CallOverlay, {
+  formatCallDuration,
+  useCallStore,
+} from './call-overlay';
 import {
   MessageSquare,
   Send,
@@ -36,6 +41,8 @@ import {
   Plus,
   Mail,
   Clock,
+  Phone,
+  Video,
   X,
   Inbox,
   Loader2,
@@ -309,6 +316,7 @@ const MOCK_MESSAGES: Message[] = [
     hasAttachment: false,
     priority: 'normal',
     parentId: 'msg1',
+    isArchived: false,
     createdAt: new Date(Date.now() - 50 * 60 * 1000).toISOString(),
   },
   {
@@ -416,6 +424,7 @@ const MOCK_MESSAGES: Message[] = [
     hasAttachment: false,
     priority: 'urgent',
     parentId: 'msg6',
+    isArchived: false,
     createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
   },
   {
@@ -451,6 +460,7 @@ const MOCK_MESSAGES: Message[] = [
     hasAttachment: false,
     priority: 'normal',
     parentId: 'msg5',
+    isArchived: false,
     createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
   },
   {
@@ -526,24 +536,36 @@ function MessageListItem({
   isSelected,
   onSelect,
   onStarToggle,
+  onVoiceCall,
+  onVideoCall,
   staggerIndex,
 }: {
   message: Message;
   isSelected: boolean;
   onSelect: () => void;
   onStarToggle: (e: React.MouseEvent) => void;
+  onVoiceCall: () => void;
+  onVideoCall: () => void;
   staggerIndex: number;
 }) {
+  const locale = useAppStore((s) => s.locale);
   const roleConfig = ROLE_CONFIG[message.senderRole];
   const priorityConfig = PRIORITY_CONFIG[message.priority];
   const isUnread = !message.isRead;
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
       className={cn(
-        'w-full text-right rounded-xl p-3.5 transition-all duration-200 group relative animate-fade-in-up',
+        'w-full text-right rounded-xl p-3.5 transition-all duration-200 group relative animate-fade-in-up cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A574]/50',
         isSelected
           ? 'bg-[rgba(212,165,116,0.08)]'
           : 'hover:bg-[rgba(212,165,116,0.04)]',
@@ -619,28 +641,58 @@ function MessageListItem({
           </div>
         </div>
 
-        {/* Star toggle */}
-        <button
-          type="button"
-          onClick={onStarToggle}
-          className={cn(
-            'shrink-0 mt-1 transition-all duration-200 active:scale-75',
-            message.isStarred
-              ? 'text-[#D4A574] hover:text-[#E8C9A8]'
-              : 'text-slate-600 hover:text-slate-400',
-          )}
-          style={{
-            transform: message.isStarred ? 'scale(1.1)' : 'scale(1)',
-          }}
-        >
-          {message.isStarred ? (
-            <Star className="h-4 w-4 fill-[#D4A574]" />
-          ) : (
-            <Star className="h-4 w-4" />
-          )}
-        </button>
+        {/* Hover call actions + star toggle */}
+        <div className="shrink-0 mt-1 flex items-center gap-0.5">
+          <div
+            className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-200"
+          >
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onVoiceCall();
+              }}
+              title={t('messages.voiceCall', locale)}
+              aria-label={t('messages.voiceCall', locale)}
+              className="p-1.5 rounded-lg text-slate-600 hover:text-[#D4A574] hover:bg-[#D4A574]/10 transition-colors duration-200"
+            >
+              <Phone className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onVideoCall();
+              }}
+              title={t('messages.videoCall', locale)}
+              aria-label={t('messages.videoCall', locale)}
+              className="p-1.5 rounded-lg text-slate-600 hover:text-[#D4A574] hover:bg-[#D4A574]/10 transition-colors duration-200"
+            >
+              <Video className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={onStarToggle}
+            className={cn(
+              'shrink-0 transition-all duration-200 active:scale-75',
+              message.isStarred
+                ? 'text-[#D4A574] hover:text-[#E8C9A8]'
+                : 'text-slate-600 hover:text-slate-400',
+            )}
+            style={{
+              transform: message.isStarred ? 'scale(1.1)' : 'scale(1)',
+            }}
+          >
+            {message.isStarred ? (
+              <Star className="h-4 w-4 fill-[#D4A574]" />
+            ) : (
+              <Star className="h-4 w-4" />
+            )}
+          </button>
+        </div>
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -656,6 +708,8 @@ function MessageDetail({
   onForward,
   onReplyViaDialog,
   onStarToggle,
+  onVoiceCall,
+  onVideoCall,
 }: {
   message: Message;
   threadMessages: Message[];
@@ -665,7 +719,10 @@ function MessageDetail({
   onForward: () => void;
   onReplyViaDialog: () => void;
   onStarToggle: () => void;
+  onVoiceCall: () => void;
+  onVideoCall: () => void;
 }) {
+  const locale = useAppStore((s) => s.locale);
   const [replyText, setReplyText] = useState('');
   const senderConfig = ROLE_CONFIG[message.senderRole];
   const recipientConfig = ROLE_CONFIG[message.recipientRole];
@@ -723,6 +780,22 @@ function MessageDetail({
             </Button>
           </div>
           <div className="flex items-center gap-1">
+            <button
+              onClick={onVoiceCall}
+              title={t('messages.voiceCall', locale)}
+              aria-label={t('messages.voiceCall', locale)}
+              className="p-2 rounded-lg text-slate-500 hover:text-[#D4A574] hover:bg-[#D4A574]/10 transition-all duration-200"
+            >
+              <Phone className="h-4 w-4" />
+            </button>
+            <button
+              onClick={onVideoCall}
+              title={t('messages.videoCall', locale)}
+              aria-label={t('messages.videoCall', locale)}
+              className="p-2 rounded-lg text-slate-500 hover:text-[#D4A574] hover:bg-[#D4A574]/10 transition-all duration-200"
+            >
+              <Video className="h-4 w-4" />
+            </button>
             <button
               onClick={onStarToggle}
               className={cn(
@@ -1344,6 +1417,48 @@ export default function MessagesSection() {
   const [composeInitialValues, setComposeInitialValues] = useState<ComposeInitialValues | undefined>(undefined);
   const [mobileShowDetail, setMobileShowDetail] = useState(false);
 
+  const locale = useAppStore((s) => s.locale);
+  const startCall = useCallStore((s) => s.startCall);
+
+  /* Toast when a call ends (nice status note with duration) */
+  useEffect(() => {
+    const unsubscribe = useCallStore.subscribe((state, prev) => {
+      if (state.phase === 'ended' && prev.phase !== 'ended' && prev.activeCall) {
+        const label =
+          state.endedReason === 'declined'
+            ? t('messages.callDeclined', locale)
+            : t('messages.callEnded', locale);
+        toast.success(`${label} — ${formatCallDuration(state.endedDuration)}`);
+      }
+    });
+    return unsubscribe;
+  }, [locale]);
+
+  /* Start a call with the other party of a message */
+  const handleVoiceCall = useCallback(
+    (msg: Message) => {
+      const isCounterpartRecipient = msg.senderRole === 'admin';
+      startCall({
+        contactId: isCounterpartRecipient ? msg.recipientId : msg.senderId,
+        contactName: isCounterpartRecipient ? msg.recipientName : msg.senderName,
+        kind: 'voice',
+      });
+    },
+    [startCall],
+  );
+
+  const handleVideoCall = useCallback(
+    (msg: Message) => {
+      const isCounterpartRecipient = msg.senderRole === 'admin';
+      startCall({
+        contactId: isCounterpartRecipient ? msg.recipientId : msg.senderId,
+        contactName: isCounterpartRecipient ? msg.recipientName : msg.senderName,
+        kind: 'video',
+      });
+    },
+    [startCall],
+  );
+
   /* Seed mock data on mount if store is empty */
   const initialized = useRef(false);
   useEffect(() => {
@@ -1691,6 +1806,8 @@ export default function MessagesSection() {
                   isSelected={selectedId === msg.id}
                   onSelect={() => handleSelectMessage(msg.id)}
                   onStarToggle={(e) => handleStarToggle(e, msg.id)}
+                  onVoiceCall={() => handleVoiceCall(msg)}
+                  onVideoCall={() => handleVideoCall(msg)}
                   staggerIndex={idx}
                 />
               ))
@@ -1731,6 +1848,8 @@ export default function MessagesSection() {
               onArchive={handleArchive}
               onForward={handleForward}
               onReplyViaDialog={handleReplyViaDialog}
+              onVoiceCall={() => handleVoiceCall(selectedMessage)}
+              onVideoCall={() => handleVideoCall(selectedMessage)}
               onStarToggle={() => {
                 if (selectedMessage) {
                   toggleMessageStar(selectedMessage.id);
@@ -1761,6 +1880,9 @@ export default function MessagesSection() {
         onSend={handleComposeSend}
         initialValues={composeInitialValues}
       />
+
+      {/* Voice / video call overlay (simulated) */}
+      <CallOverlay />
     </div>
   );
 }

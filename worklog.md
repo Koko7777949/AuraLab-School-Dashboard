@@ -1955,3 +1955,175 @@ Stage Summary:
 - 6 new settings sections added
 - All sections have working CRUD with visible dialogs
 - Lint: 0 errors, pushed to GitHub
+
+---
+Task ID: 6 (foundation)
+Agent: Main Orchestrator
+Task: Round 6 foundation — multi-language system, dialog fix verification, avatar upload fix, ReactBits/GSAP/Lenis setup
+
+Work Log:
+- Verified with agent-browser: the Round-5 CSS fix WORKS — "إضافة طالب جديد" dialog renders centered with position:fixed (top:29, left:384, inViewport:true)
+- Cloned 3 skill repos to /home/z/skills: gsap-skills (GSAP patterns), lenis (smooth scroll), reactbits.dev-skill (165 animated components registry)
+- Installed packages: gsap, @gsap/react, lenis, motion
+- Fetched ReactBits components (TS-TW variant): CountUp, BlurText, DecryptedText, ClickSpark, AnimatedContent into src/components/reactbits/
+- Fixed 5 lint errors in ReactBits components (ref-during-render, setState-in-effect patterns)
+- EXPANDED i18n system: rewrote src/lib/i18n.ts with ~230 keys × 3 languages (Arabic, English, French), added Locale type, LOCALES list, localeDir() helper
+- STORE: added locale/setLocale/toggleLocale + cameraAutoRotate/cameraRotateSeconds (persisted)
+- LOCALE PROVIDER: rewrote to support 3 locales, wired into layout.tsx (was dead code before — never imported!)
+- HEADER: wired real language switcher dropdown (3 languages), header avatar now reflects uploaded adminProfile photo + name, "الملف الشخصي" menu item now opens settings
+- AVATAR FIX: rewrote handleAvatarChange in settings-section.tsx — canvas-based compression to 256px JPEG ~82% quality (large photos previously blew past 4MB localStorage cap making upload appear broken), added "remove photo" button, reset input value so re-selecting same file works
+
+Stage Summary:
+- Dialog bug confirmed FIXED and browser-verified
+- Multi-language infrastructure now REAL (store → provider → header → all sections via t(key, locale))
+- Avatar upload root-caused and fixed (compression)
+- 4 parallel subagents dispatched next: 6-a camera overhaul, 6-b voice/video calls, 6-c motion (Lenis+GSAP+ReactBits), 6-d i18n+colored buttons in CRUD sections
+
+---
+Task ID: 6-a
+Agent: camera-overhaul-agent
+Task: Classroom camera system overhaul — rewrite classroom-camera.tsx (realism, auto-rotation, stats, GSAP entrance, i18n, responsive) + create new dashboard camera-widget-dashboard.tsx
+
+Work Log:
+- Created src/components/dashboard/camera-feed-canvas.tsx (NEW shared module): exports CAMERAS config, CameraFeedCanvas (raw canvas feed), CameraLiveBadges (pulsing red LIVE badge top-left via t('camera.live') + REC chip), CameraStatusBadge (colored status chip) — reused by both camera deliverables
+- Camera realism upgrades on canvas feeds: subtle moving students (per-student bob/sway phases + occasional raised hand), pacing teacher figure, sensor noise, smooth scanlines + slow sweeping luminance band, radial vignette, occasional signal-glitch flicker on recording cams (slice displacement via self drawImage + rose flash + black tear lines), offline static + t('camera.offlineMessage')/t('camera.checkConnection'), OSD bar with camera name and manual-padded HH:MM:SS timestamp (locale-safe, tabular)
+- Rewrote src/components/dashboard/classroom-camera.tsx keeping default export ClassroomCamera:
+  - Auto-rotation mode: play/pause toggle wired to store cameraAutoRotate/setCameraAutoRotate (persisted); cycles to next ONLINE camera (skips offline) every N seconds; speed selector 5s/8s/15s wired to setCameraRotateSeconds (with persisted-value guard, default 8); enabling rotation switches to single view
+  - Countdown progress bar at top of feed animating 0→100% (amber, origin-right for RTL) driven by rAF accumulator that pauses on document.hidden; manual prev/next/select/grid-jump resets the timer via shared selectCamera()
+  - Grid view: 1-col mobile → 2x2 (md) → 3x3-style 3-col (xl); clicking a cell (mouse or Enter/Space, role=button) switches to single view focused on that camera; selected camera gets amber border
+  - Stats bar: X online (emerald) / Y recording (rose pulsing) / Z offline (slate) chips with tabular-nums
+  - All visible strings via t(key, locale) from store locale (title, subtitle, single/grid, fullscreen/exit, autoRotate, rotateSpeed, recordingIndicator, prev/next, live, online/offline/recording); dir="rtl" kept; counter wrapped dir="ltr" tabular-nums
+  - Responsive controls bar: flex-col sm:flex-row, inner groups flex-wrap, full-width camera select on mobile
+  - GSAP entrance: stagger fade-up (y:22→0, 0.55s, stagger 0.08) on [data-anim="cam-card"] via gsap.context in isomorphic layout effect, auto-revert cleanup, respects store displaySettings.animationsEnabled
+  - Fullscreen, camera dropdown, recording-indicator toggle, prev/next + 1/6 counter all preserved; canvas sizes: grid 480x270, single 640x360, fullscreen 960x540 (canvas reads width/height per frame so res switches apply live)
+- Created src/components/dashboard/camera-widget-dashboard.tsx (NEW, default export CameraWidgetDashboard):
+  - Compact rounded-xl card (bg #1A1A24, border white/0.06, hover border amber), w-full
+  - One cycling canvas feed (640x360, aspect-video 16:9) auto-advancing through ONLINE cameras every 6s with 700ms crossfade (old layer fades out on top via scoped @keyframes in dangerouslySetInnerHTML style, same pattern as session-timer)
+  - Pauses cycling when document.hidden (visibilitychange listener re-baselines clock + rAF guard, dt clamped to 250ms)
+  - Header row: Video icon + t('dashboard.liveCameras') + pulsing LIVE badge + current camera name/location + view-all link-button → setActiveSection('camera')
+  - Footer: mini dot per camera (6 dots), active dot amber pill, offline dots dimmed non-clickable, clicking a dot jumps with crossfade and resets the 6s timer
+  - All strings via t(key, locale); reuses shared CameraFeedCanvas/CameraLiveBadges — no duplicated drawing code
+- Constraints respected: did NOT touch dashboard-overview.tsx, page.tsx, i18n.ts, store.ts, messages/students/teachers/classes sections; no `any`; 'use client' on all files
+- Verification: bun run lint → 0 problems in my 3 files (remaining 3 errors are in call-overlay.tsx from parallel agent 6-b + 2 pre-existing warnings in layout.tsx); bunx tsc --noEmit → 0 errors in my files (all reported errors are pre-existing in api routes/charts/other sections); dev server GET / returns 200 with clean compile
+
+Stage Summary:
+- Camera system overhauled: realistic canvas feeds (students, teacher, scanlines, noise, vignette, REC glitch flicker, LIVE badges, OSD timestamps)
+- Persisted auto-rotation with online-only cycling, 5/8/15s speed selector, animated countdown progress bar, timer reset on manual navigation
+- Stats bar (online/recording/offline), responsive 1→2→3-col grid with click-to-focus, full i18n + RTL-safe numbers
+- GSAP staggered entrance animation (lightweight, respects animations setting)
+- New self-contained CameraWidgetDashboard for the dashboard overview: 6s crossfade cycling feed, header + view-all deep-link, per-camera footer dots, pauses when tab hidden
+- Shared camera-feed-canvas.tsx module keeps both surfaces DRY; lint & tsc clean for all camera files
+
+---
+Task ID: 6-c
+Agent: motion-upgrade-agent
+Task:
+Motion system upgrade — Lenis smooth scrolling + GSAP entrance animations + ReactBits components (CountUp, BlurText, ClickSpark)
+
+Work Log:
+- Created src/components/dashboard/smooth-scroll.tsx (NEW): 'use client' Lenis provider. The app scrolls in the main content column (not body), so Lenis is attached to a rendered wrapper div (h-screen overflow-y-auto) with wrapper+content refs passed to Lenis options (duration: 1.1, smoothWheel: true, wheelMultiplier: 1, touchMultiplier: 1.5, vertical orientation); driven by the standard requestAnimationFrame loop calling instance.raf(time). Respects prefers-reduced-motion reactively (matchMedia change listener → no Lenis, native scroll fallback), destroys instance + cancels rAF on unmount, overflowAnchor:none to avoid scroll-anchoring fights. Exports useLenis() context hook + module-level scrollToTopSmooth() (lenis.scrollTo(0) with window.scrollTo smooth fallback).
+- Edited src/app/page.tsx: wrapped ONLY the main content column in <SmoothScroll className="flex-1"> (sidebar stays viewport-fixed, header stays fixed — verified position:fixed/top:0 in browser, footer still pushed to bottom via mt-auto inside min-h-screen column, sticky-footer + natural scroll behavior preserved). Wrapped the whole app container in <ClickSpark sparkColor="#D4A574" sparkCount={10} glow={0.45}> — amber click-spark layer, verified canvas spawns on pointerdown and the layer is pointer-events-none (no click blocking). Added GSAP entrance via useGSAP (gsap.registerPlugin(useGSAP), scope: mainContentRef): fromTo on <main>'s direct children (opacity 0→1, y 20→0, stagger 0.06, duration 0.6, ease power2.out, clearProps:'all') on mount only, skipped under prefers-reduced-motion. The Framer Motion section wrapper is tagged data-framer-anim and excluded from GSAP (its inner rendered section is animated instead) to prevent two animation engines writing transform/opacity to the same element — AnimatePresence section transitions, breadcrumb, keyboard shortcuts, command palette, FAB all kept intact.
+- Edited src/components/dashboard/stat-card.tsx: replaced the hand-rolled rAF counter in AnimatedValue with ReactBits CountUp (to=numericValue, from=0, duration 0.9s, separator=",", easing easeOut, trigger 'view' — animates when scrolled into view, built-in tabular-nums + prefers-reduced-motion skip). Non-numeric values (e.g. "69%") fall back to plain text as before. Card design untouched; hover lift was already CSS (hover:-translate-y-1) so no GSAP duplicate added.
+- Edited src/components/dashboard/dashboard-overview.tsx (WelcomeBanner heading ONLY): replaced static <h2>مرحباً، أحمد محمد 👋</h2> with ReactBits BlurText (text, animateBy="words", direction="top", delay 90ms word stagger, trigger "load", className text-xl font-bold text-white). Nothing else in the file touched.
+- Verified in headless browser (fresh loads): Lenis wrapper mounts and wheel scrolling is visibly smoothed (scrollTop sampled 123→238→271→287→294→300 over ~1s instead of instant jump); BlurText welcome text renders; CountUp renders stat values; ClickSpark canvas spawns; GSAP entrance caught mid-flight (nav opacity 0.89, y 2.1px) then settles to opacity 1/transform none (clearProps works, no stuck transforms on fixed-element ancestors); header stays fixed; footer bottom == viewport height; section switch (dashboard→students) works; zero page errors.
+- Lint: 0 errors, 1 pre-existing warning (layout.tsx custom font). tsc --noEmit: no errors in any of my files (remaining project errors are pre-existing in API routes/charts/examples).
+
+Stage Summary:
+- Lenis smooth scrolling (duration 1.1s) now drives ONLY the main content column via wrapper/content options, RTL-safe, reduced-motion-aware, with useLenis() + scrollToTopSmooth() exports for future use
+- GSAP (useGSAP scoped, context-safe) handles the initial dashboard entrance stagger; Framer Motion keeps per-section transitions — engines isolated to avoid conflicts
+- ReactBits integrated: CountUp on StatCard values, BlurText on the welcome heading, ClickSpark amber click effects app-wide
+- All existing features intact (breadcrumb, AnimatePresence transitions, keyboard shortcuts, command palette, FAB, fixed header, sticky footer); browser-verified end-to-end
+
+---
+Task ID: 6-d
+Agent: i18n-buttons-agent
+Task:
+Apply the i18n system (t(key, locale) from src/lib/i18n.ts) + a consistent COLORED CRUD button scheme across the 5 main management sections (students, teachers, classes, exams, sessions), so switching locale in the header visibly translates section chrome without breaking anything.
+
+Work Log:
+- Read worklog.md, i18n.ts (~230 keys x ar/en/fr, t() signature), store.ts (locale persisted in AppState) and all 5 target section files in full before editing
+- students-section.tsx: added `import { t } from '@/lib/i18n'`; added `locale` to existing useAppStore() destructuring in main component + StudentFormContent + DeleteStudentDialog; added `useAppStore((s) => s.locale)` in sub-components without store access (EmptyState, StudentFormDialog); translated header title/subtitle (sections.students + studentsSub), Add CTA label (crud.addStudent), add/edit dialog titles (crud.editStudent/addStudent), delete dialog title/description (general.confirmDelete + general.deleteWarning, item name kept as bold span), search placeholder (general.search), 'الكل' filter option (general.all), Name/Status/Actions table headers (general.name/status/actions), form footer Save/Add/Cancel and delete-confirm buttons (general.save/add/cancel/delete); replaced hardcoded title attrs with translated ones
+- teachers-section.tsx: same pattern for card grid section: header (sections.teachers/teachersSub), Add CTA + EmptyState button (crud.addTeacher), form dialog titles (crud.editTeacher/addTeacher), delete dialog keys, search placeholder, filter 'الكل', card row-action titles (general.edit/delete); TRANSLATED-CARD row actions now per scheme
+- classes-section.tsx: same pattern: header (sections.classes/classesSub), Add CTA + EmptyState (crud.addClass), form dialog titles (crud.editClass/addClass), delete dialog keys, search placeholder, card row-action titles
+- exams-section.tsx: same pattern: header (sections.exams/examsSub), Add CTA + EmptyState (crud.addExam), form dialog titles (crud.editExam/addExam), delete dialog keys, search placeholder, Actions table header, row action titles; exams filter labels ('كل المواد'/'كل الفصول') and other non-'الكل' micro-strings intentionally left Arabic (data/filter chrome, no keys)
+- sessions-section.tsx: header (sections.sessions/sessionsSub); no crud.addSession key exists so Add CTA/EmptyState/dialog title/submit use general.add/general.edit/general.save; delete dialog keys with session topic shown; card row-action labels/titles translated (general.view/edit/delete)
+- COLORED BUTTON SCHEME applied consistently in all 5 files: ADD (primary CTA incl. EmptyState + dialog submit) = `bg-emerald-500/90 hover:bg-emerald-500 text-white border-transparent` (amber #D4A574 and amber-500 add buttons switched to emerald); EDIT row action = `text-[#D4A574] hover:bg-[#D4A574]/10`; DELETE row action = `text-rose-400 hover:bg-rose-500/10`; VIEW row action = `text-slate-300 hover:bg-white/5` (BANNED sky/blue removed from view actions); sizes/shapes (h-8 w-8 icon, h-10 px-5, rounded-lg, btn-shine) preserved
+- Kept hardcoded Arabic for mock data (names, subjects, class names, status badge labels, empty-state body text, CSV column labels) per task scope
+- FIX (pre-existing bug in my file): teachers-section main component used `addTeacher` in handleImportTeachers without destructuring it — added to useAppStore() destructure (teacher CSV import would have crashed)
+- FIX (pre-existing strict-null error in my file): exams-section `editingExam?.score !== null ? String(editingExam.score) : ''` → `!= null` (TS18047 + latent runtime crash when adding an exam)
+- Verification: `bun run lint` → 0 errors, 1 pre-existing warning (layout.tsx custom-font, not my files); `bunx tsc --noEmit` → 0 errors in all 5 edited files; dev server HTTP 200 and compiles clean; no sky/blue or amber add-button classes remain in the 5 files
+
+Stage Summary:
+- All 5 management sections (students/teachers/classes/exams/sessions) now fully locale-aware for UI chrome: headers, subtitles, add CTAs, add/edit dialog titles, delete confirmations, search placeholders, key table headers, row-action tooltips, form footers
+- Consistent colored CRUD scheme everywhere: emerald ADD, amber EDIT, rose DELETE, slate VIEW (no blue) with translated title attributes
+- Only the 5 assigned files touched; i18n.ts/store.ts/other sections untouched
+- Lint clean (0 errors), tsc clean for the 5 files, dev server 200
+
+---
+Task ID: 6-b
+Agent: calls-feature-agent
+Task: Add voice + video call capability to the messages/chat section (new CallOverlay component + call buttons in messages-section)
+
+Work Log:
+- Created NEW file src/components/dashboard/call-overlay.tsx (~900 lines):
+  - Exported a tiny module-level zustand store (useCallStore, created with create() from 'zustand') with state { activeCall: null | { contactId, contactName, contactAvatar?, kind: 'voice'|'video' }, phase, duration, endedDuration, endedReason } and actions startCall()/answerCall()/endCall()/setPhase()/setDuration()/clearCall() — any section can trigger a call via useCallStore.getState().startCall({...})
+  - Exported CallTarget/CallKind/CallPhase types + formatCallDuration(MM:SS) helper + default CallOverlay component (thin keyed wrapper → CallSession per-call subcomponent so per-call UI state resets on remount with zero setState-in-effect)
+  - Call phases state machine: ringing (2.5s auto-advance, pulsing avatar with 3 staggered CSS ping rings, Answer green / Decline red round buttons with labels) → connecting (1.5s, animated dots) → active (timer counts up 00:00 tabular-nums) → ended (summary with callEnded/callDeclined + duration, auto-closes after 1.5s)
+  - Active VIDEO call: full-screen simulated remote scene (3 drifting aurora gradient blobs + 12 floating particles + vignette + avatar watermark, all scoped CSS keyframes injected via dangerouslySetInnerHTML), top info bar (callingFrom label, name, connected dot, timer chip), local PiP thumbnail bottom corner with -scale-x-100 mirror, glass control bar with 5 round labeled buttons: mute mic, camera on/off, speaker, switch camera (flips mirror), red hang-up
+  - Active VOICE call: max-w-md centered card, big pulsing avatar, animated 7-bar audio-wave (pauses when muted), live timer, controls minus camera
+  - Real getUserMedia guarded in try/catch: requests audio-only (voice) or audio+video (video) once per call at connecting/active; attaches stream to PiP <video muted autoplay playsinline>; mute/camera toggles flip real track.enabled; on denial/headless the call degrades to full simulation silently; tracks stopped + srcObject cleared via setState-free releaseStream() on end/unmount
+  - Subtle dual-tone (440+480Hz) WebAudio ringtone with 1.25s ring/pause pattern, wrapped in try/catch, respects notificationSettings.soundEnabled from the main store, auto-stops on phase change
+  - RTL dir, locale via useAppStore((s)=>s.locale), ALL strings through t() (voiceCall, videoCall, incoming/outgoing, callConnected, callEnded, callDeclined, answer, decline, endCall, mute/unmute, cameraOn/Off, callDuration, callingFrom, speaker, switchCamera)
+  - Extras: Escape key = hang up, body scroll lock, aria-modal dialog role, mobile-first responsive (voice = centered card on all sizes, video = full-screen with 390px verified)
+- Edited src/components/dashboard/messages-section.tsx (surgical, no restructuring):
+  - MessageListItem: added onVoiceCall/onVideoCall props + two hover-action icon buttons (Phone/Video, amber hover, stopPropagation, opacity-0→100 on group-hover) before the star toggle
+  - MessageDetail: added onVoiceCall/onVideoCall props + Phone/Video icon buttons in the top action bar next to the star (amber hover, title tooltips)
+  - Main component: locale + startCall selectors, handleVoiceCall/handleVideoCall computing the message counterpart (recipient when senderRole==='admin', else sender), props wired to both list items and detail, <CallOverlay /> rendered once at the end
+  - Call-status toast: subscribes to useCallStore — on phase→ended fires toast.success(`${t('messages.callEnded'|'messages.callDeclined')} — ${formatCallDuration(endedDuration)}`) (verified live: "انتهت المكالمة — 00:10")
+  - Fixed 3 pre-existing TS errors (missing isArchived: false in msg7/msg13/msg15 mocks) + repaired 5 corrupted identifier lines (ROLE_CONFIGessage→ROLE_CONFIG[message] etc.) that had broken MessageListItem/MessageDetail compilation
+- Verified in headless browser at 1440×900 and 390×844: voice call full flow (ring→answer→mute toggle→end→summary+toast→auto-close), video call full flow (ring→answer→PiP placeholder w/o camera→camera toggle→end→summary+toast→auto-close), decline path shows "تم رفض المكالمة", Escape hangs up, no page errors
+- Incident note: a concurrent git stash (used to diff TS baselines) briefly swept up parallel agents' in-flight tracked changes; fully recovered — stashed files restored except worklog.md which was manually re-merged (foundation + 6-a entries + later appends preserved), stash left in place as safety copy
+- Lint: 0 errors (only pre-existing layout.tsx no-page-custom-font warning); tsc clean for both files
+
+Stage Summary:
+- Voice + video calling is live in the Messages section: call buttons in message-list hover actions and detail header trigger a polished simulated call overlay
+- Full phase flow ringing→connecting→active(timer)→ended with answer/decline/mute/camera/speaker/switch-camera/hang-up controls, pulsing avatars, audio-wave, simulated remote video scene, mirrored PiP
+- Real mic/camera used when permitted, graceful simulation otherwise; ringtone respects sound settings
+- Trigger API reusable anywhere: useCallStore.getState().startCall({ contactId, contactName, kind })
+- Only call-overlay.tsx (new) + messages-section.tsx touched (plus 3 one-line isArchived type fixes + 5 corruption repairs inside messages-section.tsx)
+- i18n: all call UI localized (ar/en/fr), RTL preserved, amber #D4A574 theme consistent
+- Lint clean, browser-verified on desktop + mobile
+
+---
+Task ID: 6 (integration + QA)
+Agent: Main Orchestrator
+Task: Wire camera widget into dashboard, fix mobile sidebar bug, fix nested-button hydration error, translate sidebar/footer, full type-safety cleanup, final QA
+
+Work Log:
+- WIRED CameraWidgetDashboard into dashboard-overview.tsx (responsive grid: camera 3/5 cols + recent students 2/5 cols)
+- BROWSER-VERIFIED with agent-browser:
+  * Dashboard camera widget cycles cameras with crossfade + dot navigation (confirmed on screenshot)
+  * Camera section: auto-rotate WORKS (cycled 1/6 → 2/6), countdown progress bar animates, pause icon active, REC + glitch flicker on recording cams
+  * Grid view: 3x2 cameras with LIVE badges, offline state correctly rendered
+  * Language switcher: العربية/English/Français dropdown works; English mode flips dir=ltr, translates camera section, students section, sidebar nav (Dashboard/Students/...), footer (Privacy Policy/Terms/Help/Version)
+  * CALL SYSTEM: video call flow verified end-to-end (ringing → Answer → connected timer 00:08 → End Call → toast "Call Ended — 00:21")
+  * AVATAR UPLOAD: uploaded 2000x2000 test JPEG via file input → auto-compressed to ~7KB dataURL → saved → visible in header avatar + dropdown + sidebar logo
+  * Mobile 390x844: FOUND AND FIXED sidebar bug (-translate-x-full pushed right-anchored sidebar INTO screen in RTL; changed to translate-x-full); mobile sidebar now hidden by default and slides in correctly with backdrop
+- FIXED hydration error: MessageListItem was a <button> containing nested <button> call actions → converted outer to div[role=button] with keyboard handler
+- FIXED React key warning in page.tsx footer (key={link.labelKey})
+- FIXED runtime crash: LoadingOverlay referenced locale before it was defined (added useAppStore selector)
+- TYPE SAFETY: fixed 33 pre-existing tsc errors across 14 files:
+  * area-chart gridLines never[] typed, radar-chart textAnchor union type
+  * attendance-section local AttendanceRecord interface conflict → clean standalone interface
+  * fees-section null→undefined for optional fields
+  * trash-section icon component style prop, import-dialog batch call signature
+  * theme-provider props via ComponentProps<typeof NextThemesProvider>
+  * header SEARCH_SUGGESTIONS typed with ActiveSection
+  * seed route typed arrays, ai-chat message role unions, ai-analyze createVision body cast
+  * attendance/stats route removed invalid _sum on string field
+- SCHEMA: added Attendance↔Student relation (was missing — include.student threw PrismaClientValidationError at runtime); db:push + regenerate + dev server restart
+- FINAL STATE: tsc --noEmit = 0 errors in src/, bun lint = 0 errors, all 6 API routes smoke-tested 200, browser console clean
+
+Stage Summary:
+- All Round-6 user requests verified working: multi-language (3 langs), cameras with rotation + dashboard widget, CRUD dialogs visible everywhere, voice/video calls, avatar upload fix, AI voice+doc features present, colored CRUD buttons, responsive mobile+desktop, clean types
+- Remaining known gaps: some deep form labels still Arabic-only (data-entry forms), French partially applied to chrome only; competitor-feature ideas list appended below for next rounds

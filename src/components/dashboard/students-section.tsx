@@ -21,6 +21,7 @@ import {
   Mail,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
+import { t } from '@/lib/i18n';
 import type { Student } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -303,6 +304,7 @@ function StatusBadge({ status }: { status: Student['status'] }) {
 
 /** Empty state */
 function EmptyState({ onAdd }: { onAdd: () => void }) {
+  const locale = useAppStore((s) => s.locale);
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4">
       <div className="flex items-center justify-center h-20 w-20 rounded-2xl bg-white/[0.03] border border-white/[0.06] mb-6">
@@ -316,10 +318,10 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
       </p>
       <Button
         onClick={onAdd}
-        className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold gap-2 rounded-lg px-6"
+        className="bg-emerald-500/90 hover:bg-emerald-500 text-white border-transparent font-semibold gap-2 rounded-lg px-6"
       >
         <UserPlus className="h-4 w-4" />
-        إضافة طالب جديد
+        {t('crud.addStudent', locale)}
       </Button>
     </div>
   );
@@ -429,7 +431,7 @@ function StudentFormContent({
   editingStudent: Student | null;
   onClose: () => void;
 }) {
-  const { addStudent, updateStudent } = useAppStore();
+  const { addStudent, updateStudent, locale } = useAppStore();
   const isEditing = !!editingStudent;
 
   // Form state – initialised from props on mount
@@ -575,17 +577,17 @@ function StudentFormContent({
       <DialogFooter className="flex-row gap-3 sm:justify-start pt-2">
         <Button
           type="submit"
-          className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold rounded-lg px-6 gap-2"
+          className="bg-emerald-500/90 hover:bg-emerald-500 text-white border-transparent font-semibold rounded-lg px-6 gap-2"
         >
           {isEditing ? (
             <>
               <Pencil className="h-4 w-4" />
-              حفظ التغييرات
+              {t('general.save', locale)}
             </>
           ) : (
             <>
               <UserPlus className="h-4 w-4" />
-              إضافة الطالب
+              {t('general.add', locale)}
             </>
           )}
         </Button>
@@ -595,7 +597,7 @@ function StudentFormContent({
           onClick={onClose}
           className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-6"
         >
-          إلغاء
+          {t('general.cancel', locale)}
         </Button>
       </DialogFooter>
     </form>
@@ -612,6 +614,7 @@ function StudentFormDialog({
   onOpenChange: (open: boolean) => void;
   editingStudent: Student | null;
 }) {
+  const locale = useAppStore((s) => s.locale);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -624,7 +627,7 @@ function StudentFormDialog({
       >
         <DialogHeader>
           <DialogTitle className="text-white text-xl">
-            {editingStudent ? 'تعديل بيانات الطالب' : 'إضافة طالب جديد'}
+            {editingStudent ? t('crud.editStudent', locale) : t('crud.addStudent', locale)}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
             {editingStudent
@@ -653,7 +656,7 @@ function DeleteStudentDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { deleteStudent, addToTrash } = useAppStore();
+  const { deleteStudent, addToTrash, locale } = useAppStore();
 
   const handleDelete = () => {
     if (student) {
@@ -684,27 +687,26 @@ function DeleteStudentDialog({
       >
         <AlertDialogHeader>
           <AlertDialogTitle className="text-white text-lg">
-            تأكيد حذف الطالب
+            {t('general.confirmDelete', locale)}
           </AlertDialogTitle>
           <AlertDialogDescription className="text-muted-foreground leading-relaxed">
-            هل أنت متأكد من حذف الطالب{' '}
-            <span className="font-semibold text-slate-200">{student?.name}</span>؟
+            {t('general.deleteWarning', locale)}
             <br />
-            لا يمكن التراجع عن هذا الإجراء. سيتم حذف جميع بيانات الطالب بشكل نهائي.
+            <span className="font-semibold text-slate-200">{student?.name}</span>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="flex-row gap-3 sm:justify-start mt-2">
           <AlertDialogCancel
             className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-6 mt-0"
           >
-            إلغاء
+            {t('general.cancel', locale)}
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={handleDelete}
             className="bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-lg px-6 gap-2"
           >
             <Trash2 className="h-4 w-4" />
-            نعم، احذف
+            {t('general.delete', locale)}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -745,7 +747,7 @@ function SortableHeader({ label, field, sortField, sortDir, onSort }: { label: s
 }
 
 export default function StudentsSection() {
-  const { students, setStudents, addStudent } = useAppStore();
+  const { students, setStudents, addStudent, locale } = useAppStore();
 
   // Local UI state
   const [localSearch, setLocalSearch] = useState('');
@@ -910,13 +912,13 @@ export default function StudentsSection() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white tracking-tight sm:text-3xl flex items-center gap-3">
-              إدارة الطلاب
+              {t('sections.students', locale)}
               <Badge className="bg-[#D4A574]/15 text-[#D4A574] border-[#D4A574]/20 hover:bg-[#D4A574]/20 text-sm px-2.5 py-0.5 rounded-full font-semibold tabular-nums">
                 {students.length}
               </Badge>
             </h1>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              إدارة بيانات الطلاب ومتابعة تقدمهم الأكاديمي
+              {t('sections.studentsSub', locale)}
             </p>
           </div>
         </div>
@@ -934,10 +936,10 @@ export default function StudentsSection() {
         <div className="flex items-center gap-2">
           <Button
             onClick={handleAdd}
-            className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold gap-2 rounded-lg px-5 h-10 btn-shine"
+            className="bg-emerald-500/90 hover:bg-emerald-500 text-white border-transparent font-semibold gap-2 rounded-lg px-5 h-10 btn-shine"
           >
             <UserPlus className="h-4 w-4" />
-            إضافة طالب جديد
+            {t('crud.addStudent', locale)}
           </Button>
           <Button
             variant="outline"
@@ -965,7 +967,7 @@ export default function StudentsSection() {
             <Input
               value={localSearch}
               onChange={(e) => { setLocalSearch(e.target.value); setCurrentPage(1); }}
-              placeholder="بحث بالاسم أو الرقم التعريفي..."
+              placeholder={t('general.search', locale)}
               className="pr-10 w-full sm:w-72 bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 h-10"
             />
           </div>
@@ -982,7 +984,7 @@ export default function StudentsSection() {
                   value={opt.value}
                   className="text-slate-200 focus:bg-white/[0.05] focus:text-white"
                 >
-                  {opt.label}
+                  {opt.value === 'all' ? t('general.all', locale) : opt.label}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -1013,7 +1015,7 @@ export default function StudentsSection() {
             <TableHeader>
               <TableRow className="border-b border-white/[0.06] hover:bg-transparent">
                 <TableHead className="py-3.5 px-4">
-                  <SortableHeader label="الاسم" field="name" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
+                  <SortableHeader label={t('general.name', locale)} field="name" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                 </TableHead>
                 <TableHead className="py-3.5 px-4">
                   <SortableHeader label="الرقم التعريفي" field="studentId" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
@@ -1022,13 +1024,13 @@ export default function StudentsSection() {
                   <SortableHeader label="الفصل" field="className" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                 </TableHead>
                 <TableHead className="py-3.5 px-4">
-                  <SortableHeader label="الحالة" field="status" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
+                  <SortableHeader label={t('general.status', locale)} field="status" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                 </TableHead>
                 <TableHead className="py-3.5 px-4 hidden lg:table-cell">
                   <SortableHeader label="الملاحظات" field="notes" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                 </TableHead>
                 <TableHead className="text-slate-400 font-semibold text-xs uppercase tracking-wider py-3.5 px-4 text-center">
-                  إجراءات
+                  {t('general.actions', locale)}
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -1087,8 +1089,8 @@ export default function StudentsSection() {
                         variant="ghost"
                         size="icon"
                         onClick={(e) => { e.stopPropagation(); handleView(student); }}
-                        className="h-8 w-8 text-slate-400 hover:text-sky-400 hover:bg-sky-400/10 rounded-lg"
-                        title="عرض"
+                        className="h-8 w-8 text-slate-300 hover:bg-white/5 rounded-lg"
+                        title={t('general.view', locale)}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -1098,8 +1100,8 @@ export default function StudentsSection() {
                         variant="ghost"
                         size="icon"
                         onClick={(e) => { e.stopPropagation(); handleEdit(student); }}
-                        className="h-8 w-8 text-slate-400 hover:text-amber-400 hover:bg-amber-400/10 rounded-lg"
-                        title="تعديل"
+                        className="h-8 w-8 text-[#D4A574] hover:bg-[#D4A574]/10 rounded-lg"
+                        title={t('general.edit', locale)}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -1109,8 +1111,8 @@ export default function StudentsSection() {
                         variant="ghost"
                         size="icon"
                         onClick={(e) => { e.stopPropagation(); handleDelete(student); }}
-                        className="h-8 w-8 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg"
-                        title="حذف"
+                        className="h-8 w-8 text-rose-400 hover:bg-rose-500/10 rounded-lg"
+                        title={t('general.delete', locale)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

@@ -6,13 +6,7 @@ import type { ReactNode } from 'react';
 export default function ThemeProvider({
   children,
   ...props
-}: {
-  children: ReactNode;
-  attribute?: string;
-  defaultTheme?: string;
-  enableSystem?: boolean;
-  storageKey?: string;
-}) {
+}: React.ComponentProps<typeof NextThemesProvider> & { children: ReactNode }) {
   return (
     <NextThemesProvider {...props}>
       {children}

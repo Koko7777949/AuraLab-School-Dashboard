@@ -13,6 +13,7 @@ import {
   Download,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
+import { t } from '@/lib/i18n';
 import type { ClassRoom } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -157,6 +158,7 @@ function getCapacityColor(percentage: number): { bar: string; text: string } {
 
 /** Empty state */
 function EmptyState({ onAdd }: { onAdd: () => void }) {
+  const locale = useAppStore((s) => s.locale);
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4">
       <div className="flex items-center justify-center h-20 w-20 rounded-2xl bg-white/[0.03] border border-white/[0.06] mb-6">
@@ -170,10 +172,10 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
       </p>
       <Button
         onClick={onAdd}
-        className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold gap-2 rounded-lg px-6"
+        className="bg-emerald-500/90 hover:bg-emerald-500 text-white border-transparent font-semibold gap-2 rounded-lg px-6"
       >
         <Plus className="h-4 w-4" />
-        إضافة صف جديد
+        {t('crud.addClass', locale)}
       </Button>
     </div>
   );
@@ -192,6 +194,7 @@ function ClassCard({
   onEdit: (c: ClassRoom) => void;
   onDelete: (c: ClassRoom) => void;
 }) {
+  const locale = useAppStore((s) => s.locale);
   const studentCount = cls.studentCount ?? 0;
   const percentage = Math.min(100, Math.round((studentCount / MAX_STUDENTS_PER_CLASS) * 100));
   const capacityColor = getCapacityColor(percentage);
@@ -227,8 +230,8 @@ function ClassCard({
             variant="ghost"
             size="icon"
             onClick={() => onEdit(cls)}
-            className="h-8 w-8 text-slate-400 hover:text-amber-400 hover:bg-amber-400/10 rounded-lg"
-            title="تعديل"
+            className="h-8 w-8 text-[#D4A574] hover:bg-[#D4A574]/10 rounded-lg"
+            title={t('general.edit', locale)}
           >
             <Pencil className="h-4 w-4" />
           </Button>
@@ -236,8 +239,8 @@ function ClassCard({
             variant="ghost"
             size="icon"
             onClick={() => onDelete(cls)}
-            className="h-8 w-8 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg"
-            title="حذف"
+            className="h-8 w-8 text-rose-400 hover:bg-rose-500/10 rounded-lg"
+            title={t('general.delete', locale)}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -316,7 +319,7 @@ function ClassFormContent({
   editingClass: ClassRoom | null;
   onClose: () => void;
 }) {
-  const { addClass, updateClass } = useAppStore();
+  const { addClass, updateClass, locale } = useAppStore();
   const isEditing = !!editingClass;
 
   // Form state
@@ -424,17 +427,17 @@ function ClassFormContent({
       <DialogFooter className="flex-row gap-3 sm:justify-start pt-2">
         <Button
           type="submit"
-          className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold rounded-lg px-6 gap-2"
+          className="bg-emerald-500/90 hover:bg-emerald-500 text-white border-transparent font-semibold rounded-lg px-6 gap-2"
         >
           {isEditing ? (
             <>
               <Pencil className="h-4 w-4" />
-              حفظ التغييرات
+              {t('general.save', locale)}
             </>
           ) : (
             <>
               <Plus className="h-4 w-4" />
-              إضافة الصف
+              {t('general.add', locale)}
             </>
           )}
         </Button>
@@ -444,7 +447,7 @@ function ClassFormContent({
           onClick={onClose}
           className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-6"
         >
-          إلغاء
+          {t('general.cancel', locale)}
         </Button>
       </DialogFooter>
     </form>
@@ -461,6 +464,7 @@ function ClassFormDialog({
   onOpenChange: (open: boolean) => void;
   editingClass: ClassRoom | null;
 }) {
+  const locale = useAppStore((s) => s.locale);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -473,7 +477,7 @@ function ClassFormDialog({
       >
         <DialogHeader>
           <DialogTitle className="text-white text-xl">
-            {editingClass ? 'تعديل بيانات الصف' : 'إضافة صف جديد'}
+            {editingClass ? t('crud.editClass', locale) : t('crud.addClass', locale)}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
             {editingClass
@@ -502,7 +506,7 @@ function DeleteClassDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { deleteClass, addToTrash } = useAppStore();
+  const { deleteClass, addToTrash, locale } = useAppStore();
 
   const handleDelete = () => {
     if (cls) {
@@ -533,27 +537,26 @@ function DeleteClassDialog({
       >
         <AlertDialogHeader>
           <AlertDialogTitle className="text-white text-lg">
-            تأكيد حذف الصف
+            {t('general.confirmDelete', locale)}
           </AlertDialogTitle>
           <AlertDialogDescription className="text-muted-foreground leading-relaxed">
-            هل أنت متأكد من حذف الصف{' '}
-            <span className="font-semibold text-slate-200">{cls?.name}</span>؟
+            {t('general.deleteWarning', locale)}
             <br />
-            لا يمكن التراجع عن هذا الإجراء. سيتم إلغاء ارتباط جميع الطلاب والمعلمين بهذا الصف.
+            <span className="font-semibold text-slate-200">{cls?.name}</span>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="flex-row gap-3 sm:justify-start mt-2">
           <AlertDialogCancel
             className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-6 mt-0"
           >
-            إلغاء
+            {t('general.cancel', locale)}
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={handleDelete}
             className="bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-lg px-6 gap-2"
           >
             <Trash2 className="h-4 w-4" />
-            نعم، احذف
+            {t('general.delete', locale)}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -566,7 +569,7 @@ function DeleteClassDialog({
 // ---------------------------------------------------------------------------
 
 export default function ClassesSection() {
-  const { classes, setClasses } = useAppStore();
+  const { classes, setClasses, locale } = useAppStore();
 
   // Local UI state
   const [localSearch, setLocalSearch] = useState('');
@@ -651,13 +654,13 @@ export default function ClassesSection() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white tracking-tight sm:text-3xl flex items-center gap-3">
-              إدارة الصفوف
+              {t('sections.classes', locale)}
               <Badge className="bg-[#D4A574]/15 text-[#D4A574] border-[#D4A574]/20 hover:bg-[#D4A574]/20 text-sm px-2.5 py-0.5 rounded-full font-semibold tabular-nums">
                 {classes.length}
               </Badge>
             </h1>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              إدارة الصفوف الدراسية وتوزيع الطلاب والمعلمين
+              {t('sections.classesSub', locale)}
             </p>
           </div>
         </div>
@@ -675,10 +678,10 @@ export default function ClassesSection() {
         <div className="flex items-center gap-2">
           <Button
             onClick={handleAdd}
-            className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold gap-2 rounded-lg px-5 h-10 btn-shine"
+            className="bg-emerald-500/90 hover:bg-emerald-500 text-white border-transparent font-semibold gap-2 rounded-lg px-5 h-10 btn-shine"
           >
             <Plus className="h-4 w-4" />
-            إضافة صف جديد
+            {t('crud.addClass', locale)}
           </Button>
           <Button
             variant="outline"
@@ -698,7 +701,7 @@ export default function ClassesSection() {
             <Input
               value={localSearch}
               onChange={(e) => setLocalSearch(e.target.value)}
-              placeholder="بحث بالاسم أو المرحلة أو القاعة..."
+              placeholder={t('general.search', locale)}
               className="pr-10 w-full sm:w-72 bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 h-10"
             />
           </div>

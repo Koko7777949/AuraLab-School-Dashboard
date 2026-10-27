@@ -1,0 +1,2002 @@
+     1→@import "tailwindcss";
+     2→@import "tw-animate-css";
+     3→
+     4→@custom-variant dark (&:is(.dark *));
+     5→
+     6→@theme inline {
+     7→  --color-background: var(--background);
+     8→  --color-foreground: var(--foreground);
+     9→  --font-sans: var(--font-geist-sans);
+    10→  --font-mono: var(--font-geist-mono);
+    11→  --color-sidebar-ring: var(--sidebar-ring);
+    12→  --color-sidebar-border: var(--sidebar-border);
+    13→  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    14→  --color-sidebar-accent: var(--sidebar-accent);
+    15→  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    16→  --color-sidebar-primary: var(--sidebar-primary);
+    17→  --color-sidebar-foreground: var(--sidebar-foreground);
+    18→  --color-sidebar: var(--sidebar);
+    19→  --color-chart-5: var(--chart-5);
+    20→  --color-chart-4: var(--chart-4);
+    21→  --color-chart-3: var(--chart-3);
+    22→  --color-chart-2: var(--chart-2);
+    23→  --color-chart-1: var(--chart-1);
+    24→  --color-ring: var(--ring);
+    25→  --color-input: var(--input);
+    26→  --color-border: var(--border);
+    27→  --color-destructive: var(--destructive);
+    28→  --color-accent-foreground: var(--accent-foreground);
+    29→  --color-accent: var(--accent);
+    30→  --color-muted-foreground: var(--muted-foreground);
+    31→  --color-muted: var(--muted);
+    32→  --color-secondary-foreground: var(--secondary-foreground);
+    33→  --color-secondary: var(--secondary);
+    34→  --color-primary-foreground: var(--primary-foreground);
+    35→  --color-primary: var(--primary);
+    36→  --color-popover-foreground: var(--popover-foreground);
+    37→  --color-popover: var(--popover);
+    38→  --color-card-foreground: var(--card-foreground);
+    39→  --color-card: var(--card);
+    40→  --radius-sm: calc(var(--radius) - 4px);
+    41→  --radius-md: calc(var(--radius) - 2px);
+    42→  --radius-lg: var(--radius);
+    43→  --radius-xl: calc(var(--radius) + 4px);
+    44→
+    45→  /* AuraLab custom colors */
+    46→  --color-amber-accent: #D4A574;
+    47→  --color-amber-accent-light: #E8C9A8;
+    48→  --color-amber-accent-dark: #B8895A;
+    49→  --color-surface-dark: #121218;
+    50→  --color-surface-card: #1A1A24;
+    51→  --color-surface-hover: #22222E;
+    52→  --color-surface-elevated: #242430;
+    53→  --color-emerald-glow: #4ADE80;
+    54→  --color-rose-glow: #FB7185;
+    55→  --color-sky-glow: #38BDF8;
+    56→  --color-violet-glow: #A78BFA;
+    57→  --color-amber-glow: #FBBF24;
+    58→}
+    59→
+    60→:root {
+    61→  --radius: 0.75rem;
+    62→  --background: #121218;
+    63→  --foreground: #F1F1F6;
+    64→  --card: #1A1A24;
+    65→  --card-foreground: #F1F1F6;
+    66→  --popover: #1A1A24;
+    67→  --popover-foreground: #F1F1F6;
+    68→  --primary: #D4A574;
+    69→  --primary-foreground: #121218;
+    70→  --secondary: #22222E;
+    71→  --secondary-foreground: #F1F1F6;
+    72→  --muted: #1E1E28;
+    73→  --muted-foreground: #8888A0;
+    74→  --accent: #2A2A38;
+    75→  --accent-foreground: #F1F1F6;
+    76→  --destructive: #EF4444;
+    77→  --border: rgba(255, 255, 255, 0.06);
+    78→  --input: rgba(255, 255, 255, 0.08);
+    79→  --ring: #D4A574;
+    80→  --chart-1: #D4A574;
+    81→  --chart-2: #4ADE80;
+    82→  --chart-3: #38BDF8;
+    83→  --chart-4: #A78BFA;
+    84→  --chart-5: #FB7185;
+    85→  --sidebar: #16161E;
+    86→  --sidebar-foreground: #C8C8D8;
+    87→  --sidebar-primary: #D4A574;
+    88→  --sidebar-primary-foreground: #121218;
+    89→  --sidebar-accent: #22222E;
+    90→  --sidebar-accent-foreground: #F1F1F6;
+    91→  --sidebar-border: rgba(255, 255, 255, 0.06);
+    92→  --sidebar-ring: #D4A574;
+    93→
+    94→  /* Enhanced custom properties for new utilities */
+    95→  --glow-amber: rgba(212, 165, 116, 0.15);
+    96→  --glow-amber-subtle: rgba(212, 165, 116, 0.08);
+    97→  --glow-amber-lg: rgba(212, 165, 116, 0.25);
+    98→  --glow-emerald-subtle: rgba(74, 222, 128, 0.1);
+    99→  --glow-rose-subtle: rgba(251, 113, 133, 0.1);
+   100→  --glow-sky-subtle: rgba(56, 189, 248, 0.1);
+   101→  --glass-bg: rgba(26, 26, 36, 0.7);
+   102→  --glass-border: rgba(255, 255, 255, 0.08);
+   103→  --glass-blur: 16px;
+   104→  --dot-color: rgba(255, 255, 255, 0.04);
+   105→  --dot-spacing: 20px;
+   106→}
+   107→
+   108→/* Global dark mode variables */
+   109→.dark {
+   110→  --background: #121218;
+   111→  --foreground: #F1F1F6;
+   112→  --card: #1A1A24;
+   113→  --card-foreground: #F1F1F6;
+   114→  --popover: #1A1A24;
+   115→  --popover-foreground: #F1F1F6;
+   116→  --primary: #D4A574;
+   117→  --primary-foreground: #121218;
+   118→  --secondary: #22222E;
+   119→  --secondary-foreground: #F1F1F6;
+   120→  --muted: #1E1E28;
+   121→  --muted-foreground: #8888A0;
+   122→  --accent: #2A2A38;
+   123→  --accent-foreground: #F1F1F6;
+   124→  --destructive: #EF4444;
+   125→  --border: rgba(255, 255, 255, 0.06);
+   126→  --input: rgba(255, 255, 255, 0.08);
+   127→  --ring: #D4A574;
+   128→  --sidebar: #16161E;
+   129→  --sidebar-foreground: #C8C8D8;
+   130→  --sidebar-primary: #D4A574;
+   131→  --sidebar-primary-foreground: #121218;
+   132→  --sidebar-accent: #22222E;
+   133→  --sidebar-accent-foreground: #F1F1F6;
+   134→  --sidebar-border: rgba(255, 255, 255, 0.06);
+   135→  --sidebar-ring: #D4A574;
+   136→  --glow-amber: rgba(212, 165, 116, 0.15);
+   137→  --glow-amber-subtle: rgba(212, 165, 116, 0.08);
+   138→  --glow-amber-lg: rgba(212, 165, 116, 0.25);
+   139→  --glass-bg: rgba(26, 26, 36, 0.7);
+   140→  --glass-border: rgba(255, 255, 255, 0.08);
+   141→  --dot-color: rgba(255, 255, 255, 0.04);
+   142→}
+   143→
+   144→/* Light mode variables */
+   145→.light {
+   146→  --background: #F8F6F3;
+   147→  --foreground: #1A1A24;
+   148→  --card: #FFFFFF;
+   149→  --card-foreground: #1A1A24;
+   150→  --popover: #FFFFFF;
+   151→  --popover-foreground: #1A1A24;
+   152→  --primary: #B07D4F;
+   153→  --primary-foreground: #FFFFFF;
+   154→  --secondary: #F0ECE6;
+   155→  --secondary-foreground: #1A1A24;
+   156→  --muted: #F0ECE6;
+   157→  --muted-foreground: #7A7A8A;
+   158→  --accent: #E8DFD3;
+   159→  --accent-foreground: #1A1A24;
+   160→  --destructive: #EF4444;
+   161→  --border: rgba(0, 0, 0, 0.08);
+   162→  --input: rgba(0, 0, 0, 0.1);
+   163→  --ring: #B07D4F;
+   164→  --chart-1: #B07D4F;
+   165→  --chart-2: #16A34A;
+   166→  --chart-3: #2563EB;
+   167→  --chart-4: #7C3AED;
+   168→  --chart-5: #E11D48;
+   169→  --sidebar: #F0ECE6;
+   170→  --sidebar-foreground: #3A3A4A;
+   171→  --sidebar-primary: #B07D4F;
+   172→  --sidebar-primary-foreground: #FFFFFF;
+   173→  --sidebar-accent: #E8DFD3;
+   174→  --sidebar-accent-foreground: #1A1A24;
+   175→  --sidebar-border: rgba(0, 0, 0, 0.08);
+   176→  --sidebar-ring: #B07D4F;
+   177→  --glow-amber: rgba(176, 125, 79, 0.12);
+   178→  --glow-amber-subtle: rgba(176, 125, 79, 0.06);
+   179→  --glow-amber-lg: rgba(176, 125, 79, 0.2);
+   180→  --glass-bg: rgba(255, 255, 255, 0.85);
+   181→  --glass-border: rgba(0, 0, 0, 0.06);
+   182→  --dot-color: rgba(0, 0, 0, 0.04);
+   183→}
+   184→
+   185→@layer base {
+   186→  * {
+   187→    @apply border-border outline-ring/50;
+   188→  }
+   189→  body {
+   190→    @apply bg-background text-foreground;
+   191→    font-feature-settings: "rlig" 1, "calt" 1;
+   192→  }
+   193→}
+   194→
+   195→/* ===================================================================
+   196→   1. BACKGROUND DOT GRID PATTERN
+   197→   Subtle dot grid overlay on body for visual depth
+   198→   =================================================================== */
+   199→body::before {
+   200→  content: "";
+   201→  position: fixed;
+   202→  inset: 0;
+   203→  z-index: 0;
+   204→  pointer-events: none;
+   205→  background-image: radial-gradient(circle, var(--dot-color) 1px, transparent 1px);
+   206→  background-size: var(--dot-spacing) var(--dot-spacing);
+   207→}
+   208→
+   209→/* Ensure content sits above the dot grid */
+   210→body > * {
+   211→  position: relative;
+   212→  z-index: 1;
+   213→}
+   214→
+   215→/* ===================================================================
+   216→   2. ENHANCED SCROLLBAR STYLING
+   217→   Thinner, elegant scrollbar with amber accent thumb
+   218→   =================================================================== */
+   219→::-webkit-scrollbar {
+   220→  width: 6px;
+   221→  height: 6px;
+   222→}
+   223→
+   224→::-webkit-scrollbar-track {
+   225→  background: transparent;
+   226→  transition: background 0.3s ease;
+   227→}
+   228→
+   229→::-webkit-scrollbar-track:hover {
+   230→  background: rgba(212, 165, 116, 0.04);
+   231→}
+   232→
+   233→::-webkit-scrollbar-thumb {
+   234→  background: rgba(212, 165, 116, 0.12);
+   235→  border-radius: 10px;
+   236→  border: 1px solid transparent;
+   237→  transition: background 0.3s ease, border-color 0.3s ease;
+   238→}
+   239→
+   240→::-webkit-scrollbar-thumb:hover {
+   241→  background: rgba(212, 165, 116, 0.3);
+   242→  border-color: rgba(212, 165, 116, 0.15);
+   243→}
+   244→
+   245→::-webkit-scrollbar-thumb:active {
+   246→  background: rgba(212, 165, 116, 0.5);
+   247→}
+   248→
+   249→/* Firefox scrollbar */
+   250→* {
+   251→  scrollbar-width: thin;
+   252→  scrollbar-color: rgba(212, 165, 116, 0.12) transparent;
+   253→}
+   254→
+   255→/* ===================================================================
+   256→   3. ANIMATION CLASSES
+   257→   Smooth entrance animations with cubic-bezier easing
+   258→   =================================================================== */
+   259→@keyframes fade-in {
+   260→  from { opacity: 0; }
+   261→  to { opacity: 1; }
+   262→}
+   263→
+   264→@keyframes scale-in {
+   265→  from {
+   266→    opacity: 0;
+   267→    transform: scale(0.95);
+   268→  }
+   269→  to {
+   270→    opacity: 1;
+   271→    transform: scale(1);
+   272→  }
+   273→}
+   274→
+   275→@keyframes slide-up {
+   276→  from {
+   277→    opacity: 0;
+   278→    transform: translateY(8px);
+   279→  }
+   280→  to {
+   281→    opacity: 1;
+   282→    transform: translateY(0);
+   283→  }
+   284→}
+   285→
+   286→@keyframes slide-down {
+   287→  from {
+   288→    opacity: 0;
+   289→    transform: translateY(-8px);
+   290→  }
+   291→  to {
+   292→    opacity: 1;
+   293→    transform: translateY(0);
+   294→  }
+   295→}
+   296→
+   297→.animate-fade-in {
+   298→  animation: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+   299→}
+   300→
+   301→.animate-scale-in {
+   302→  animation: scale-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+   303→}
+   304→
+   305→.animate-slide-up {
+   306→  animation: slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+   307→}
+   308→
+   309→.animate-slide-down {
+   310→  animation: slide-down 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+   311→}
+   312→
+   313→/* Stagger delay utilities for animation children */
+   314→.delay-75 { animation-delay: 75ms; }
+   315→.delay-150 { animation-delay: 150ms; }
+   316→.delay-225 { animation-delay: 225ms; }
+   317→.delay-300 { animation-delay: 300ms; }
+   318→.delay-375 { animation-delay: 375ms; }
+   319→.delay-450 { animation-delay: 450ms; }
+   320→
+   321→/* ===================================================================
+   322→   4. IMPROVED GLOW UTILITIES
+   323→   Subtle (sm) and ambient (lg) glow variants per color
+   324→   =================================================================== */
+   325→
+   326→/* --- Amber glows --- */
+   327→.glow-amber-sm {
+   328→  box-shadow: 0 0 10px var(--glow-amber-subtle),
+   329→              0 0 20px rgba(212, 165, 116, 0.04);
+   330→}
+   331→
+   332→.glow-amber-lg {
+   333→  box-shadow: 0 0 30px var(--glow-amber-lg),
+   334→              0 0 60px rgba(212, 165, 116, 0.1),
+   335→              0 0 100px rgba(212, 165, 116, 0.05);
+   336→}
+   337→
+   338→/* --- Emerald glows --- */
+   339→.glow-emerald-sm {
+   340→  box-shadow: 0 0 10px var(--glow-emerald-subtle),
+   341→              0 0 20px rgba(74, 222, 128, 0.04);
+   342→}
+   343→
+   344→/* --- Rose glows --- */
+   345→.glow-rose-sm {
+   346→  box-shadow: 0 0 10px var(--glow-rose-subtle),
+   347→              0 0 20px rgba(251, 113, 133, 0.04);
+   348→}
+   349→
+   350→/* --- Sky glows --- */
+   351→.glow-sky-sm {
+   352→  box-shadow: 0 0 10px var(--glow-sky-subtle),
+   353→              0 0 20px rgba(56, 189, 248, 0.04);
+   354→}
+   355→
+   356→/* ===================================================================
+   357→   5. GLASS CARD UTILITY
+   358→   Dark glass background with border and backdrop blur
+   359→   =================================================================== */
+   360→.glass-card {
+   361→  background: var(--glass-bg);
+   362→  backdrop-filter: blur(var(--glass-blur));
+   363→  -webkit-backdrop-filter: blur(var(--glass-blur));
+   364→  border: 1px solid var(--glass-border);
+   365→  border-radius: var(--radius);
+   366→}
+   367→
+   368→.glass-card-elevated {
+   369→  background: rgba(26, 26, 36, 0.85);
+   370→  backdrop-filter: blur(24px);
+   371→  -webkit-backdrop-filter: blur(24px);
+   372→  border: 1px solid rgba(255, 255, 255, 0.1);
+   373→  border-radius: var(--radius);
+   374→  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+   375→}
+   376→
+   377→/* ===================================================================
+   378→   6. GRADIENT BORDER UTILITY
+   379→   Pseudo-element approach: wrap with relative, inner element uses
+   380→   -inset-[1px] to show gradient border effect
+   381→   =================================================================== */
+   382→.gradient-border-amber {
+   383→  position: relative;
+   384→  border-radius: var(--radius);
+   385→  background: #121218;
+   386→}
+   387→
+   388→.gradient-border-amber::before {
+   389→  content: "";
+   390→  position: absolute;
+   391→  inset: 0;
+   392→  border-radius: inherit;
+   393→  padding: 1px;
+   394→  background: linear-gradient(
+   395→    135deg,
+   396→    rgba(212, 165, 116, 0.5),
+   397→    rgba(212, 165, 116, 0.1),
+   398→    rgba(212, 165, 116, 0.4)
+   399→  );
+   400→  -webkit-mask:
+   401→    linear-gradient(#fff 0 0) content-box,
+   402→    linear-gradient(#fff 0 0);
+   403→  -webkit-mask-composite: xor;
+   404→  mask:
+   405→    linear-gradient(#fff 0 0) content-box,
+   406→    linear-gradient(#fff 0 0);
+   407→  mask-composite: exclude;
+   408→  pointer-events: none;
+   409→}
+   410→
+   411→/* Inner content element inside gradient-border-amber should have:
+   412→   position: absolute; inset: 1px; border-radius: inherit;
+   413→   background: var(--card); z-index: 1;
+   414→   Use .gradient-border-inner on the child:
+   415→*/
+   416→.gradient-border-inner {
+   417→  position: relative;
+   418→  z-index: 1;
+   419→  border-radius: inherit;
+   420→  background: var(--card);
+   421→}
+   422→
+   423→/* ===================================================================
+   424→   7. ENHANCED SELECTION COLORS
+   425→   Amber-tinted text selection
+   426→   =================================================================== */
+   427→::selection {
+   428→  background: rgba(212, 165, 116, 0.3);
+   429→  color: #F1F1F6;
+   430→}
+   431→
+   432→::-moz-selection {
+   433→  background: rgba(212, 165, 116, 0.3);
+   434→  color: #F1F1F6;
+   435→}
+   436→
+   437→/* ===================================================================
+   438→   8. INPUT FOCUS RING ENHANCEMENT
+   439→   Override focus styles to use amber accent consistently
+   440→   =================================================================== */
+   441→input:focus,
+   442→textarea:focus,
+   443→select:focus {
+   444→  outline: none;
+   445→  box-shadow: 0 0 0 2px rgba(212, 165, 116, 0.3);
+   446→  border-color: rgba(212, 165, 116, 0.5);
+   447→}
+   448→
+   449→input[type="text"]:focus,
+   450→input[type="email"]:focus,
+   451→input[type="password"]:focus,
+   452→input[type="search"]:focus,
+   453→input[type="number"]:focus,
+   454→input[type="tel"]:focus,
+   455→input[type="url"]:focus {
+   456→  box-shadow: 0 0 0 2px rgba(212, 165, 116, 0.25),
+   457→              0 0 12px rgba(212, 165, 116, 0.08);
+   458→  border-color: rgba(212, 165, 116, 0.5);
+   459→}
+   460→
+   461→/* ===================================================================
+   462→   9. TABLE STYLING
+   463→   Alternating row backgrounds and hover effects
+   464→   =================================================================== */
+   465→table {
+   466→  border-collapse: separate;
+   467→  border-spacing: 0;
+   468→}
+   469→
+   470→thead th {
+   471→  position: sticky;
+   472→  top: 0;
+   473→  z-index: 2;
+   474→  background: var(--card);
+   475→  border-bottom: 1px solid var(--border);
+   476→}
+   477→
+   478→tbody tr {
+   479→  transition: background-color 0.15s ease;
+   480→}
+   481→
+   482→tbody tr:nth-child(even) {
+   483→  background: rgba(255, 255, 255, 0.015);
+   484→}
+   485→
+   486→tbody tr:hover {
+   487→  background: rgba(212, 165, 116, 0.04);
+   488→}
+   489→
+   490→tbody tr:hover td {
+   491→  color: var(--foreground);
+   492→}
+   493→
+   494→tbody td {
+   495→  transition: color 0.15s ease;
+   496→  border-bottom: 1px solid var(--border);
+   497→}
+   498→
+   499→/* ===================================================================
+   500→   10. SHADCN DIALOG CONTENT OVERRIDES
+   501→   Enhanced appearance for Dialog/Modal content panels
+   502→   =================================================================== */
+   503→[data-slot="dialog-content"] {
+   504→  background: rgba(26, 26, 36, 0.95) !important;
+   505→  backdrop-filter: blur(24px) !important;
+   506→  -webkit-backdrop-filter: blur(24px) !important;
+   507→  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+   508→  box-shadow:
+   509→    0 0 0 1px rgba(0, 0, 0, 0.3),
+   510→    0 25px 60px rgba(0, 0, 0, 0.5),
+   511→    0 0 80px rgba(212, 165, 116, 0.05) !important;
+   512→  border-radius: 1rem !important;
+   513→  animation: dialog-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+   514→}
+   515→
+   516→@keyframes dialog-enter {
+   517→  from {
+   518→    opacity: 0;
+   519→    transform: scale(0.97) translateY(4px);
+   520→  }
+   521→  to {
+   522→    opacity: 1;
+   523→    transform: scale(1) translateY(0);
+   524→  }
+   525→}
+   526→
+   527→/* Dialog overlay */
+   528→[data-slot="dialog-overlay"] {
+   529→  background: rgba(0, 0, 0, 0.6) !important;
+   530→  backdrop-filter: blur(4px) !important;
+   531→  -webkit-backdrop-filter: blur(4px) !important;
+   532→  animation: overlay-fade-in 0.2s ease !important;
+   533→}
+   534→
+   535→@keyframes overlay-fade-in {
+   536→  from { opacity: 0; }
+   537→  to { opacity: 1; }
+   538→}
+   539→
+   540→/* ===================================================================
+   541→   11. BADGE PULSE ANIMATION
+   542→   Pulsing glow for notification badges
+   543→   =================================================================== */
+   544→@keyframes badge-pulse {
+   545→  0%, 100% {
+   546→    box-shadow: 0 0 0 0 rgba(212, 165, 116, 0.4);
+   547→  }
+   548→  50% {
+   549→    box-shadow: 0 0 0 6px rgba(212, 165, 116, 0);
+   550→  }
+   551→}
+   552→
+   553→.animate-badge-pulse {
+   554→  animation: badge-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+   555→}
+   556→
+   557→/* Alternate badge pulse for destructive/urgent badges */
+   558→@keyframes badge-pulse-destructive {
+   559→  0%, 100% {
+   560→    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+   561→  }
+   562→  50% {
+   563→    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+   564→  }
+   565→}
+   566→
+   567→.animate-badge-pulse-destructive {
+   568→  animation: badge-pulse-destructive 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+   569→}
+   570→
+   571→/* ===================================================================
+   572→   12. SMOOTH PAGE/SECTION TRANSITION CLASS
+   573→   Use on section containers for cross-section transitions
+   574→   =================================================================== */
+   575→.section-transition {
+   576→  animation: section-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+   577→}
+   578→
+   579→@keyframes section-enter {
+   580→  from {
+   581→    opacity: 0;
+   582→    transform: translateY(6px);
+   583→  }
+   584→  to {
+   585→    opacity: 1;
+   586→    transform: translateY(0);
+   587→  }
+   588→}
+   589→
+   590→/* Section exit (add via JS before switching) */
+   591→.section-exit {
+   592→  animation: section-exit 0.15s ease-in both;
+   593→}
+   594→
+   595→@keyframes section-exit {
+   596→  from {
+   597→    opacity: 1;
+   598→    transform: translateY(0);
+   599→  }
+   600→  to {
+   601→    opacity: 0;
+   602→    transform: translateY(-4px);
+   603→  }
+   604→}
+   605→
+   606→/* ===================================================================
+   607→   13. SECTION FADE-IN-UP (250ms, 8px, ease-out)
+   608→   Used for page section transitions keyed by activeSection
+   609→   =================================================================== */
+   610→@keyframes section-fade-in-up {
+   611→  from {
+   612→    opacity: 0;
+   613→    transform: translateY(8px);
+   614→  }
+   615→  to {
+   616→    opacity: 1;
+   617→    transform: translateY(0);
+   618→  }
+   619→}
+   620→
+   621→.animate-section-fade-in-up {
+   622→  animation: section-fade-in-up 250ms ease-out both;
+   623→}
+   624→
+   625→/* ===================================================================
+   626→   14. LOADING OVERLAY ANIMATIONS
+   627→   Pulse ring for the loading amber dot, overlay fade-out
+   628→   =================================================================== */
+   629→@keyframes loading-pulse-ring {
+   630→  0% {
+   631→    transform: scale(0.8);
+   632→    opacity: 0.8;
+   633→  }
+   634→  50% {
+   635→    transform: scale(1.4);
+   636→    opacity: 0;
+   637→  }
+   638→  100% {
+   639→    transform: scale(0.8);
+   640→    opacity: 0;
+   641→  }
+   642→}
+   643→
+   644→@keyframes loading-pulse-dot {
+   645→  0%, 100% {
+   646→    opacity: 1;
+   647→    transform: scale(1);
+   648→  }
+   649→  50% {
+   650→    opacity: 0.7;
+   651→    transform: scale(1.1);
+   652→  }
+   653→}
+   654→
+   655→@keyframes loading-fade-out {
+   656→  from {
+   657→    opacity: 1;
+   658→    pointer-events: auto;
+   659→  }
+   660→  to {
+   661→    opacity: 0;
+   662→    pointer-events: none;
+   663→  }
+   664→}
+   665→
+   666→.animate-loading-pulse-ring {
+   667→  animation: loading-pulse-ring 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+   668→}
+   669→
+   670→.animate-loading-pulse-dot {
+   671→  animation: loading-pulse-dot 1.5s ease-in-out infinite;
+   672→}
+   673→
+   674→.animate-loading-fade-out {
+   675→  animation: loading-fade-out 300ms ease-out forwards;
+   676→}
+   677→
+   678→/* ===================================================================
+   679→   EXISTING UTILITIES (preserved below)
+   680→   =================================================================== */
+   681→
+   682→/* Smooth transitions for interactive elements */
+   683→.transition-smooth {
+   684→  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+   685→}
+   686→
+   687→/* Glass morphism effect */
+   688→.glass-effect {
+   689→  background: rgba(26, 26, 36, 0.8);
+   690→  backdrop-filter: blur(12px);
+   691→  -webkit-backdrop-filter: blur(12px);
+   692→}
+   693→
+   694→/* Gradient text */
+   695→.gradient-text-amber {
+   696→  background: linear-gradient(135deg, #D4A574, #E8C9A8);
+   697→  -webkit-background-clip: text;
+   698→  -webkit-text-fill-color: transparent;
+   699→  background-clip: text;
+   700→}
+   701→
+   702→/* Glow effects */
+   703→.glow-amber {
+   704→  box-shadow: 0 0 20px rgba(212, 165, 116, 0.15);
+   705→}
+   706→
+   707→.glow-emerald {
+   708→  box-shadow: 0 0 20px rgba(74, 222, 128, 0.15);
+   709→}
+   710→
+   711→.glow-sky {
+   712→  box-shadow: 0 0 20px rgba(56, 189, 248, 0.15);
+   713→}
+   714→
+   715→.glow-violet {
+   716→  box-shadow: 0 0 20px rgba(167, 139, 250, 0.15);
+   717→}
+   718→
+   719→.glow-rose {
+   720→  box-shadow: 0 0 20px rgba(251, 113, 133, 0.15);
+   721→}
+   722→
+   723→/* Card hover effect */
+   724→.card-hover {
+   725→  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+   726→}
+   727→
+   728→.card-hover:hover {
+   729→  transform: translateY(-2px);
+   730→  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+   731→  border-color: rgba(212, 165, 116, 0.2);
+   732→}
+   733→
+   734→/* Status badges */
+   735→.status-stable { color: #4ADE80; }
+   736→.status-improved { color: #38BDF8; }
+   737→.status-needs-attention { color: #FBBF24; }
+   738→.status-critical { color: #EF4444; }
+   739→.status-active { color: #A78BFA; }
+   740→.status-completed { color: #4ADE80; }
+   741→
+   742→/* Pulse animation for live indicators */
+   743→@keyframes pulse-glow {
+   744→  0%, 100% { opacity: 1; }
+   745→  50% { opacity: 0.5; }
+   746→}
+   747→
+   748→.animate-pulse-glow {
+   749→  animation: pulse-glow 2s ease-in-out infinite;
+   750→}
+   751→
+   752→/* RTL support */
+   753→[dir="rtl"] {
+   754→  text-align: right;
+   755→}
+   756→
+   757→/* Fade-in-up animation */
+   758→@keyframes fadeInUp {
+   759→  from { opacity: 0; transform: translateY(12px); }
+   760→  to { opacity: 1; transform: translateY(0); }
+   761→}
+   762→
+   763→@keyframes slideInRight {
+   764→  from { opacity: 0; transform: translateX(20px); }
+   765→  to { opacity: 1; transform: translateX(0); }
+   766→}
+   767→
+   768→.animate-fade-in-up {
+   769→  animation: fadeInUp 0.4s ease-out forwards;
+   770→}
+   771→
+   772→.animate-slide-in-right {
+   773→  animation: slideInRight 0.3s ease-out forwards;
+   774→}
+   775→
+   776→/* Prevent FOUC */
+   777→html {
+   778→  background-color: #121218;
+   779→  scroll-behavior: smooth;
+   780→}
+   781→
+   782→/* ===================================================================
+   783→   15. FLOATING AMBIENT ORBS
+   784→   Soft amber/gold gradient orbs that drift slowly in the background.
+   785→   Usage: add <div class="ambient-orb-1" /> etc. as fixed siblings.
+   786→   =================================================================== */
+   787→@keyframes orb-drift-1 {
+   788→  0%, 100% {
+   789→    transform: translate(0, 0) scale(1);
+   790→  }
+   791→  25% {
+   792→    transform: translate(80px, -60px) scale(1.05);
+   793→  }
+   794→  50% {
+   795→    transform: translate(-40px, -120px) scale(0.95);
+   796→  }
+   797→  75% {
+   798→    transform: translate(-100px, 30px) scale(1.02);
+   799→  }
+   800→}
+   801→
+   802→@keyframes orb-drift-2 {
+   803→  0%, 100% {
+   804→    transform: translate(0, 0) scale(1);
+   805→  }
+   806→  25% {
+   807→    transform: translate(-70px, 80px) scale(0.97);
+   808→  }
+   809→  50% {
+   810→    transform: translate(60px, 40px) scale(1.04);
+   811→  }
+   812→  75% {
+   813→    transform: translate(30px, -90px) scale(0.98);
+   814→  }
+   815→}
+   816→
+   817→@keyframes orb-drift-3 {
+   818→  0%, 100% {
+   819→    transform: translate(0, 0) scale(1);
+   820→  }
+   821→  25% {
+   822→    transform: translate(50px, 70px) scale(1.03);
+   823→  }
+   824→  50% {
+   825→    transform: translate(-80px, -40px) scale(0.96);
+   826→  }
+   827→  75% {
+   828→    transform: translate(90px, -80px) scale(1.01);
+   829→  }
+   830→}
+   831→
+   832→.ambient-orb-1 {
+   833→  position: fixed;
+   834→  top: 10%;
+   835→  left: 15%;
+   836→  width: 400px;
+   837→  height: 400px;
+   838→  border-radius: 50%;
+   839→  background: radial-gradient(
+   840→    circle at 40% 40%,
+   841→    rgba(212, 165, 116, 0.12) 0%,
+   842→    rgba(212, 165, 116, 0.05) 40%,
+   843→    transparent 70%
+   844→  );
+   845→  filter: blur(60px);
+   846→  pointer-events: none;
+   847→  z-index: 0;
+   848→  animation: orb-drift-1 30s ease-in-out infinite;
+   849→}
+   850→
+   851→.ambient-orb-2 {
+   852→  position: fixed;
+   853→  bottom: 15%;
+   854→  right: 10%;
+   855→  width: 300px;
+   856→  height: 300px;
+   857→  border-radius: 50%;
+   858→  background: radial-gradient(
+   859→    circle at 60% 30%,
+   860→    rgba(251, 191, 36, 0.08) 0%,
+   861→    rgba(212, 165, 116, 0.04) 45%,
+   862→    transparent 70%
+   863→  );
+   864→  filter: blur(50px);
+   865→  pointer-events: none;
+   866→  z-index: 0;
+   867→  animation: orb-drift-2 40s ease-in-out infinite;
+   868→}
+   869→
+   870→.ambient-orb-3 {
+   871→  position: fixed;
+   872→  top: 55%;
+   873→  left: 50%;
+   874→  width: 250px;
+   875→  height: 250px;
+   876→  border-radius: 50%;
+   877→  background: radial-gradient(
+   878→    circle at 50% 50%,
+   879→    rgba(232, 201, 168, 0.07) 0%,
+   880→    rgba(212, 165, 116, 0.03) 50%,
+   881→    transparent 70%
+   882→  );
+   883→  filter: blur(45px);
+   884→  pointer-events: none;
+   885→  z-index: 0;
+   886→  animation: orb-drift-3 25s ease-in-out infinite;
+   887→}
+   888→
+   889→/* ===================================================================
+   890→   16. ENHANCED GLASS CARD HOVER
+   891→   Stronger glassmorphism on hover: increased blur + amber border glow.
+   892→   =================================================================== */
+   893→.glass-card-hover {
+   894→  background: var(--glass-bg);
+   895→  backdrop-filter: blur(var(--glass-blur));
+   896→  -webkit-backdrop-filter: blur(var(--glass-blur));
+   897→  border: 1px solid var(--glass-border);
+   898→  border-radius: var(--radius);
+   899→  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+   900→  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+   901→}
+   902→
+   903→.glass-card-hover:hover {
+   904→  background: rgba(26, 26, 36, 0.9);
+   905→  backdrop-filter: blur(28px);
+   906→  -webkit-backdrop-filter: blur(28px);
+   907→  border-color: rgba(212, 165, 116, 0.25);
+   908→  transform: translateY(-2px);
+   909→  box-shadow:
+   910→    0 0 0 1px rgba(212, 165, 116, 0.1),
+   911→    0 0 24px rgba(212, 165, 116, 0.08),
+   912→    0 8px 32px rgba(0, 0, 0, 0.3);
+   913→}
+   914→
+   915→/* ===================================================================
+   916→   17. ANIMATED COUNTER
+   917→   Keyframes for a number counting visual effect.
+   918→   Pair with JS that swaps innerText; this animation provides the
+   919→   subtle scale pulse on each tick.
+   920→   =================================================================== */
+   921→@keyframes count-up {
+   922→  0% {
+   923→    opacity: 0.4;
+   924→    transform: translateY(6px);
+   925→  }
+   926→  50% {
+   927→    opacity: 1;
+   928→    transform: translateY(-2px);
+   929→  }
+   930→  100% {
+   931→    opacity: 1;
+   932→    transform: translateY(0);
+   933→  }
+   934→}
+   935→
+   936→.animate-count-up {
+   937→  animation: count-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+   938→}
+   939→
+   940→/* ===================================================================
+   941→   18. SHIMMER LOADING EFFECT
+   942→   Moving gradient shimmer for skeleton / loading placeholder states.
+   943→   =================================================================== */
+   944→@keyframes shimmer {
+   945→  0% {
+   946→    background-position: -400px 0;
+   947→  }
+   948→  100% {
+   949→    background-position: 400px 0;
+   950→  }
+   951→}
+   952→
+   953→.shimmer-loading {
+   954→  background: linear-gradient(
+   955→    90deg,
+   956→    rgba(255, 255, 255, 0.03) 0%,
+   957→    rgba(255, 255, 255, 0.08) 20%,
+   958→    rgba(255, 255, 255, 0.12) 50%,
+   959→    rgba(255, 255, 255, 0.08) 80%,
+   960→    rgba(255, 255, 255, 0.03) 100%
+   961→  );
+   962→  background-size: 800px 100%;
+   963→  animation: shimmer 1.8s ease-in-out infinite;
+   964→  border-radius: var(--radius);
+   965→}
+   966→
+   967→/* ===================================================================
+   968→   19. MORPH ANIMATION
+   969→   Subtly changes border-radius for blob-like decorative elements.
+   970→   =================================================================== */
+   971→@keyframes morph {
+   972→  0%, 100% {
+   973→    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+   974→  }
+   975→  25% {
+   976→    border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
+   977→  }
+   978→  50% {
+   979→    border-radius: 50% 60% 30% 60% / 30% 60% 70% 40%;
+   980→  }
+   981→  75% {
+   982→    border-radius: 60% 30% 60% 40% / 70% 40% 50% 60%;
+   983→  }
+   984→}
+   985→
+   986→.animate-morph {
+   987→  animation: morph 12s ease-in-out infinite;
+   988→}
+   989→
+   990→/* ===================================================================
+   991→   20. BREATHE ANIMATION
+   992→   Subtle scale pulsing (1.0 → 1.02 → 1.0) for living feel.
+   993→   =================================================================== */
+   994→@keyframes breathe {
+   995→  0%, 100% {
+   996→    transform: scale(1);
+   997→  }
+   998→  50% {
+   999→    transform: scale(1.02);
+  1000→  }
+  1001→}
+  1002→
+  1003→.animate-breathe {
+  1004→  animation: breathe 4s ease-in-out infinite;
+  1005→}
+  1006→
+  1007→/* ===================================================================
+  1008→   21. FLOAT ANIMATION
+  1009→   Gentle up-down floating motion for decorative elements.
+  1010→   =================================================================== */
+  1011→@keyframes float {
+  1012→  0%, 100% {
+  1013→    transform: translateY(0);
+  1014→  }
+  1015→  50% {
+  1016→    transform: translateY(-10px);
+  1017→  }
+  1018→}
+  1019→
+  1020→.animate-float {
+  1021→  animation: float 6s ease-in-out infinite;
+  1022→}
+  1023→
+  1024→/* ===================================================================
+  1025→   22. SIDEBAR SCROLLBAR
+  1026→   Ultra-thin amber-tinted scrollbar for sidebar panels.
+  1027→   =================================================================== */
+  1028→.sidebar-scroll::-webkit-scrollbar {
+  1029→  width: 3px;
+  1030→}
+  1031→
+  1032→.sidebar-scroll::-webkit-scrollbar-track {
+  1033→  background: transparent;
+  1034→}
+  1035→
+  1036→.sidebar-scroll::-webkit-scrollbar-thumb {
+  1037→  background: rgba(212, 165, 116, 0.2);
+  1038→  border-radius: 10px;
+  1039→  transition: background 0.2s ease;
+  1040→}
+  1041→
+  1042→.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  1043→  background: rgba(212, 165, 116, 0.4);
+  1044→}
+  1045→
+  1046→.sidebar-scroll {
+  1047→  scrollbar-width: thin;
+  1048→  scrollbar-color: rgba(212, 165, 116, 0.2) transparent;
+  1049→}
+  1050→
+  1051→/* ===================================================================
+  1052→   23. ENHANCED TOOLTIP STYLING
+  1053→   Dark glass effect for shadcn Tooltip / data-slot="tooltip".
+  1054→   =================================================================== */
+  1055→[data-slot="tooltip"] {
+  1056→  background: rgba(26, 26, 36, 0.92) !important;
+  1057→  backdrop-filter: blur(16px) !important;
+  1058→  -webkit-backdrop-filter: blur(16px) !important;
+  1059→  border: 1px solid rgba(212, 165, 116, 0.15) !important;
+  1060→  box-shadow:
+  1061→    0 4px 20px rgba(0, 0, 0, 0.4),
+  1062→    0 0 12px rgba(212, 165, 116, 0.06) !important;
+  1063→  border-radius: 8px !important;
+  1064→  color: var(--foreground) !important;
+  1065→  font-size: 0.8rem;
+  1066→  padding: 6px 12px;
+  1067→  animation: tooltip-enter 0.15s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  1068→}
+  1069→
+  1070→@keyframes tooltip-enter {
+  1071→  from {
+  1072→    opacity: 0;
+  1073→    transform: scale(0.96) translateY(2px);
+  1074→  }
+  1075→  to {
+  1076→    opacity: 1;
+  1077→    transform: scale(1) translateY(0);
+  1078→  }
+  1079→}
+  1080→
+  1081→/* Tooltip arrow (shadcn places it via a child) */
+  1082→[data-slot="tooltip"] > span {
+  1083→  color: rgba(26, 26, 36, 0.92) !important;
+  1084→}
+  1085→
+  1086→/* ===================================================================
+  1087→   24. STAGGER GRID ANIMATION UTILITY
+  1088→   Applies increasing animation delays to direct children, creating
+  1089→   a staggered entrance. Works with .animate-fade-in, .animate-slide-up,
+  1090→   .animate-scale-in, etc. on each child.
+  1091→   =================================================================== */
+  1092→.stagger-grid > *:nth-child(1)  { animation-delay: 0ms; }
+  1093→.stagger-grid > *:nth-child(2)  { animation-delay: 60ms; }
+  1094→.stagger-grid > *:nth-child(3)  { animation-delay: 120ms; }
+  1095→.stagger-grid > *:nth-child(4)  { animation-delay: 180ms; }
+  1096→.stagger-grid > *:nth-child(5)  { animation-delay: 240ms; }
+  1097→.stagger-grid > *:nth-child(6)  { animation-delay: 300ms; }
+  1098→.stagger-grid > *:nth-child(7)  { animation-delay: 360ms; }
+  1099→.stagger-grid > *:nth-child(8)  { animation-delay: 420ms; }
+  1100→.stagger-grid > *:nth-child(9)  { animation-delay: 480ms; }
+  1101→.stagger-grid > *:nth-child(10) { animation-delay: 540ms; }
+  1102→.stagger-grid > *:nth-child(11) { animation-delay: 600ms; }
+  1103→.stagger-grid > *:nth-child(12) { animation-delay: 660ms; }
+  1104→
+  1105→/* ===================================================================
+  1106→   25. GRADIENT TEXT UTILITIES
+  1107→   Gold and emerald gradient text variants.
+  1108→   =================================================================== */
+  1109→.gradient-text-gold {
+  1110→  background: linear-gradient(135deg, #D4A574, #FBBF24, #E8C9A8);
+  1111→  -webkit-background-clip: text;
+  1112→  -webkit-text-fill-color: transparent;
+  1113→  background-clip: text;
+  1114→}
+  1115→
+  1116→.gradient-text-emerald {
+  1117→  background: linear-gradient(135deg, #4ADE80, #34D399, #6EE7B7);
+  1118→  -webkit-background-clip: text;
+  1119→  -webkit-text-fill-color: transparent;
+  1120→  background-clip: text;
+  1121→}
+  1122→
+  1123→/* ===================================================================
+  1124→   26. INTERACTIVE CARD TILT
+  1125→   CSS perspective transform for a 3D tilt on hover.
+  1126→   Combine with JS mousemove for full parallax tilt, or use
+  1127→   the CSS-only hover tilt below.
+  1128→   =================================================================== */
+  1129→.card-tilt {
+  1130→  perspective: 800px;
+  1131→  transform-style: preserve-3d;
+  1132→  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  1133→}
+  1134→
+  1135→.card-tilt:hover {
+  1136→  transform: rotateX(2deg) rotateY(-2deg) scale(1.01);
+  1137→  box-shadow:
+  1138→    0 0 0 1px rgba(212, 165, 116, 0.08),
+  1139→    0 16px 48px rgba(0, 0, 0, 0.35);
+  1140→}
+  1141→
+  1142→.card-tilt > * {
+  1143→  transform: translateZ(0);
+  1144→}
+  1145→
+  1146→/* ===================================================================
+  1147→   27. ENHANCED CARD VARIANTS
+  1148→   Glass card with gradient border overlay
+  1149→   =================================================================== */
+  1150→.glass-card-gradient {
+  1151→  position: relative;
+  1152→  background: rgba(26, 26, 36, 0.7);
+  1153→  backdrop-filter: blur(16px);
+  1154→  border-radius: 1rem;
+  1155→  overflow: hidden;
+  1156→}
+  1157→.glass-card-gradient::before {
+  1158→  content: "";
+  1159→  position: absolute;
+  1160→  inset: 0;
+  1161→  border-radius: inherit;
+  1162→  padding: 1px;
+  1163→  background: linear-gradient(135deg, rgba(212,165,116,0.3), transparent 50%, rgba(212,165,116,0.1));
+  1164→  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  1165→  mask-composite: exclude;
+  1166→  pointer-events: none;
+  1167→}
+  1168→
+  1169→/* ===================================================================
+  1170→   28. TEXT GRADIENT UTILITIES
+  1171→   Rose, sky, and violet gradient text variants
+  1172→   =================================================================== */
+  1173→.gradient-text-rose {
+  1174→  background: linear-gradient(135deg, #FB7185, #FDA4AF);
+  1175→  -webkit-background-clip: text;
+  1176→  -webkit-text-fill-color: transparent;
+  1177→  background-clip: text;
+  1178→}
+  1179→.gradient-text-sky {
+  1180→  background: linear-gradient(135deg, #38BDF8, #7DD3FC);
+  1181→  -webkit-background-clip: text;
+  1182→  -webkit-text-fill-color: transparent;
+  1183→  background-clip: text;
+  1184→}
+  1185→.gradient-text-violet {
+  1186→  background: linear-gradient(135deg, #A78BFA, #C4B5FD);
+  1187→  -webkit-background-clip: text;
+  1188→  -webkit-text-fill-color: transparent;
+  1189→  background-clip: text;
+  1190→}
+  1191→
+  1192→/* ===================================================================
+  1193→   29. HOVER LIFT EFFECT
+  1194→   Smooth vertical lift with enhanced shadow on hover
+  1195→   =================================================================== */
+  1196→.hover-lift {
+  1197→  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+  1198→}
+  1199→.hover-lift:hover {
+  1200→  transform: translateY(-2px);
+  1201→  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), 0 0 16px rgba(212, 165, 116, 0.06);
+  1202→  border-color: rgba(212, 165, 116, 0.2);
+  1203→}
+  1204→
+  1205→/* ===================================================================
+  1206→   29b. CARD HOVER EFFECT (Enhanced)
+  1207→   Subtle lift + shadow expansion + amber border transition
+  1208→   =================================================================== */
+  1209→.card-hover-effect {
+  1210→  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+  1211→              box-shadow 0.3s ease,
+  1212→              border-color 0.3s ease,
+  1213→              background-color 0.3s ease;
+  1214→}
+  1215→.card-hover-effect:hover {
+  1216→  transform: translateY(-2px);
+  1217→  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), 0 0 20px rgba(212, 165, 116, 0.08);
+  1218→  border-color: rgba(212, 165, 116, 0.25) !important;
+  1219→}
+  1220→
+  1221→/* ===================================================================
+  1222→   30. STATUS INDICATOR DOT PULSE
+  1223→   Pulsing ring animation around a status dot
+  1224→   =================================================================== */
+  1225→.status-dot {
+  1226→  position: relative;
+  1227→  display: inline-flex;
+  1228→  align-items: center;
+  1229→  justify-content: center;
+  1230→}
+  1231→.status-dot::after {
+  1232→  content: "";
+  1233→  position: absolute;
+  1234→  width: 100%;
+  1235→  height: 100%;
+  1236→  border-radius: 50%;
+  1237→  background: inherit;
+  1238→  animation: status-dot-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+  1239→  opacity: 0.5;
+  1240→}
+  1241→@keyframes status-dot-ping {
+  1242→  0% { transform: scale(1); opacity: 0.5; }
+  1243→  75%, 100% { transform: scale(2.5); opacity: 0; }
+  1244→}
+  1245→
+  1246→/* ===================================================================
+  1247→   31. ENTRANCE ANIMATIONS
+  1248→   Bottom, left, and scale entrance transitions
+  1249→   =================================================================== */
+  1250→@keyframes enter-from-bottom {
+  1251→  from { opacity: 0; transform: translateY(16px); }
+  1252→  to { opacity: 1; transform: translateY(0); }
+  1253→}
+  1254→@keyframes enter-from-left {
+  1255→  from { opacity: 0; transform: translateX(-16px); }
+  1256→  to { opacity: 1; transform: translateX(0); }
+  1257→}
+  1258→@keyframes enter-scale-up {
+  1259→  from { opacity: 0; transform: scale(0.92); }
+  1260→  to { opacity: 1; transform: scale(1); }
+  1261→}
+  1262→.animate-enter-bottom {
+  1263→  animation: enter-from-bottom 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  1264→}
+  1265→.animate-enter-left {
+  1266→  animation: enter-from-left 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  1267→}
+  1268→.animate-enter-scale {
+  1269→  animation: enter-scale-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  1270→}
+  1271→
+  1272→/* ===================================================================
+  1273→   32. SHIMMER CARD LOADING
+  1274→   Moving gradient shimmer overlay for card surfaces
+  1275→   =================================================================== */
+  1276→.shimmer-card {
+  1277→  position: relative;
+  1278→  overflow: hidden;
+  1279→}
+  1280→.shimmer-card::after {
+  1281→  content: "";
+  1282→  position: absolute;
+  1283→  inset: 0;
+  1284→  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.03) 50%, transparent 100%);
+  1285→  background-size: 200% 100%;
+  1286→  animation: shimmer-move 2.5s ease-in-out infinite;
+  1287→}
+  1288→@keyframes shimmer-move {
+  1289→  0% { background-position: -200% 0; }
+  1290→  100% { background-position: 200% 0; }
+  1291→}
+  1292→
+  1293→/* ===================================================================
+  1294→   33. ENHANCED FOCUS RING
+  1295→   Amber-tinted focus-within glow for interactive containers
+  1296→   =================================================================== */
+  1297→.focus-amber {
+  1298→  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  1299→}
+  1300→.focus-amber:focus-within {
+  1301→  box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.15), 0 0 16px rgba(212, 165, 116, 0.08);
+  1302→  border-color: rgba(212, 165, 116, 0.4) !important;
+  1303→}
+  1304→
+  1305→/* ===================================================================
+  1306→   34. NUMBER COUNTER ANIMATION
+  1307→   Pop-in scale effect for numeric values
+  1308→   =================================================================== */
+  1309→@keyframes number-pop {
+  1310→  0% { transform: scale(0.8); opacity: 0; }
+  1311→  50% { transform: scale(1.05); }
+  1312→  100% { transform: scale(1); opacity: 1; }
+  1313→}
+  1314→.animate-number-pop {
+  1315→  animation: number-pop 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  1316→}
+  1317→
+  1318→/* ===================================================================
+  1319→   35. TOOLTIP ENHANCEMENT FOR POPOVERS
+  1320→   Styled popover content with glass effect and entrance animation
+  1321→   =================================================================== */
+  1322→[data-slot="popover-content"] {
+  1323→  background: rgba(26, 26, 36, 0.95) !important;
+  1324→  backdrop-filter: blur(16px) !important;
+  1325→  border: 1px solid rgba(212, 165, 116, 0.12) !important;
+  1326→  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 16px rgba(212, 165, 116, 0.04) !important;
+  1327→  border-radius: 12px !important;
+  1328→  animation: popover-enter 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  1329→}
+  1330→@keyframes popover-enter {
+  1331→  from { opacity: 0; transform: scale(0.96) translateY(4px); }
+  1332→  to { opacity: 1; transform: scale(1) translateY(0); }
+  1333→}
+  1334→
+  1335→/* ===================================================================
+  1336→   36. SEPARATOR WITH DOT
+  1337→   Horizontal line separator with a centered dot accent
+  1338→   =================================================================== */
+  1339→.separator-dot {
+  1340→  display: flex;
+  1341→  align-items: center;
+  1342→  gap: 8px;
+  1343→}
+  1344→.separator-dot::before,
+  1345→.separator-dot::after {
+  1346→  content: "";
+  1347→  flex: 1;
+  1348→  height: 1px;
+  1349→  background: linear-gradient(to left, rgba(212,165,116,0.15), transparent);
+  1350→}
+  1351→.separator-dot::after {
+  1352→  background: linear-gradient(to right, rgba(212,165,116,0.15), transparent);
+  1353→}
+  1354→
+  1355→/* ===================================================================
+  1356→   37. PRINT STYLES
+  1357→   Clean print layout: white background, no ambient orbs, hidden sidebar
+  1358→   =================================================================== */
+  1359→@media print {
+  1360→  body { background: white !important; color: black !important; }
+  1361→  body::before { display: none !important; }
+  1362→  .ambient-orb-1, .ambient-orb-2, .ambient-orb-3 { display: none !important; }
+  1363→  .no-print { display: none !important; }
+  1364→  .print-only { display: block !important; }
+  1365→  [data-slot="sidebar"] { display: none !important; }
+  1366→}
+  1367→.print-only { display: none; }
+  1368→
+  1369→/* ===================================================================
+  1370→   38. NOISE TEXTURE OVERLAY
+  1371→   Subtle SVG noise overlay for visual depth on any container.
+  1372→   Usage: add class "noise-overlay" to a positioned container.
+  1373→   =================================================================== */
+  1374→.noise-overlay::after {
+  1375→  content: "";
+  1376→  position: fixed;
+  1377→  inset: 0;
+  1378→  z-index: 0;
+  1379→  pointer-events: none;
+  1380→  opacity: 0.015;
+  1381→  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  1382→}
+  1383→
+  1384→/* ===================================================================
+  1385→   39. AURORA GRADIENT ANIMATION
+  1386→   Slowly shifting gradient background for decorative containers.
+  1387→   Amber-dominant with subtle emerald and sky tones.
+  1388→   =================================================================== */
+  1389→@keyframes aurora-shift {
+  1390→  0%, 100% { background-position: 0% 50%; }
+  1391→  25% { background-position: 50% 100%; }
+  1392→  50% { background-position: 100% 50%; }
+  1393→  75% { background-position: 50% 0%; }
+  1394→}
+  1395→.aurora-bg {
+  1396→  background: linear-gradient(135deg, rgba(212,165,116,0.08), rgba(74,222,128,0.04), rgba(56,189,248,0.04), rgba(212,165,116,0.08));
+  1397→  background-size: 400% 400%;
+  1398→  animation: aurora-shift 15s ease-in-out infinite;
+  1399→}
+  1400→
+  1401→/* ===================================================================
+  1402→   40. TYPING CURSOR ANIMATION
+  1403→   Blinking cursor pseudo-element for typing effect text.
+  1404→   =================================================================== */
+  1405→@keyframes blink-cursor {
+  1406→  0%, 100% { opacity: 1; }
+  1407→  50% { opacity: 0; }
+  1408→}
+  1409→.typing-cursor::after {
+  1410→  content: "│";
+  1411→  animation: blink-cursor 1s step-end infinite;
+  1412→  color: #D4A574;
+  1413→  margin-right: 2px;
+  1414→  font-weight: 300;
+  1415→}
+  1416→
+  1417→/* ===================================================================
+  1418→   41. RIPPLE EFFECT
+  1419→   Radial gradient ripple on click. Requires JS to position the ::after.
+  1420→   =================================================================== */
+  1421→@keyframes ripple {
+  1422→  0% { transform: scale(0); opacity: 0.5; }
+  1423→  100% { transform: scale(4); opacity: 0; }
+  1424→}
+  1425→.ripple-effect {
+  1426→  position: relative;
+  1427→  overflow: hidden;
+  1428→}
+  1429→.ripple-effect::after {
+  1430→  content: "";
+  1431→  position: absolute;
+  1432→  width: 100px;
+  1433→  height: 100px;
+  1434→  background: radial-gradient(circle, rgba(212,165,116,0.3), transparent);
+  1435→  border-radius: 50%;
+  1436→  transform: scale(0);
+  1437→  pointer-events: none;
+  1438→}
+  1439→
+  1440→/* ===================================================================
+  1441→   42. GRADIENT BORDER ANIMATED
+  1442→   Continuously rotating conic-gradient border using @property.
+  1443→   Uses mask-composite to only show the 1px border area.
+  1444→   =================================================================== */
+  1445→@keyframes gradient-rotate {
+  1446→  0% { --gradient-angle: 0deg; }
+  1447→  100% { --gradient-angle: 360deg; }
+  1448→}
+  1449→@property --gradient-angle {
+  1450→  syntax: "<angle>";
+  1451→  initial-value: 0deg;
+  1452→  inherits: false;
+  1453→}
+  1454→.animated-gradient-border {
+  1455→  position: relative;
+  1456→  border-radius: 1rem;
+  1457→  background: #121218;
+  1458→}
+  1459→.animated-gradient-border::before {
+  1460→  content: "";
+  1461→  position: absolute;
+  1462→  inset: -1px;
+  1463→  border-radius: inherit;
+  1464→  background: conic-gradient(from var(--gradient-angle), rgba(212,165,116,0.5), transparent 40%, transparent 60%, rgba(212,165,116,0.3));
+  1465→  animation: gradient-rotate 4s linear infinite;
+  1466→  z-index: -1;
+  1467→  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  1468→  mask-composite: exclude;
+  1469→  padding: 1px;
+  1470→}
+  1471→
+  1472→/* ===================================================================
+  1473→   43. TEXT REVEAL ANIMATION
+  1474→   Clip-path reveal from right to left (LTR: left to right).
+  1475→   =================================================================== */
+  1476→@keyframes text-reveal {
+  1477→  from { clip-path: inset(0 100% 0 0); }
+  1478→  to { clip-path: inset(0 0 0 0); }
+  1479→}
+  1480→.animate-text-reveal {
+  1481→  animation: text-reveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  1482→}
+  1483→
+  1484→/* ===================================================================
+  1485→   44. MAGNETIC HOVER
+  1486→   CSS-only subtle scale-up on hover, simulating magnetic pull.
+  1487→   Pair with JS mousemove for full parallax magnetic effect.
+  1488→   =================================================================== */
+  1489→.magnetic-hover {
+  1490→  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  1491→}
+  1492→.magnetic-hover:hover {
+  1493→  transform: scale(1.03);
+  1494→}
+  1495→
+  1496→/* ===================================================================
+  1497→   45. GLOWING DOT INDICATOR
+  1498→   Pulsing glow around a small circular dot for status indicators.
+  1499→   =================================================================== */
+  1500→@keyframes dot-glow {
+  1501→  0%, 100% { box-shadow: 0 0 4px currentColor, 0 0 8px currentColor; }
+  1502→  50% { box-shadow: 0 0 8px currentColor, 0 0 16px currentColor; }
+  1503→}
+  1504→.glowing-dot {
+  1505→  width: 8px;
+  1506→  height: 8px;
+  1507→  border-radius: 50%;
+  1508→  animation: dot-glow 2s ease-in-out infinite;
+  1509→}
+  1510→
+  1511→/* ===================================================================
+  1512→   46. SMOOTH UNDERLINE HOVER
+  1513→   Amber underline that expands from right (RTL) on hover.
+  1514→   =================================================================== */
+  1515→.smooth-underline {
+  1516→  position: relative;
+  1517→  display: inline-block;
+  1518→}
+  1519→.smooth-underline::after {
+  1520→  content: "";
+  1521→  position: absolute;
+  1522→  bottom: -2px;
+  1523→  right: 0;
+  1524→  width: 0;
+  1525→  height: 1px;
+  1526→  background: #D4A574;
+  1527→  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  1528→}
+  1529→.smooth-underline:hover::after {
+  1530→  width: 100%;
+  1531→}
+  1532→
+  1533→/* ===================================================================
+  1534→   47. CARD SHINE EFFECT
+  1535→   Diagonal light sweep on hover, simulating a holographic shine.
+  1536→   =================================================================== */
+  1537→.card-shine {
+  1538→  position: relative;
+  1539→  overflow: hidden;
+  1540→}
+  1541→.card-shine::before {
+  1542→  content: "";
+  1543→  position: absolute;
+  1544→  top: -50%;
+  1545→  left: -50%;
+  1546→  width: 200%;
+  1547→  height: 200%;
+  1548→  background: linear-gradient(
+  1549→    45deg,
+  1550→    transparent 30%,
+  1551→    rgba(255, 255, 255, 0.03) 45%,
+  1552→    rgba(255, 255, 255, 0.06) 50%,
+  1553→    rgba(255, 255, 255, 0.03) 55%,
+  1554→    transparent 70%
+  1555→  );
+  1556→  transform: translateX(-100%) rotate(0deg);
+  1557→  transition: transform 0.6s ease;
+  1558→  pointer-events: none;
+  1559→}
+  1560→.card-shine:hover::before {
+  1561→  transform: translateX(100%) rotate(0deg);
+  1562→}
+  1563→
+  1564→/* ===================================================================
+  1565→   48. SCROLL PROGRESS BAR
+  1566→   Fixed top bar that fills from right (RTL) as user scrolls.
+  1567→   Use with JS to set width based on scroll percentage.
+  1568→   =================================================================== */
+  1569→.scroll-progress {
+  1570→  position: fixed;
+  1571→  top: 0;
+  1572→  left: 0;
+  1573→  height: 2px;
+  1574→  background: linear-gradient(to right, #D4A574, #E8C9A8, #FBBF24);
+  1575→  z-index: 9999;
+  1576→  transition: width 0.1s linear;
+  1577→}
+  1578→
+  1579→/* ===================================================================
+  1580→   49. ENHANCED CARD STYLES
+  1581→   Premium card variants with spotlight, gradient borders, glass, elevation
+  1582→   =================================================================== */
+  1583→
+  1584→/* --- .card-spotlight --- CSS-only radial gradient spotlight on hover --- */
+  1585→.card-spotlight {
+  1586→  position: relative;
+  1587→  overflow: hidden;
+  1588→  transition: border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
+  1589→}
+  1590→.card-spotlight::before {
+  1591→  content: "";
+  1592→  position: absolute;
+  1593→  inset: 0;
+  1594→  background: radial-gradient(
+  1595→    600px circle at var(--spotlight-x, 50%) var(--spotlight-y, 50%),
+  1596→    rgba(212, 165, 116, 0.06),
+  1597→    transparent 40%
+  1598→  );
+  1599→  opacity: 0;
+  1600→  transition: opacity 0.4s ease;
+  1601→  pointer-events: none;
+  1602→  z-index: 1;
+  1603→  border-radius: inherit;
+  1604→}
+  1605→.card-spotlight:hover::before {
+  1606→  opacity: 1;
+  1607→}
+  1608→.card-spotlight:hover {
+  1609→  border-color: rgba(212, 165, 116, 0.18);
+  1610→  box-shadow: 0 0 30px rgba(212, 165, 116, 0.06);
+  1611→}
+  1612→
+  1613→/* --- .card-gradient-hover --- Gradient border that fades in on hover --- */
+  1614→.card-gradient-hover {
+  1615→  position: relative;
+  1616→  border: 1px solid transparent;
+  1617→  background-clip: padding-box;
+  1618→  transition: box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  1619→}
+  1620→.card-gradient-hover::before {
+  1621→  content: "";
+  1622→  position: absolute;
+  1623→  inset: -1px;
+  1624→  border-radius: inherit;
+  1625→  background: linear-gradient(
+  1626→    135deg,
+  1627→    rgba(212, 165, 116, 0.5),
+  1628→    rgba(212, 165, 116, 0.05) 40%,
+  1629→    transparent 50%,
+  1630→    rgba(212, 165, 116, 0.05) 60%,
+  1631→    rgba(212, 165, 116, 0.3)
+  1632→  );
+  1633→  opacity: 0;
+  1634→  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  1635→  z-index: -1;
+  1636→  pointer-events: none;
+  1637→}
+  1638→.card-gradient-hover:hover::before {
+  1639→  opacity: 1;
+  1640→}
+  1641→.card-gradient-hover:hover {
+  1642→  box-shadow:
+  1643→    0 0 20px rgba(212, 165, 116, 0.08),
+  1644→    0 8px 32px rgba(0, 0, 0, 0.2);
+  1645→}
+  1646→
+  1647→/* --- .card-glass-subtle --- Lighter glass effect with very subtle blur --- */
+  1648→.card-glass-subtle {
+  1649→  background: rgba(26, 26, 36, 0.5);
+  1650→  backdrop-filter: blur(8px);
+  1651→  -webkit-backdrop-filter: blur(8px);
+  1652→  border: 1px solid rgba(255, 255, 255, 0.05);
+  1653→  border-radius: var(--radius);
+  1654→  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  1655→  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  1656→}
+  1657→.card-glass-subtle:hover {
+  1658→  border-color: rgba(212, 165, 116, 0.12);
+  1659→  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  1660→}
+  1661→
+  1662→/* --- .card-elevated --- Multi-layer shadow with hover lift --- */
+  1663→.card-elevated {
+  1664→  background: #1A1A24;
+  1665→  border: 1px solid rgba(255, 255, 255, 0.06);
+  1666→  border-radius: var(--radius);
+  1667→  box-shadow:
+  1668→    0 1px 2px rgba(0, 0, 0, 0.2),
+  1669→    0 4px 12px rgba(0, 0, 0, 0.15),
+  1670→    0 8px 24px rgba(0, 0, 0, 0.1);
+  1671→  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease;
+  1672→}
+  1673→.card-elevated:hover {
+  1674→  transform: translateY(-3px);
+  1675→  box-shadow:
+  1676→    0 2px 4px rgba(0, 0, 0, 0.25),
+  1677→    0 8px 20px rgba(0, 0, 0, 0.2),
+  1678→    0 16px 40px rgba(0, 0, 0, 0.15),
+  1679→    0 0 0 1px rgba(212, 165, 116, 0.06);
+  1680→}
+  1681→
+  1682→/* --- .card-interactive --- Scale, shadow, and border glow on hover --- */
+  1683→.card-interactive {
+  1684→  background: #1A1A24;
+  1685→  border: 1px solid rgba(255, 255, 255, 0.06);
+  1686→  border-radius: var(--radius);
+  1687→  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  1688→  cursor: pointer;
+  1689→}
+  1690→.card-interactive:hover {
+  1691→  transform: scale(1.015);
+  1692→  border-color: rgba(212, 165, 116, 0.25);
+  1693→  box-shadow:
+  1694→    0 0 0 1px rgba(212, 165, 116, 0.08),
+  1695→    0 0 20px rgba(212, 165, 116, 0.1),
+  1696→    0 8px 32px rgba(0, 0, 0, 0.25);
+  1697→}
+  1698→.card-interactive:active {
+  1699→  transform: scale(0.985);
+  1700→  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  1701→}
+  1702→
+  1703→/* ===================================================================
+  1704→   50. BUTTON ENHANCEMENTS
+  1705→   Premium button variants with glow, shine, press, and gradient border
+  1706→   =================================================================== */
+  1707→
+  1708→/* --- .btn-amber-glow --- Amber button with animated glow pulse --- */
+  1709→.btn-amber-glow {
+  1710→  background: linear-gradient(135deg, #D4A574, #B8895A);
+  1711→  color: #121218;
+  1712→  font-weight: 600;
+  1713→  border-radius: 0.5rem;
+  1714→  padding: 0.5rem 1.25rem;
+  1715→  border: none;
+  1716→  cursor: pointer;
+  1717→  position: relative;
+  1718→  transition: transform 0.2s ease, box-shadow 0.3s ease;
+  1719→  box-shadow: 0 0 12px rgba(212, 165, 116, 0.2);
+  1720→  animation: btn-glow-pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  1721→}
+  1722→.btn-amber-glow:hover {
+  1723→  transform: translateY(-1px);
+  1724→  box-shadow: 0 0 20px rgba(212, 165, 116, 0.35), 0 4px 16px rgba(212, 165, 116, 0.2);
+  1725→}
+  1726→.btn-amber-glow:active {
+  1727→  transform: translateY(0);
+  1728→}
+  1729→
+  1730→@keyframes btn-glow-pulse {
+  1731→  0%, 100% { box-shadow: 0 0 12px rgba(212, 165, 116, 0.2); }
+  1732→  50% { box-shadow: 0 0 20px rgba(212, 165, 116, 0.35), 0 0 40px rgba(212, 165, 116, 0.1); }
+  1733→}
+  1734→
+  1735→/* --- .btn-shine --- Moving shine/shimmer effect on hover --- */
+  1736→.btn-shine {
+  1737→  position: relative;
+  1738→  overflow: hidden;
+  1739→}
+  1740→.btn-shine::after {
+  1741→  content: "";
+  1742→  position: absolute;
+  1743→  top: -50%;
+  1744→  left: -60%;
+  1745→  width: 40%;
+  1746→  height: 200%;
+  1747→  background: linear-gradient(
+  1748→    90deg,
+  1749→    transparent,
+  1750→    rgba(255, 255, 255, 0.15),
+  1751→    transparent
+  1752→  );
+  1753→  transform: skewX(-20deg);
+  1754→  transition: left 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  1755→  pointer-events: none;
+  1756→}
+  1757→.btn-shine:hover::after {
+  1758→  left: 120%;
+  1759→}
+  1760→
+  1761→/* --- .btn-press --- 3D press-down effect --- */
+  1762→.btn-press {
+  1763→  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+  1764→              box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  1765→  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.15);
+  1766→}
+  1767→.btn-press:hover {
+  1768→  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2);
+  1769→  transform: translateY(-1px);
+  1770→}
+  1771→.btn-press:active {
+  1772→  transform: translateY(2px);
+  1773→  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  1774→}
+  1775→
+  1776→/* --- .btn-gradient-border --- Button with animated gradient border --- */
+  1777→.btn-gradient-border {
+  1778→  position: relative;
+  1779→  z-index: 0;
+  1780→  border: none;
+  1781→  border-radius: 0.5rem;
+  1782→  padding: 0.5rem 1.25rem;
+  1783→  cursor: pointer;
+  1784→  background: transparent;
+  1785→  color: #E8E8ED;
+  1786→  font-weight: 500;
+  1787→}
+  1788→.btn-gradient-border::before {
+  1789→  content: "";
+  1790→  position: absolute;
+  1791→  inset: 0;
+  1792→  border-radius: inherit;
+  1793→  padding: 1.5px;
+  1794→  background: linear-gradient(135deg, #D4A574, #B8895A, #E8C9A8, #D4A574);
+  1795→  background-size: 300% 300%;
+  1796→  animation: btn-gradient-shift 4s ease infinite;
+  1797→  -webkit-mask:
+  1798→    linear-gradient(#fff 0 0) content-box,
+  1799→    linear-gradient(#fff 0 0);
+  1800→  -webkit-mask-composite: xor;
+  1801→  mask:
+  1802→    linear-gradient(#fff 0 0) content-box,
+  1803→    linear-gradient(#fff 0 0);
+  1804→  mask-composite: exclude;
+  1805→  pointer-events: none;
+  1806→}
+  1807→.btn-gradient-border > * {
+  1808→  position: relative;
+  1809→  z-index: 1;
+  1810→}
+  1811→
+  1812→@keyframes btn-gradient-shift {
+  1813→  0%, 100% { background-position: 0% 50%; }
+  1814→  50% { background-position: 100% 50%; }
+  1815→}
+  1816→
+  1817→/* ===================================================================
+  1818→   51. DATA DISPLAY ENHANCEMENTS
+  1819→   Table row hover, cell highlight, badge pulse, empty state
+  1820→   =================================================================== */
+  1821→
+  1822→/* --- .data-row-hover --- Subtle background shift + right border accent on hover --- */
+  1823→.data-row-hover {
+  1824→  transition: background-color 0.2s ease, border-color 0.2s ease;
+  1825→  border-right: 3px solid transparent;
+  1826→}
+  1827→.data-row-hover:hover {
+  1828→  background-color: rgba(212, 165, 116, 0.04);
+  1829→  border-right-color: rgba(212, 165, 116, 0.4);
+  1830→}
+  1831→
+  1832→/* --- .data-cell-highlight --- Amber glow when value changes --- */
+  1833→.data-cell-highlight {
+  1834→  transition: background-color 0.15s ease, box-shadow 0.3s ease;
+  1835→  border-radius: 4px;
+  1836→}
+  1837→.data-cell-highlight.highlight-active {
+  1838→  background-color: rgba(212, 165, 116, 0.12);
+  1839→  box-shadow: 0 0 12px rgba(212, 165, 116, 0.15);
+  1840→}
+  1841→
+  1842→@keyframes cell-glow {
+  1843→  0% { background-color: rgba(212, 165, 116, 0.2); box-shadow: 0 0 16px rgba(212, 165, 116, 0.25); }
+  1844→  100% { background-color: transparent; box-shadow: none; }
+  1845→}
+  1846→.data-cell-highlight.glow-once {
+  1847→  animation: cell-glow 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  1848→}
+  1849→
+  1850→/* --- .data-badge-pulse --- Badge with gentle pulse --- */
+  1851→.data-badge-pulse {
+  1852→  animation: data-badge-pulse-anim 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  1853→}
+  1854→@keyframes data-badge-pulse-anim {
+  1855→  0%, 100% { transform: scale(1); opacity: 1; }
+  1856→  50% { transform: scale(1.06); opacity: 0.9; }
+  1857→}
+  1858→
+  1859→/* --- .data-empty-state --- Styled empty state container --- */
+  1860→.data-empty-state {
+  1861→  display: flex;
+  1862→  flex-direction: column;
+  1863→  align-items: center;
+  1864→  justify-content: center;
+  1865→  gap: 1rem;
+  1866→  padding: 3rem 2rem;
+  1867→  text-align: center;
+  1868→  color: #6B6B76;
+  1869→  background: rgba(26, 26, 36, 0.5);
+  1870→  border: 1px dashed rgba(107, 107, 118, 0.25);
+  1871→  border-radius: 1rem;
+  1872→}
+  1873→.data-empty-state-icon {
+  1874→  width: 3.5rem;
+  1875→  height: 3.5rem;
+  1876→  display: flex;
+  1877→  align-items: center;
+  1878→  justify-content: center;
+  1879→  border-radius: 50%;
+  1880→  background: rgba(212, 165, 116, 0.08);
+  1881→  color: #D4A574;
+  1882→  opacity: 0.6;
+  1883→}
+  1884→.data-empty-state-title {
+  1885→  font-size: 0.95rem;
+  1886→  font-weight: 600;
+  1887→  color: #8B8B9E;
+  1888→}
+  1889→.data-empty-state-desc {
+  1890→  font-size: 0.8rem;
+  1891→  color: #6B6B76;
+  1892→  max-width: 280px;
+  1893→  line-height: 1.6;
+  1894→}
+  1895→.data-empty-state-action {
+  1896→  margin-top: 0.5rem;
+  1897→  display: inline-flex;
+  1898→  align-items: center;
+  1899→  gap: 0.5rem;
+  1900→  padding: 0.45rem 1rem;
+  1901→  border-radius: 0.5rem;
+  1902→  font-size: 0.8rem;
+  1903→  font-weight: 600;
+  1904→  color: #121218;
+  1905→  background: linear-gradient(135deg, #D4A574, #B8895A);
+  1906→  cursor: pointer;
+  1907→  border: none;
+  1908→  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  1909→}
+  1910→.data-empty-state-action:hover {
+  1911→  transform: translateY(-1px);
+  1912→  box-shadow: 0 4px 16px rgba(212, 165, 116, 0.3);
+  1913→}
+  1914→
+  1915→/* ===================================================================
+  1916→   52. NAVIGATION ENHANCEMENTS
+  1917→   Breadcrumbs, tab indicators, step indicators
+  1918→   =================================================================== */
+  1919→
+  1920→/* --- .nav-breadcrumb --- Styled breadcrumb with amber separator dots --- */
+  1921→.nav-breadcrumb {
+  1922→  display: flex;
+  1923→  align-items: center;
+  1924→  gap: 0;
+  1925→  font-size: 0.8rem;
+  1926→  color: #6B6B76;
+  1927→}
+  1928→.nav-breadcrumb-item {
+  1929→  color: #6B6B76;
+  1930→  transition: color 0.2s ease;
+  1931→  white-space: nowrap;
+  1932→}
+  1933→.nav-breadcrumb-item:hover {
+  1934→  color: #D4A574;
+  1935→}
+  1936→.nav-breadcrumb-item.active {
+  1937→  color: #E8E8ED;
+  1938→  font-weight: 600;
+  1939→}
+  1940→.nav-breadcrumb-separator {
+  1941→  display: inline-flex;
+  1942→  align-items: center;
+  1943→  justify-content: center;
+  1944→  width: 20px;
+  1945→  height: 20px;
+  1946→  flex-shrink: 0;
+  1947→}
+  1948→.nav-breadcrumb-separator::before {
+  1949→  content: "";
+  1950→  width: 4px;
+  1951→  height: 4px;
+  1952→  border-radius: 50%;
+  1953→  background: rgba(212, 165, 116, 0.35);
+  1954→}
+  1955→
+  1956→/* --- .nav-tab-indicator --- Animated tab bar with sliding indicator --- */
+  1957→.nav-tab-indicator {
+  1958→  position: relative;
+  1959→  display: flex;
+  1960→  gap: 0.25rem;
+  1961→}
+  1962→.nav-tab-indicator-item {
+  1963→  position: relative;
+  1964→  padding: 0.5rem 1rem;
+  1965→  font-size: 0.85rem;
+  1966→  color: #6B6B76;
+  1967→  cursor: pointer;
+  1968→  transition: color 0.25s ease;
+  1969→  white-space: nowrap;
+  1970→  z-index: 1;
+  1971→}
+  1972→.nav-tab-indicator-item:hover {
+  1973→  color: #B0B0BE;
+  1974→}
+  1975→.nav-tab-indicator-item.active {
+  1976→  color: #E8E8ED;
+  1977→  font-weight: 600;
+  1978→}
+  1979→.nav-tab-indicator-track {
+  1980→  position: absolute;
+  1981→  bottom: 0;
+  1982→  height: 2px;
+  1983→  background: linear-gradient(90deg, #D4A574, #E8C9A8);
+  1984→  border-radius: 1px;
+  1985→  transition: left 0.35s cubic-bezier(0.16, 1, 0.3, 1), width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  1986→  box-shadow: 0 0 8px rgba(212, 165, 116, 0.3);
+  1987→}
+  1988→
+  1989→/* --- .nav-step --- Step indicator (circle + line + label) for multi-step forms --- */
+  1990→.nav-step {
+  1991→  display: flex;
+  1992→  align-items: flex-start;
+  1993→  gap: 0;
+  1994→  width: 100%;
+  1995→}
+  1996→.nav-step-item {
+  1997→  display: flex;
+  1998→  flex-direction: column;
+  1999→  align-items: center;
+  2000→  gap: 0.5rem;
+
+[showing lines 1-2000 of 4652; use offset=2001 with limit to continue reading]

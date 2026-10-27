@@ -84,7 +84,7 @@ export async function GET() {
     }
 
     // ── Seed Classes ──
-    const createdClasses = [];
+    const createdClasses: Array<{ id: string; classId?: string }> = [];
     for (const cls of CLASS_DATA) {
       const created = await db.class.create({
         data: {
@@ -98,7 +98,7 @@ export async function GET() {
     }
 
     // ── Seed Teachers ──
-    const createdTeachers = [];
+    const createdTeachers: Array<{ id: string; classId?: string }> = [];
     for (let i = 0; i < ARABIC_TEACHER_NAMES.length; i++) {
       const name = ARABIC_TEACHER_NAMES[i];
       const subject = SUBJECTS[i % SUBJECTS.length];
@@ -130,7 +130,7 @@ export async function GET() {
     }
 
     // ── Seed Students ──
-    const createdStudents = [];
+    const createdStudents: Array<{ id: string; classId?: string | null }> = [];
     for (let i = 0; i < 20; i++) {
       const firstName = ARABIC_STUDENT_FIRST_NAMES[i];
       const lastName = randomFrom(ARABIC_STUDENT_LAST_NAMES);

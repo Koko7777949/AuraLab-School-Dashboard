@@ -46,9 +46,6 @@ export async function GET(request: NextRequest) {
       by: ['classId'],
       where: classId ? where : { classId: { not: null } },
       _count: { id: true },
-      _sum: {
-        id: true,
-      },
     });
 
     const classNames = new Map<string, string>();

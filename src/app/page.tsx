@@ -1,8 +1,13 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
 import { useAppStore } from '@/lib/store';
+import { t } from '@/lib/i18n';
+import SmoothScroll from '@/components/dashboard/smooth-scroll';
+import ClickSpark from '@/components/reactbits/ClickSpark/ClickSpark';
 import Sidebar from '@/components/dashboard/sidebar';
 import Header from '@/components/dashboard/header';
 import DashboardOverview from '@/components/dashboard/dashboard-overview';
@@ -31,6 +36,9 @@ import CommandPalette from '@/components/dashboard/command-palette';
 import FabActions from '@/components/dashboard/fab-actions';
 import BreadcrumbNav from '@/components/dashboard/breadcrumb-nav';
 import type { ActiveSection } from '@/lib/types';
+
+// Register useGSAP so the hook can automatically revert/cleanup GSAP context
+gsap.registerPlugin(useGSAP);
 
 function SectionRenderer({ section }: { section: ActiveSection }) {
   switch (section) {
@@ -82,6 +90,7 @@ function SectionRenderer({ section }: { section: ActiveSection }) {
 }
 
 function LoadingOverlay() {
+  const locale = useAppStore((s) => s.locale);
   const [visible, setVisible] = useState(true);
   const [fadeOut, setFadeOut] = useState(false);
 
@@ -125,7 +134,7 @@ function LoadingOverlay() {
             AuraLab
           </p>
           <p className="text-xs text-muted-foreground">
-            جارٍ تحميل لوحة التحكم...
+            {t('footer.loadingDashboard', locale)}
           </p>
         </div>
       </div>
@@ -134,14 +143,52 @@ function LoadingOverlay() {
 }
 
 const footerQuickLinks = [
-  { label: 'سياسة الخصوصية', section: 'settings' as const },
-  { label: 'الشروط والأحكام', section: 'settings' as const },
-  { label: 'المساعدة', section: 'ai-assistant' as const },
+  { labelKey: 'footer.privacy', section: 'settings' as const },
+  { labelKey: 'footer.terms', section: 'settings' as const },
+  { labelKey: 'footer.help', section: 'ai-assistant' as const },
 ] as const;
 
 export default function Home() {
-  const { activeSection, sidebarOpen, setSidebarOpen, students, setActiveSection } = useAppStore();
+  const { activeSection, sidebarOpen, setSidebarOpen, students, setActiveSection, locale } = useAppStore();
   const [isStoreReady, setIsStoreReady] = useState(false);
+  const mainContentRef = useRef<HTMLElement>(null);
+
+  // GSAP entrance: stagger-fade the main content children on initial mount.
+  // The Framer Motion section wrapper is excluded (it animates itself); its
+  // rendered section content is animated instead to avoid two engines fighting
+  // over the same element's transform/opacity.
+  useGSAP(
+    () => {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const container = mainContentRef.current;
+      if (!container) return;
+
+      const targets: Element[] = [];
+      Array.from(container.children).forEach((child) => {
+        if (child.hasAttribute('data-framer-anim')) {
+          const inner = child.firstElementChild;
+          if (inner) targets.push(inner);
+        } else {
+          targets.push(child);
+        }
+      });
+      if (targets.length === 0) return;
+
+      gsap.fromTo(
+        targets,
+        { opacity: 0, y: 20 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.6,
+          stagger: 0.06,
+          ease: 'power2.out',
+          clearProps: 'all',
+        }
+      );
+    },
+    { scope: mainContentRef }
+  );
 
   // Mark store as ready once initial data has been hydrated
   useEffect(() => {
@@ -167,6 +214,14 @@ export default function Home() {
       {/* Loading overlay */}
       {!isStoreReady && <LoadingOverlay />}
 
+      {/* Click spark effect layer (pointer-events-none canvas overlay) */}
+      <ClickSpark
+        sparkColor="#D4A574"
+        sparkSize={12}
+        sparkCount={10}
+        glow={0.45}
+        className="min-h-screen w-full"
+      >
       <div className="min-h-screen bg-background flex relative overflow-hidden">
         {/* Floating Ambient Orbs - decorative background elements */}
         <div className="ambient-orb-1 pointer-events-none" aria-hidden="true" />
@@ -176,36 +231,38 @@ export default function Home() {
         {/* Sidebar */}
         <Sidebar />
 
-        {/* Main Content Area */}
-        <div
-          className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${
-            sidebarOpen ? 'lg:mr-60' : 'lg:mr-[72px]'
-          }`}
-        >
-          {/* Header */}
-          <Header />
+        {/* Main Content Area — Lenis smooth scrolling wrapper (main column only) */}
+        <SmoothScroll className="flex-1">
+          <div
+            className={`flex flex-col min-h-screen transition-all duration-300 ${
+              sidebarOpen ? 'lg:mr-60' : 'lg:mr-[72px]'
+            }`}
+          >
+            {/* Header */}
+            <Header />
 
-          {/* Page Content */}
-          <main className="flex-1 p-4 md:p-6 lg:p-8 pt-20">
-            {/* Breadcrumb */}
-            <BreadcrumbNav />
+            {/* Page Content */}
+            <main ref={mainContentRef} className="flex-1 p-4 md:p-6 lg:p-8 pt-20">
+              {/* Breadcrumb */}
+              <BreadcrumbNav />
 
-            {/* Section transition with Framer Motion */}
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeSection}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.25, ease: 'easeInOut' }}
-              >
-                <SectionRenderer section={activeSection} />
-              </motion.div>
-            </AnimatePresence>
-          </main>
+              {/* Section transition with Framer Motion */}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeSection}
+                  data-framer-anim
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.25, ease: 'easeInOut' }}
+                >
+                  <SectionRenderer section={activeSection} />
+                </motion.div>
+              </AnimatePresence>
+            </main>
 
-          {/* Footer */}
-          <footer className="mt-auto">
+            {/* Footer */}
+            <footer className="mt-auto">
             {/* Gradient separator line */}
             <div
               className="h-px mx-4 md:mx-6 lg:mx-8"
@@ -224,26 +281,26 @@ export default function Home() {
                     className="inline-block w-2 h-2 rounded-full bg-amber-accent flex-shrink-0"
                     aria-hidden="true"
                   />
-                  <span>© 2025 AuraLab — نظام إدارة المدرسة الذكية</span>
+                  <span>© 2025 AuraLab — {t('app.tagline', locale)}</span>
                 </div>
 
                 {/* Quick links */}
                 <nav className="flex items-center gap-1" aria-label="روابط سريعة">
                   {footerQuickLinks.map((link) => (
                     <button
-                      key={link.label}
+                      key={link.labelKey}
                       onClick={() => setActiveSection(link.section)}
                       className="px-3 py-1.5 text-xs text-muted-foreground/60 rounded-md
                                  transition-colors duration-200
                                  hover:text-muted-foreground hover:bg-white/[0.03]"
                     >
-                      {link.label}
+                      {t(link.labelKey, locale)}
                     </button>
                   ))}
                 </nav>
 
                 {/* Version */}
-                <p className="text-xs text-muted-foreground/50">الإصدار 2.7.0</p>
+                <p className="text-xs text-muted-foreground/50">{t('app.version', locale)} 2.7.0</p>
               </div>
 
               {/* Mobile layout: stacked */}
@@ -261,23 +318,25 @@ export default function Home() {
                 <nav className="flex items-center gap-3" aria-label="روابط سريعة">
                   {footerQuickLinks.map((link) => (
                     <button
-                      key={link.label}
+                      key={link.labelKey}
                       onClick={() => setActiveSection(link.section)}
                       className="px-2 py-1 text-xs text-muted-foreground/50 rounded
                                  transition-colors duration-200
                                  hover:text-muted-foreground"
                     >
-                      {link.label}
+                      {t(link.labelKey, locale)}
                     </button>
                   ))}
                 </nav>
 
-                <p className="text-[11px] text-muted-foreground/40">الإصدار 2.7.0</p>
+                <p className="text-[11px] text-muted-foreground/40">{t('app.version', locale)} 2.7.0</p>
               </div>
             </div>
-          </footer>
-        </div>
+            </footer>
+          </div>
+        </SmoothScroll>
       </div>
+      </ClickSpark>
 
       {/* Keyboard Shortcuts Overlay (global) */}
       <KeyboardShortcuts />

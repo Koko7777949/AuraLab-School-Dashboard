@@ -71,9 +71,16 @@ import {
 
 type AttendanceStatus = AttendanceRecordType['status'];
 
-interface AttendanceRecord extends Omit<AttendanceRecordType, 'className'> {
+export interface AttendanceRecord {
+  id: string;
+  studentId: string;
   studentName: string;
   classId: string | null;
+  className?: string;
+  date: string;
+  status: AttendanceStatus;
+  notes: string;
+  createdAt: string;
 }
 
 interface ClassOption {

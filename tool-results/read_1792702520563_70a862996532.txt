@@ -1,0 +1,1576 @@
+     1→'use client';
+     2→
+     3→import { useState, useEffect, useMemo, useRef } from 'react';
+     4→import {
+     5→  FileText,
+     6→  Plus,
+     7→  Pencil,
+     8→  Trash2,
+     9→  Eye,
+    10→  Search,
+    11→  Award,
+    12→  TrendingUp,
+    13→  TrendingDown,
+    14→  Download,
+    15→  BarChart3,
+    16→  Target,
+    17→} from 'lucide-react';
+    18→import { useAppStore } from '@/lib/store';
+    19→import type { Exam } from '@/lib/types';
+    20→import { cn } from '@/lib/utils';
+    21→import { toast } from 'sonner';
+    22→import { exportToCSV, formatCsvDate } from '@/lib/csv-export';
+    23→
+    24→// shadcn/ui
+    25→import { Button } from '@/components/ui/button';
+    26→import { Input } from '@/components/ui/input';
+    27→import { Label } from '@/components/ui/label';
+    28→import { Badge } from '@/components/ui/badge';
+    29→import { Textarea } from '@/components/ui/textarea';
+    30→import { Progress } from '@/components/ui/progress';
+    31→import {
+    32→  Table,
+    33→  TableHeader,
+    34→  TableBody,
+    35→  TableHead,
+    36→  TableRow,
+    37→  TableCell,
+    38→} from '@/components/ui/table';
+    39→import {
+    40→  Dialog,
+    41→  DialogContent,
+    42→  DialogDescription,
+    43→  DialogFooter,
+    44→  DialogHeader,
+    45→  DialogTitle,
+    46→} from '@/components/ui/dialog';
+    47→import {
+    48→  AlertDialog,
+    49→  AlertDialogAction,
+    50→  AlertDialogCancel,
+    51→  AlertDialogContent,
+    52→  AlertDialogDescription,
+    53→  AlertDialogFooter,
+    54→  AlertDialogHeader,
+    55→  AlertDialogTitle,
+    56→} from '@/components/ui/alert-dialog';
+    57→import {
+    58→  Select,
+    59→  SelectContent,
+    60→  SelectItem,
+    61→  SelectTrigger,
+    62→  SelectValue,
+    63→} from '@/components/ui/select';
+    64→
+    65→// ---------------------------------------------------------------------------
+    66→// Constants
+    67→// ---------------------------------------------------------------------------
+    68→
+    69→const SUBJECT_OPTIONS = [
+    70→  { value: 'all', label: 'كل المواد' },
+    71→  { value: 'رياضيات', label: 'رياضيات' },
+    72→  { value: 'علوم', label: 'علوم' },
+    73→  { value: 'لغة عربية', label: 'لغة عربية' },
+    74→  { value: 'لغة إنجليزية', label: 'لغة إنجليزية' },
+    75→  { value: 'فيزياء', label: 'فيزياء' },
+    76→  { value: 'كيمياء', label: 'كيمياء' },
+    77→  { value: 'تاريخ', label: 'تاريخ' },
+    78→  { value: 'جغرافيا', label: 'جغرافيا' },
+    79→];
+    80→
+    81→const CLASS_OPTIONS = [
+    82→  { value: 'all', label: 'كل الفصول' },
+    83→  { value: 'cls-1', label: 'الصف الأول أ' },
+    84→  { value: 'cls-2', label: 'الصف الأول ب' },
+    85→  { value: 'cls-3', label: 'الصف الثاني أ' },
+    86→  { value: 'cls-4', label: 'الصف الثاني ب' },
+    87→  { value: 'cls-5', label: 'الصف الثالث أ' },
+    88→  { value: 'cls-6', label: 'الصف الثالث ب' },
+    89→];
+    90→
+    91→const CLASS_FILTER_MAP: Record<string, string> = {
+    92→  'cls-1': 'الصف الأول أ',
+    93→  'cls-2': 'الصف الأول ب',
+    94→  'cls-3': 'الصف الثاني أ',
+    95→  'cls-4': 'الصف الثاني ب',
+    96→  'cls-5': 'الصف الثالث أ',
+    97→  'cls-6': 'الصف الثالث ب',
+    98→};
+    99→
+   100→const STUDENT_NAMES: Record<string, string> = {
+   101→  'std-001': 'أحمد محمد علي',
+   102→  'std-002': 'فاطمة أحمد حسن',
+   103→  'std-003': 'عبدالله خالد العتيبي',
+   104→  'std-004': 'نورة سعيد القحطاني',
+   105→  'std-005': 'محمد عبدالرحمن الدوسري',
+   106→  'std-006': 'ريم فهد المطيري',
+   107→  'std-007': 'سلطان فيصل الشمري',
+   108→  'std-008': 'لطيفة عايض الحربي',
+   109→  'std-009': 'يزيد ناصر البقمي',
+   110→  'std-010': 'سارة ماجد العنزي',
+   111→};
+   112→
+   113→const STUDENT_DROPDOWN = Object.entries(STUDENT_NAMES).map(([id, name]) => ({
+   114→  value: id,
+   115→  label: name,
+   116→}));
+   117→
+   118→const CLASS_DROPDOWN = Object.entries(CLASS_FILTER_MAP).map(([id, name]) => ({
+   119→  value: id,
+   120→  label: name,
+   121→}));
+   122→
+   123→const SUBJECT_DROPDOWN = SUBJECT_OPTIONS.filter((s) => s.value !== 'all');
+   124→
+   125→// ---------------------------------------------------------------------------
+   126→// Score helpers
+   127→// ---------------------------------------------------------------------------
+   128→
+   129→function getScoreColor(score: number | null, maxScore: number): { bar: string; text: string; bg: string } {
+   130→  if (score === null) return { bar: 'bg-slate-500', text: 'text-slate-400', bg: '' };
+   131→  const pct = (score / maxScore) * 100;
+   132→  if (pct >= 70) return { bar: 'bg-emerald-500', text: 'text-emerald-400', bg: 'bg-emerald-500/10' };
+   133→  if (pct >= 50) return { bar: 'bg-amber-500', text: 'text-amber-400', bg: 'bg-amber-500/10' };
+   134→  return { bar: 'bg-rose-500', text: 'text-rose-400', bg: 'bg-rose-500/10' };
+   135→}
+   136→
+   137→function getScoreLabel(score: number | null, maxScore: number): string {
+   138→  if (score === null) return 'لم يُحدد';
+   139→  const pct = (score / maxScore) * 100;
+   140→  if (pct >= 90) return 'ممتاز';
+   141→  if (pct >= 70) return 'جيد جداً';
+   142→  if (pct >= 50) return 'مقبول';
+   143→  return 'يحتاج تحسين';
+   144→}
+   145→
+   146→// ---------------------------------------------------------------------------
+   147→// Subject Analysis Helpers (pure functions)
+   148→// ---------------------------------------------------------------------------
+   149→
+   150→interface SubjectAvg {
+   151→  subject: string;
+   152→  avg: number;
+   153→  count: number;
+   154→  color: string;
+   155→}
+   156→
+   157→interface AnalysisStats {
+   158→  highest: { pct: number; subject: string };
+   159→  lowest: { pct: number; subject: string };
+   160→  overallAvg: number;
+   161→  passRate: number;
+   162→}
+   163→
+   164→function getBarColorHex(avg: number): string {
+   165→  if (avg >= 85) return '#10b981';
+   166→  if (avg >= 70) return '#f59e0b';
+   167→  if (avg >= 50) return '#0ea5e9';
+   168→  return '#f43f5e';
+   169→}
+   170→
+   171→function computeSubjectAverages(exams: Exam[]): SubjectAvg[] {
+   172→  const groups: Record<string, { total: number; count: number }> = {};
+   173→
+   174→  for (const exam of exams) {
+   175→    if (exam.score === null) continue;
+   176→    const pct = (exam.score / Math.max(0.001, exam.maxScore)) * 100;
+   177→    if (!groups[exam.subject]) {
+   178→      groups[exam.subject] = { total: 0, count: 0 };
+   179→    }
+   180→    groups[exam.subject] = {
+   181→      total: groups[exam.subject].total + pct,
+   182→      count: groups[exam.subject].count + 1,
+   183→    };
+   184→  }
+   185→
+   186→  return Object.entries(groups)
+   187→    .map(([subject, data]) => ({
+   188→      subject,
+   189→      avg: Math.round((data.total / Math.max(0.001, data.count)) * 10) / 10,
+   190→      count: data.count,
+   191→      color: getBarColorHex(data.total / Math.max(0.001, data.count)),
+   192→    }))
+   193→    .sort((a, b) => b.avg - a.avg);
+   194→}
+   195→
+   196→function computeAnalysisStats(exams: Exam[]): AnalysisStats {
+   197→  const scoredExams = exams.filter((e) => e.score !== null);
+   198→
+   199→  if (scoredExams.length === 0) {
+   200→    return {
+   201→      highest: { pct: 0, subject: '—' },
+   202→      lowest: { pct: 0, subject: '—' },
+   203→      overallAvg: 0,
+   204→      passRate: 0,
+   205→    };
+   206→  }
+   207→
+   208→  const result = scoredExams.reduce(
+   209→    (acc, exam) => {
+   210→      const pct = (exam.score! / Math.max(0.001, exam.maxScore)) * 100;
+   211→      return {
+   212→        totalPct: acc.totalPct + pct,
+   213→        passCount: acc.passCount + (pct >= 50 ? 1 : 0),
+   214→        highestPct: Math.max(acc.highestPct, pct),
+   215→        highestSubject: pct > acc.highestPct ? exam.subject : acc.highestSubject,
+   216→        lowestPct: Math.min(acc.lowestPct, pct),
+   217→        lowestSubject: pct < acc.lowestPct ? exam.subject : acc.lowestSubject,
+   218→      };
+   219→    },
+   220→    { totalPct: 0, passCount: 0, highestPct: -1, highestSubject: '', lowestPct: 101, lowestSubject: '' },
+   221→  );
+   222→
+   223→  const count = Math.max(0.001, scoredExams.length);
+   224→  return {
+   225→    highest: { pct: Math.round(result.highestPct * 10) / 10, subject: result.highestSubject },
+   226→    lowest: { pct: Math.round(result.lowestPct * 10) / 10, subject: result.lowestSubject },
+   227→    overallAvg: Math.round((result.totalPct / count) * 10) / 10,
+   228→    passRate: Math.round(((result.passCount / count) * 100) * 10) / 10,
+   229→  };
+   230→}
+   231→
+   232→// ---------------------------------------------------------------------------
+   233→// Mock Data
+   234→// ---------------------------------------------------------------------------
+   235→
+   236→const INITIAL_EXAMS: Exam[] = [
+   237→  {
+   238→    id: 'exam-001',
+   239→    title: 'اختبار نهاية الفصل الأول',
+   240→    subject: 'رياضيات',
+   241→    studentId: 'std-001',
+   242→    classId: 'cls-1',
+   243→    teacherId: null,
+   244→    score: 92,
+   245→    maxScore: 100,
+   246→    date: '2024-12-15',
+   247→    notes: 'أداء ممتاز في الهندسة والجبر',
+   248→    createdAt: '2024-12-15T08:00:00.000Z',
+   249→    updatedAt: '2024-12-15T10:00:00.000Z',
+   250→    studentName: 'أحمد محمد علي',
+   251→    className: 'الصف الأول أ',
+   252→  },
+   253→  {
+   254→    id: 'exam-002',
+   255→    title: 'اختبار نصفي في العلوم',
+   256→    subject: 'علوم',
+   257→    studentId: 'std-002',
+   258→    classId: 'cls-2',
+   259→    teacherId: null,
+   260→    score: 78,
+   261→    maxScore: 100,
+   262→    date: '2024-12-10',
+   263→    notes: 'حصلت على درجة جيدة في التجارب العملية',
+   264→    createdAt: '2024-12-10T08:00:00.000Z',
+   265→    updatedAt: '2024-12-10T12:00:00.000Z',
+   266→    studentName: 'فاطمة أحمد حسن',
+   267→    className: 'الصف الأول ب',
+   268→  },
+   269→  {
+   270→    id: 'exam-003',
+   271→    title: 'اختبار قواعد اللغة العربية',
+   272→    subject: 'لغة عربية',
+   273→    studentId: 'std-003',
+   274→    classId: 'cls-3',
+   275→    teacherId: null,
+   276→    score: 65,
+   277→    maxScore: 100,
+   278→    date: '2024-12-08',
+   279→    notes: 'يحتاج تحسين في الإعراب',
+   280→    createdAt: '2024-12-08T08:00:00.000Z',
+   281→    updatedAt: '2024-12-08T11:00:00.000Z',
+   282→    studentName: 'عبدالله خالد العتيبي',
+   283→    className: 'الصف الثاني أ',
+   284→  },
+   285→  {
+   286→    id: 'exam-004',
+   287→    title: 'اختبار مفردات اللغة الإنجليزية',
+   288→    subject: 'لغة إنجليزية',
+   289→    studentId: 'std-004',
+   290→    classId: 'cls-1',
+   291→    teacherId: null,
+   292→    score: 45,
+   293→    maxScore: 100,
+   294→    date: '2024-12-05',
+   295→    notes: 'تحتاج متابعة إضافية في المفردات الجديدة',
+   296→    createdAt: '2024-12-05T08:00:00.000Z',
+   297→    updatedAt: '2024-12-05T09:00:00.000Z',
+   298→    studentName: 'نورة سعيد القحطاني',
+   299→    className: 'الصف الأول أ',
+   300→  },
+   301→  {
+   302→    id: 'exam-005',
+   303→    title: 'اختبار الفيزياء - القوى والحركة',
+   304→    subject: 'فيزياء',
+   305→    studentId: 'std-005',
+   306→    classId: 'cls-5',
+   307→    teacherId: null,
+   308→    score: 88,
+   309→    maxScore: 100,
+   310→    date: '2024-12-01',
+   311→    notes: 'فهم ممتاز لقوانين نيوتن',
+   312→    createdAt: '2024-12-01T08:00:00.000Z',
+   313→    updatedAt: '2024-12-01T14:00:00.000Z',
+   314→    studentName: 'محمد عبدالرحمن الدوسري',
+   315→    className: 'الصف الثالث أ',
+   316→  },
+   317→  {
+   318→    id: 'exam-006',
+   319→    title: 'اختبار الكيمياء العضوية',
+   320→    subject: 'كيمياء',
+   321→    studentId: 'std-006',
+   322→    classId: 'cls-4',
+   323→    teacherId: null,
+   324→    score: 72,
+   325→    maxScore: 100,
+   326→    date: '2024-11-28',
+   327→    notes: 'أداء جيد مع بعض الأخطاء في التسمية',
+   328→    createdAt: '2024-11-28T08:00:00.000Z',
+   329→    updatedAt: '2024-11-28T10:00:00.000Z',
+   330→    studentName: 'ريم فهد المطيري',
+   331→    className: 'الصف الثاني ب',
+   332→  },
+   333→  {
+   334→    id: 'exam-007',
+   335→    title: 'اختبار تاريخ الحضارات القديمة',
+   336→    subject: 'تاريخ',
+   337→    studentId: 'std-007',
+   338→    classId: 'cls-3',
+   339→    teacherId: null,
+   340→    score: 95,
+   341→    maxScore: 100,
+   342→    date: '2024-11-25',
+   343→    notes: 'أفضل طالب في القسم',
+   344→    createdAt: '2024-11-25T08:00:00.000Z',
+   345→    updatedAt: '2024-11-25T12:00:00.000Z',
+   346→    studentName: 'سلطان فيصل الشمري',
+   347→    className: 'الصف الثاني أ',
+   348→  },
+   349→  {
+   350→    id: 'exam-008',
+   351→    title: 'اختبار جغرافيا - المناخ والبيئة',
+   352→    subject: 'جغرافيا',
+   353→    studentId: 'std-008',
+   354→    classId: 'cls-6',
+   355→    teacherId: null,
+   356→    score: 83,
+   357→    maxScore: 100,
+   358→    date: '2024-11-20',
+   359→    notes: 'مشاركة مميزة في تحليل الخرائط',
+   360→    createdAt: '2024-11-20T08:00:00.000Z',
+   361→    updatedAt: '2024-11-20T13:00:00.000Z',
+   362→    studentName: 'لطيفة عايض الحربي',
+   363→    className: 'الصف الثالث ب',
+   364→  },
+   365→  {
+   366→    id: 'exam-009',
+   367→    title: 'اختبار رياضيات - التفاضل والتكامل',
+   368→    subject: 'رياضيات',
+   369→    studentId: 'std-009',
+   370→    classId: 'cls-2',
+   371→    teacherId: null,
+   372→    score: 38,
+   373→    maxScore: 100,
+   374→    date: '2024-11-18',
+   375→    notes: 'يحتاج دعم إضافي ومتابعة مكثفة',
+   376→    createdAt: '2024-11-18T08:00:00.000Z',
+   377→    updatedAt: '2024-11-18T10:00:00.000Z',
+   378→    studentName: 'يزيد ناصر البقمي',
+   379→    className: 'الصف الأول ب',
+   380→  },
+   381→  {
+   382→    id: 'exam-010',
+   383→    title: 'اختبار علوم - الأحياء الخلوية',
+   384→    subject: 'علوم',
+   385→    studentId: 'std-010',
+   386→    classId: 'cls-5',
+   387→    teacherId: null,
+   388→    score: 71,
+   389→    maxScore: 100,
+   390→    date: '2024-11-15',
+   391→    notes: 'تحسن ملحوظ مقارنة بالاختبار السابق',
+   392→    createdAt: '2024-11-15T08:00:00.000Z',
+   393→    updatedAt: '2024-11-15T11:00:00.000Z',
+   394→    studentName: 'سارة ماجد العنزي',
+   395→    className: 'الصف الثالث أ',
+   396→  },
+   397→];
+   398→
+   399→// ---------------------------------------------------------------------------
+   400→// Helper: get student/class names
+   401→// ---------------------------------------------------------------------------
+   402→
+   403→function getStudentName(studentId: string | null): string {
+   404→  if (!studentId) return '—';
+   405→  return STUDENT_NAMES[studentId] ?? '—';
+   406→}
+   407→
+   408→function getClassName(classId: string | null): string {
+   409→  if (!classId) return '—';
+   410→  return CLASS_FILTER_MAP[classId] ?? '—';
+   411→}
+   412→
+   413→// ---------------------------------------------------------------------------
+   414→// Sub-components
+   415→// ---------------------------------------------------------------------------
+   416→
+   417→/** Score cell with progress bar */
+   418→function ScoreCell({ score, maxScore }: { score: number | null; maxScore: number }) {
+   419→  const colors = getScoreColor(score, maxScore);
+   420→  const pct = score !== null ? Math.round((score / maxScore) * 100) : 0;
+   421→
+   422→  return (
+   423→    <div className="flex flex-col gap-1.5 min-w-[120px]">
+   424→      <div className="flex items-center justify-between gap-2">
+   425→        <span className={cn('text-sm font-bold tabular-nums', colors.text)}>
+   426→          {score !== null ? `${score}/${maxScore}` : '—'}
+   427→        </span>
+   428→        <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded', colors.bg, colors.text)}>
+   429→          {getScoreLabel(score, maxScore)}
+   430→        </span>
+   431→      </div>
+   432→      <div className="h-1.5 w-full rounded-full bg-white/[0.06] overflow-hidden">
+   433→        <div
+   434→          className={cn('h-full rounded-full transition-all duration-500', colors.bar)}
+   435→          style={{ width: `${pct}%` }}
+   436→        />
+   437→      </div>
+   438→    </div>
+   439→  );
+   440→}
+   441→
+   442→/** Subject Comparison Bar Chart */
+   443→function SubjectComparisonChart({ data }: { data: SubjectAvg[] }) {
+   444→  const [animProgress, setAnimProgress] = useState(0);
+   445→  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+   446→
+   447→  useEffect(() => {
+   448→    let raf: number;
+   449→    const start = performance.now();
+   450→    const duration = 800;
+   451→
+   452→    const step = (now: number) => {
+   453→      const elapsed = now - start;
+   454→      const progress = Math.min(1, elapsed / duration);
+   455→      const eased = 1 - Math.pow(1 - progress, 3);
+   456→      setAnimProgress(eased);
+   457→      if (progress < 1) {
+   458→        raf = requestAnimationFrame(step);
+   459→      }
+   460→    };
+   461→
+   462→    raf = requestAnimationFrame(step);
+   463→    return () => cancelAnimationFrame(raf);
+   464→  }, [data]);
+   465→
+   466→  if (data.length === 0) {
+   467→    return (
+   468→      <div className="glass-card-elevated rounded-2xl p-6 animate-fade-in-up">
+   469→        <div className="flex flex-col items-center justify-center py-8">
+   470→          <BarChart3 className="h-10 w-10 text-slate-500 mb-3" />
+   471→          <p className="text-sm text-slate-400">لا توجد بيانات كافية لعرض التحليل</p>
+   472→        </div>
+   473→      </div>
+   474→    );
+   475→  }
+   476→
+   477→  const barHeight = 12;
+   478→  const barY = (28 - barHeight) / 2;
+   479→
+   480→  return (
+   481→    <div className="glass-card-elevated rounded-2xl p-5 sm:p-6 corner-accent animate-fade-in-up">
+   482→      {/* Header */}
+   483→      <div className="flex items-center gap-3 mb-4">
+   484→        <div className="flex items-center justify-center h-9 w-9 rounded-xl bg-[#D4A574]/10">
+   485→          <BarChart3 className="h-5 w-5 text-[#D4A574]" />
+   486→        </div>
+   487→        <div>
+   488→          <h3 className="text-base font-bold text-white">تحليل نتائج الامتحانات حسب المادة</h3>
+   489→          <p className="text-xs text-muted-foreground mt-0.5">متوسط الدرجات لكل مادة</p>
+   490→        </div>
+   491→      </div>
+   492→
+   493→      {/* Color Legend */}
+   494→      <div className="flex flex-wrap items-center gap-4 mb-4 text-[11px] text-slate-400">
+   495→        <div className="flex items-center gap-1.5">
+   496→          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: '#10b981' }} />
+   497→          <span>≥ 85%</span>
+   498→        </div>
+   499→        <div className="flex items-center gap-1.5">
+   500→          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: '#f59e0b' }} />
+   501→          <span>≥ 70%</span>
+   502→        </div>
+   503→        <div className="flex items-center gap-1.5">
+   504→          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: '#0ea5e9' }} />
+   505→          <span>≥ 50%</span>
+   506→        </div>
+   507→        <div className="flex items-center gap-1.5">
+   508→          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: '#f43f5e' }} />
+   509→          <span>&lt; 50%</span>
+   510→        </div>
+   511→      </div>
+   512→
+   513→      {/* Bars */}
+   514→      <div className="flex flex-col gap-2.5">
+   515→        {data.map((item, idx) => {
+   516→          const animWidth = item.avg * animProgress;
+   517→          return (
+   518→            <div
+   519→              key={item.subject}
+   520→              className="flex items-center gap-3 group cursor-default"
+   521→              onMouseEnter={() => setHoveredIdx(idx)}
+   522→              onMouseLeave={() => setHoveredIdx(null)}
+   523→            >
+   524→              {/* Subject name */}
+   525→              <div className="w-24 sm:w-28 text-right shrink-0">
+   526→                <span
+   527→                  className={cn(
+   528→                    'text-sm font-medium truncate block transition-colors',
+   529→                    hoveredIdx === idx ? 'text-white' : 'text-slate-300',
+   530→                  )}
+   531→                >
+   532→                  {item.subject}
+   533→                </span>
+   534→              </div>
+   535→
+   536→              {/* Bar */}
+   537→              <div className="flex-1 relative h-7">
+   538→                <svg
+   539→                  viewBox="0 0 100 28"
+   540→                  className="w-full h-full overflow-visible"
+   541→                  preserveAspectRatio="none"
+   542→                >
+   543→                  {/* Track */}
+   544→                  <rect x="0" y={barY} width="100" height={barHeight} rx="6" fill="rgba(255,255,255,0.04)" />
+   545→                  {/* Animated bar (grows from right for RTL) */}
+   546→                  <rect
+   547→                    x={100 - animWidth}
+   548→                    y={barY}
+   549→                    width={animWidth}
+   550→                    height={barHeight}
+   551→                    rx="6"
+   552→                    fill={item.color}
+   553→                    opacity={hoveredIdx !== null && hoveredIdx !== idx ? 0.3 : 0.8}
+   554→                    style={{ transition: 'opacity 0.2s ease' }}
+   555→                  />
+   556→                  {/* Glow on hover */}
+   557→                  {hoveredIdx === idx && (
+   558→                    <rect
+   559→                      x={100 - animWidth}
+   560→                      y={barY - 2}
+   561→                      width={animWidth}
+   562→                      height={barHeight + 4}
+   563→                      rx="8"
+   564→                      fill={item.color}
+   565→                      opacity="0.12"
+   566→                      style={{ animation: 'scale-in 0.15s ease-out' }}
+   567→                    />
+   568→                  )}
+   569→                </svg>
+   570→
+   571→                {/* Tooltip on hover */}
+   572→                {hoveredIdx === idx && (
+   573→                  <div
+   574→                    className="absolute -top-11 left-1/2 -translate-x-1/2 z-10 rounded-lg px-3 py-1.5 text-xs shadow-xl border pointer-events-none whitespace-nowrap"
+   575→                    style={{
+   576→                      backgroundColor: 'rgba(20,20,28,0.95)',
+   577→                      borderColor: 'rgba(255,255,255,0.1)',
+   578→                      animation: 'animate-pop-in 0.15s ease-out',
+   579→                    }}
+   580→                  >
+   581→                    <span className="font-semibold text-white">{item.subject}</span>
+   582→                    <span className="text-slate-500 mx-1.5">·</span>
+   583→                    <span className="font-bold" style={{ color: item.color }}>{item.avg}%</span>
+   584→                    <span className="text-slate-500 mx-1.5">·</span>
+   585→                    <span className="text-slate-300">
+   586→                      {item.count} {item.count === 1 ? 'امتحان' : 'امتحانات'}
+   587→                    </span>
+   588→                  </div>
+   589→                )}
+   590→              </div>
+   591→
+   592→              {/* Score label */}
+   593→              <div className="w-16 sm:w-20 text-left shrink-0 tabular-nums">
+   594→                <span
+   595→                  className={cn(
+   596→                    'text-sm font-bold transition-colors',
+   597→                    hoveredIdx === idx ? 'text-white' : 'text-slate-400',
+   598→                  )}
+   599→                >
+   600→                  {Math.round(item.avg)}%
+   601→                </span>
+   602→                <span className="text-[10px] text-slate-500 mr-1">({item.count})</span>
+   603→              </div>
+   604→            </div>
+   605→          );
+   606→        })}
+   607→      </div>
+   608→    </div>
+   609→  );
+   610→}
+   611→
+   612→/** Summary stat mini card */
+   613→function StatCard({
+   614→  icon: Icon,
+   615→  label,
+   616→  value,
+   617→  subtext,
+   618→  accentClass,
+   619→}: {
+   620→  icon: React.ComponentType<{ className?: string }>;
+   621→  label: string;
+   622→  value: string | number;
+   623→  subtext?: string;
+   624→  accentClass: string;
+   625→}) {
+   626→  return (
+   627→    <div
+   628→      className="flex items-center gap-4 rounded-xl p-4"
+   629→      style={{
+   630→        backgroundColor: '#1A1A24',
+   631→        border: '1px solid rgba(255,255,255,0.06)',
+   632→      }}
+   633→    >
+   634→      <div className={cn('flex items-center justify-center h-11 w-11 rounded-xl shrink-0', accentClass)}>
+   635→        <Icon className="h-5 w-5 text-white" />
+   636→      </div>
+   637→      <div className="min-w-0">
+   638→        <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
+   639→        <p className="text-xl font-bold text-white tabular-nums leading-tight">{value}</p>
+   640→        {subtext && <p className="text-[11px] text-muted-foreground/60 mt-0.5">{subtext}</p>}
+   641→      </div>
+   642→    </div>
+   643→  );
+   644→}
+   645→
+   646→/** Empty state */
+   647→function EmptyState({ onAdd }: { onAdd: () => void }) {
+   648→  return (
+   649→    <div className="flex flex-col items-center justify-center py-16 px-4 animate-fade-in-up" style={{ animationDuration: '0.5s' }}>
+   650→      <div className="flex items-center justify-center h-20 w-20 rounded-2xl bg-[#D4A574]/10 border border-[#D4A574]/20 mb-6 animate-bounce" style={{ animationDuration: '2s', animationIterationCount: 1 }}>
+   651→        <FileText className="h-10 w-10 text-[#D4A574]" />
+   652→      </div>
+   653→      <h3 className="text-lg font-semibold text-slate-300 mb-2">
+   654→        لا توجد امتحانات مسجلة بعد
+   655→      </h3>
+   656→      <p className="text-sm text-muted-foreground mb-6 text-center max-w-sm">
+   657→        ابدأ بإضافة امتحانات جديدة لمتابعة أداء الطلاب وتقييم مستواهم الأكاديمي
+   658→      </p>
+   659→      <Button
+   660→        onClick={onAdd}
+   661→        className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold gap-2 rounded-lg px-6"
+   662→      >
+   663→        <Plus className="h-4 w-4" />
+   664→        إضافة امتحان جديد
+   665→      </Button>
+   666→    </div>
+   667→  );
+   668→}
+   669→
+   670→/** View exam dialog */
+   671→function ViewExamDialog({
+   672→  exam,
+   673→  open,
+   674→  onOpenChange,
+   675→}: {
+   676→  exam: Exam | null;
+   677→  open: boolean;
+   678→  onOpenChange: (open: boolean) => void;
+   679→}) {
+   680→  if (!exam) return null;
+   681→
+   682→  const colors = getScoreColor(exam.score, exam.maxScore);
+   683→  const pct = exam.score !== null ? Math.round((exam.score / exam.maxScore) * 100) : 0;
+   684→
+   685→  return (
+   686→    <Dialog open={open} onOpenChange={onOpenChange}>
+   687→      <DialogContent
+   688→        className="sm:max-w-lg"
+   689→        dir="rtl"
+   690→        style={{
+   691→          backgroundColor: '#1A1A24',
+   692→          border: '1px solid rgba(255,255,255,0.06)',
+   693→        }}
+   694→      >
+   695→        <DialogHeader>
+   696→          <DialogTitle className="text-white text-xl">
+   697→            تفاصيل الامتحان
+   698→          </DialogTitle>
+   699→          <DialogDescription className="text-muted-foreground">
+   700→            عرض كافة تفاصيل الامتحان ونتيجة الطالب
+   701→          </DialogDescription>
+   702→        </DialogHeader>
+   703→
+   704→        <div className="flex flex-col gap-4 mt-2">
+   705→          {/* Visual score indicator */}
+   706→          <div
+   707→            className="flex flex-col items-center justify-center rounded-xl p-6"
+   708→            style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}
+   709→          >
+   710→            <p className="text-xs text-muted-foreground mb-3">الدرجة المحصلة</p>
+   711→            {/* Circular indicator */}
+   712→            <div className="relative h-28 w-28 mb-3">
+   713→              <svg className="h-28 w-28 -rotate-90" viewBox="0 0 120 120">
+   714→                <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="8" />
+   715→                <circle
+   716→                  cx="60" cy="60" r="52" fill="none"
+   717→                  stroke={exam.score !== null && pct >= 70 ? '#10b981' : exam.score !== null && pct >= 50 ? '#f59e0b' : '#f43f5e'}
+   718→                  strokeWidth="8"
+   719→                  strokeLinecap="round"
+   720→                  strokeDasharray={`${(pct / 100) * 327} 327`}
+   721→                  className="transition-all duration-700"
+   722→                />
+   723→              </svg>
+   724→              <div className="absolute inset-0 flex flex-col items-center justify-center">
+   725→                <span className={cn('text-2xl font-bold tabular-nums', colors.text)}>
+   726→                  {exam.score ?? '—'}
+   727→                </span>
+   728→                <span className="text-xs text-muted-foreground">من {exam.maxScore}</span>
+   729→              </div>
+   730→            </div>
+   731→            <Badge
+   732→              variant="outline"
+   733→              className={cn('text-xs font-medium px-3 py-1 rounded-full', colors.text, colors.bg, 'border-transparent')}
+   734→            >
+   735→              {getScoreLabel(exam.score, exam.maxScore)}
+   736→            </Badge>
+   737→          </div>
+   738→
+   739→          {/* Info fields */}
+   740→          <div
+   741→            className="rounded-xl p-4"
+   742→            style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}
+   743→          >
+   744→            <div className="grid grid-cols-1 gap-4">
+   745→              {[
+   746→                { label: 'عنوان الامتحان', value: exam.title, icon: FileText },
+   747→                { label: 'المادة', value: exam.subject, icon: Award },
+   748→                { label: 'الطالب', value: getStudentName(exam.studentId), icon: Eye },
+   749→                { label: 'الفصل', value: getClassName(exam.classId), icon: Search },
+   750→                { label: 'التاريخ', value: exam.date ? new Date(exam.date).toLocaleDateString('ar-SA') : '—', icon: TrendingUp },
+   751→              ].map((field) => (
+   752→                <div key={field.label} className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04] last:border-0">
+   753→                  <div className="flex items-center gap-3">
+   754→                    <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#D4A574]/10">
+   755→                      <field.icon className="h-4 w-4 text-[#D4A574]" />
+   756→                    </div>
+   757→                    <span className="text-sm text-muted-foreground">{field.label}</span>
+   758→                  </div>
+   759→                  <span className="text-sm font-medium text-slate-200">{field.value}</span>
+   760→                </div>
+   761→              ))}
+   762→            </div>
+   763→          </div>
+   764→
+   765→          {/* Notes */}
+   766→          {exam.notes && (
+   767→            <div
+   768→              className="rounded-xl p-4"
+   769→              style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}
+   770→            >
+   771→              <h4 className="text-sm font-semibold text-slate-300 mb-2">ملاحظات</h4>
+   772→              <p className="text-sm text-muted-foreground leading-relaxed">{exam.notes}</p>
+   773→            </div>
+   774→          )}
+   775→        </div>
+   776→      </DialogContent>
+   777→    </Dialog>
+   778→  );
+   779→}
+   780→
+   781→// ---------------------------------------------------------------------------
+   782→// Add / Edit form content
+   783→// ---------------------------------------------------------------------------
+   784→
+   785→function ExamFormContent({
+   786→  editingExam,
+   787→  onClose,
+   788→}: {
+   789→  editingExam: Exam | null;
+   790→  onClose: () => void;
+   791→}) {
+   792→  const { addExam, updateExam } = useAppStore();
+   793→  const isEditing = !!editingExam;
+   794→
+   795→  const [title, setTitle] = useState(editingExam?.title ?? '');
+   796→  const [subject, setSubject] = useState(editingExam?.subject ?? 'رياضيات');
+   797→  const [studentId, setStudentId] = useState<string>(editingExam?.studentId ?? STUDENT_DROPDOWN[0]?.value ?? '');
+   798→  const [classId, setClassId] = useState<string>(editingExam?.classId ?? CLASS_DROPDOWN[0]?.value ?? '');
+   799→  const [score, setScore] = useState<string>(editingExam && editingExam.score !== null ? String(editingExam.score) : '');
+   800→  const [maxScore, setMaxScore] = useState<string>(String(editingExam?.maxScore ?? 100));
+   801→  const [date, setDate] = useState(editingExam?.date ?? new Date().toISOString().split('T')[0]);
+   802→  const [notes, setNotes] = useState(editingExam?.notes ?? '');
+   803→
+   804→  const handleSubmit = (e: React.FormEvent) => {
+   805→    e.preventDefault();
+   806→    if (!title.trim()) return;
+   807→
+   808→    const now = new Date().toISOString();
+   809→    const scoreNum = score.trim() ? Number(score) : null;
+   810→    const maxScoreNum = maxScore.trim() ? Number(maxScore) : 100;
+   811→
+   812→    if (isEditing && editingExam) {
+   813→      updateExam(editingExam.id, {
+   814→        title: title.trim(),
+   815→        subject,
+   816→        studentId,
+   817→        classId,
+   818→        score: scoreNum,
+   819→        maxScore: maxScoreNum,
+   820→        date,
+   821→        notes: notes.trim(),
+   822→        studentName: getStudentName(studentId),
+   823→        className: getClassName(classId),
+   824→        updatedAt: now,
+   825→      });
+   826→      toast.success('تم تحديث بيانات الامتحان');
+   827→    } else {
+   828→      const newExam: Exam = {
+   829→        id: `exam-${Date.now()}`,
+   830→        title: title.trim(),
+   831→        subject,
+   832→        studentId,
+   833→        classId,
+   834→        teacherId: null,
+   835→        score: scoreNum,
+   836→        maxScore: maxScoreNum,
+   837→        date,
+   838→        notes: notes.trim(),
+   839→        createdAt: now,
+   840→        updatedAt: now,
+   841→        studentName: getStudentName(studentId),
+   842→        className: getClassName(classId),
+   843→      };
+   844→      addExam(newExam);
+   845→      toast.success('تم إضافة الامتحان بنجاح');
+   846→    }
+   847→
+   848→    onClose();
+   849→  };
+   850→
+   851→  return (
+   852→    <form onSubmit={handleSubmit} className="flex flex-col gap-5 mt-2">
+   853→      {/* Title */}
+   854→      <div className="flex flex-col gap-2">
+   855→        <Label className="text-slate-300 text-sm">عنوان الامتحان</Label>
+   856→        <Input
+   857→          value={title}
+   858→          onChange={(e) => setTitle(e.target.value)}
+   859→          placeholder="مثال: اختبار نهاية الفصل"
+   860→          className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   861→          required
+   862→        />
+   863→      </div>
+   864→
+   865→      {/* Subject & Date row */}
+   866→      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   867→        <div className="flex flex-col gap-2">
+   868→          <Label className="text-slate-300 text-sm">المادة</Label>
+   869→          <Select value={subject} onValueChange={setSubject}>
+   870→            <SelectTrigger className="w-full bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20">
+   871→              <SelectValue placeholder="اختر المادة" />
+   872→            </SelectTrigger>
+   873→            <SelectContent className="bg-[#1A1A24] border-white/[0.08]">
+   874→              {SUBJECT_DROPDOWN.map((sub) => (
+   875→                <SelectItem key={sub.value} value={sub.value} className="text-slate-200 focus:bg-white/[0.05] focus:text-white">
+   876→                  {sub.label}
+   877→                </SelectItem>
+   878→              ))}
+   879→            </SelectContent>
+   880→          </Select>
+   881→        </div>
+   882→
+   883→        <div className="flex flex-col gap-2">
+   884→          <Label className="text-slate-300 text-sm">التاريخ</Label>
+   885→          <Input
+   886→            type="date"
+   887→            value={date}
+   888→            onChange={(e) => setDate(e.target.value)}
+   889→            className="bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   890→            dir="ltr"
+   891→          />
+   892→        </div>
+   893→      </div>
+   894→
+   895→      {/* Student & Class row */}
+   896→      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   897→        <div className="flex flex-col gap-2">
+   898→          <Label className="text-slate-300 text-sm">الطالب</Label>
+   899→          <Select value={studentId} onValueChange={setStudentId}>
+   900→            <SelectTrigger className="w-full bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20">
+   901→              <SelectValue placeholder="اختر الطالب" />
+   902→            </SelectTrigger>
+   903→            <SelectContent className="bg-[#1A1A24] border-white/[0.08]">
+   904→              {STUDENT_DROPDOWN.map((stu) => (
+   905→                <SelectItem key={stu.value} value={stu.value} className="text-slate-200 focus:bg-white/[0.05] focus:text-white">
+   906→                  {stu.label}
+   907→                </SelectItem>
+   908→              ))}
+   909→            </SelectContent>
+   910→          </Select>
+   911→        </div>
+   912→
+   913→        <div className="flex flex-col gap-2">
+   914→          <Label className="text-slate-300 text-sm">الفصل</Label>
+   915→          <Select value={classId} onValueChange={setClassId}>
+   916→            <SelectTrigger className="w-full bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20">
+   917→              <SelectValue placeholder="اختر الفصل" />
+   918→            </SelectTrigger>
+   919→            <SelectContent className="bg-[#1A1A24] border-white/[0.08]">
+   920→              {CLASS_DROPDOWN.map((cls) => (
+   921→                <SelectItem key={cls.value} value={cls.value} className="text-slate-200 focus:bg-white/[0.05] focus:text-white">
+   922→                  {cls.label}
+   923→                </SelectItem>
+   924→              ))}
+   925→            </SelectContent>
+   926→          </Select>
+   927→        </div>
+   928→      </div>
+   929→
+   930→      {/* Score & Max score row */}
+   931→      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   932→        <div className="flex flex-col gap-2">
+   933→          <Label className="text-slate-300 text-sm">الدرجة</Label>
+   934→          <Input
+   935→            type="number"
+   936→            min={0}
+   937→            value={score}
+   938→            onChange={(e) => setScore(e.target.value)}
+   939→            placeholder="مثال: 85"
+   940→            className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   941→            dir="ltr"
+   942→          />
+   943→        </div>
+   944→
+   945→        <div className="flex flex-col gap-2">
+   946→          <Label className="text-slate-300 text-sm">الدرجة العظمى</Label>
+   947→          <Input
+   948→            type="number"
+   949→            min={1}
+   950→            value={maxScore}
+   951→            onChange={(e) => setMaxScore(e.target.value)}
+   952→            placeholder="100"
+   953→            className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   954→            dir="ltr"
+   955→          />
+   956→        </div>
+   957→      </div>
+   958→
+   959→      {/* Notes */}
+   960→      <div className="flex flex-col gap-2">
+   961→        <Label className="text-slate-300 text-sm">ملاحظات</Label>
+   962→        <Textarea
+   963→          value={notes}
+   964→          onChange={(e) => setNotes(e.target.value)}
+   965→          placeholder="أضف ملاحظات حول الامتحان..."
+   966→          className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 min-h-[80px] resize-none"
+   967→        />
+   968→      </div>
+   969→
+   970→      {/* Actions */}
+   971→      <DialogFooter className="flex-row gap-3 sm:justify-start pt-2">
+   972→        <Button
+   973→          type="submit"
+   974→          className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold rounded-lg px-6 gap-2"
+   975→        >
+   976→          {isEditing ? (
+   977→            <>
+   978→              <Pencil className="h-4 w-4" />
+   979→              حفظ التغييرات
+   980→            </>
+   981→          ) : (
+   982→            <>
+   983→              <Plus className="h-4 w-4" />
+   984→              إضافة الامتحان
+   985→            </>
+   986→          )}
+   987→        </Button>
+   988→        <Button
+   989→          type="button"
+   990→          variant="outline"
+   991→          onClick={onClose}
+   992→          className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-6"
+   993→        >
+   994→          إلغاء
+   995→        </Button>
+   996→      </DialogFooter>
+   997→    </form>
+   998→  );
+   999→}
+  1000→
+  1001→/** Add / Edit exam dialog */
+  1002→function ExamFormDialog({
+  1003→  open,
+  1004→  onOpenChange,
+  1005→  editingExam,
+  1006→}: {
+  1007→  open: boolean;
+  1008→  onOpenChange: (open: boolean) => void;
+  1009→  editingExam: Exam | null;
+  1010→}) {
+  1011→  return (
+  1012→    <Dialog open={open} onOpenChange={onOpenChange}>
+  1013→      <DialogContent
+  1014→        className="sm:max-w-lg max-h-[90vh] overflow-y-auto"
+  1015→        dir="rtl"
+  1016→        style={{
+  1017→          backgroundColor: '#1A1A24',
+  1018→          border: '1px solid rgba(255,255,255,0.06)',
+  1019→        }}
+  1020→      >
+  1021→        <DialogHeader>
+  1022→          <DialogTitle className="text-white text-xl">
+  1023→            {editingExam ? 'تعديل الامتحان' : 'إضافة امتحان جديد'}
+  1024→          </DialogTitle>
+  1025→          <DialogDescription className="text-muted-foreground">
+  1026→            {editingExam
+  1027→              ? 'قم بتعديل بيانات الامتحان المطلوبة ثم اضغط حفظ التغييرات'
+  1028→              : 'أدخل بيانات الامتحان الجديد لإضافته إلى النظام'}
+  1029→          </DialogDescription>
+  1030→        </DialogHeader>
+  1031→        {open && (
+  1032→          <ExamFormContent
+  1033→            editingExam={editingExam}
+  1034→            onClose={() => onOpenChange(false)}
+  1035→          />
+  1036→        )}
+  1037→      </DialogContent>
+  1038→    </Dialog>
+  1039→  );
+  1040→}
+  1041→
+  1042→/** Delete confirmation dialog */
+  1043→function DeleteExamDialog({
+  1044→  exam,
+  1045→  open,
+  1046→  onOpenChange,
+  1047→}: {
+  1048→  exam: Exam | null;
+  1049→  open: boolean;
+  1050→  onOpenChange: (open: boolean) => void;
+  1051→}) {
+  1052→  const { deleteExam, addToTrash } = useAppStore();
+  1053→
+  1054→  const handleDelete = () => {
+  1055→    if (exam) {
+  1056→      addToTrash({
+  1057→        id: `trash-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  1058→        itemType: 'exam',
+  1059→        itemId: exam.id,
+  1060→        itemName: exam.title,
+  1061→        deletedBy: 'المدير',
+  1062→        dataJson: JSON.stringify(exam),
+  1063→        restoredAt: null,
+  1064→        createdAt: new Date().toISOString(),
+  1065→      });
+  1066→      deleteExam(exam.id);
+  1067→      toast.success('تم حذف الامتحان');
+  1068→      onOpenChange(false);
+  1069→    }
+  1070→  };
+  1071→
+  1072→  return (
+  1073→    <AlertDialog open={open} onOpenChange={onOpenChange}>
+  1074→      <AlertDialogContent
+  1075→        dir="rtl"
+  1076→        style={{
+  1077→          backgroundColor: '#1A1A24',
+  1078→          border: '1px solid rgba(255,255,255,0.06)',
+  1079→        }}
+  1080→      >
+  1081→        <AlertDialogHeader>
+  1082→          <AlertDialogTitle className="text-white text-lg">
+  1083→            تأكيد حذف الامتحان
+  1084→          </AlertDialogTitle>
+  1085→          <AlertDialogDescription className="text-muted-foreground leading-relaxed">
+  1086→            هل أنت متأكد من حذف الامتحان{' '}
+  1087→            <span className="font-semibold text-slate-200">{exam?.title}</span>؟
+  1088→            <br />
+  1089→            لا يمكن التراجع عن هذا الإجراء. سيتم حذف جميع بيانات الامتحان بشكل نهائي.
+  1090→          </AlertDialogDescription>
+  1091→        </AlertDialogHeader>
+  1092→        <AlertDialogFooter className="flex-row gap-3 sm:justify-start mt-2">
+  1093→          <AlertDialogCancel
+  1094→            className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-6 mt-0"
+  1095→          >
+  1096→            إلغاء
+  1097→          </AlertDialogCancel>
+  1098→          <AlertDialogAction
+  1099→            onClick={handleDelete}
+  1100→            className="bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-lg px-6 gap-2"
+  1101→          >
+  1102→            <Trash2 className="h-4 w-4" />
+  1103→            نعم، احذف
+  1104→          </AlertDialogAction>
+  1105→        </AlertDialogFooter>
+  1106→      </AlertDialogContent>
+  1107→    </AlertDialog>
+  1108→  );
+  1109→}
+  1110→
+  1111→// ---------------------------------------------------------------------------
+  1112→// Main Component
+  1113→// ---------------------------------------------------------------------------
+  1114→
+  1115→export default function ExamsSection() {
+  1116→  const { exams, setExams } = useAppStore();
+  1117→
+  1118→  // Local UI state
+  1119→  const [localSearch, setLocalSearch] = useState('');
+  1120→  const [formOpen, setFormOpen] = useState(false);
+  1121→  const [viewOpen, setViewOpen] = useState(false);
+  1122→  const [deleteOpen, setDeleteOpen] = useState(false);
+  1123→  const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
+  1124→  const [subjectFilter, setSubjectFilter] = useState<string>('all');
+  1125→  const [classFilter, setClassFilter] = useState<string>('all');
+  1126→
+  1127→  // Initialize mock data once
+  1128→  const initialized = useRef(false);
+  1129→  useEffect(() => {
+  1130→    if (!initialized.current && exams.length === 0) {
+  1131→      initialized.current = true;
+  1132→      setExams(INITIAL_EXAMS);
+  1133→    }
+  1134→  }, []);
+  1135→
+  1136→  // Summary stats
+  1137→  const stats = useMemo(() => {
+  1138→    const scoredExams = exams.filter((e) => e.score !== null);
+  1139→    const totalExams = exams.length;
+  1140→    const avgScore = scoredExams.length > 0
+  1141→      ? Math.round(scoredExams.reduce((sum, e) => sum + (e.score ?? 0), 0) / scoredExams.length)
+  1142→      : 0;
+  1143→    const highestScore = scoredExams.length > 0
+  1144→      ? Math.max(...scoredExams.map((e) => e.score ?? 0))
+  1145→      : 0;
+  1146→    return { avgScore, highestScore, totalExams };
+  1147→  }, [exams]);
+  1148→
+  1149→  // Subject averages for comparison chart
+  1150→  const subjectAverages = useMemo(() => computeSubjectAverages(exams), [exams]);
+  1151→
+  1152→  // Analysis stats (highest/lowest/avg/pass rate)
+  1153→  const analysisStats = useMemo(() => computeAnalysisStats(exams), [exams]);
+  1154→
+  1155→  // Filtered & searched list
+  1156→  const filteredExams = useMemo(() => {
+  1157→    let result = [...exams];
+  1158→
+  1159→    // Subject filter
+  1160→    if (subjectFilter !== 'all') {
+  1161→      result = result.filter((e) => e.subject === subjectFilter);
+  1162→    }
+  1163→
+  1164→    // Class filter
+  1165→    if (classFilter !== 'all') {
+  1166→      result = result.filter((e) => e.classId === classFilter);
+  1167→    }
+  1168→
+  1169→    // Search filter
+  1170→    if (localSearch.trim()) {
+  1171→      const query = localSearch.trim().toLowerCase();
+  1172→      result = result.filter(
+  1173→        (e) =>
+  1174→          e.title.toLowerCase().includes(query) ||
+  1175→          e.subject.toLowerCase().includes(query) ||
+  1176→          (e.studentName ?? '').toLowerCase().includes(query) ||
+  1177→          (e.className ?? '').toLowerCase().includes(query)
+  1178→      );
+  1179→    }
+  1180→
+  1181→    return result;
+  1182→  }, [exams, subjectFilter, classFilter, localSearch]);
+  1183→
+  1184→  // Handlers
+  1185→  const handleAdd = () => {
+  1186→    setSelectedExam(null);
+  1187→    setFormOpen(true);
+  1188→  };
+  1189→
+  1190→  const handleEdit = (exam: Exam) => {
+  1191→    setSelectedExam(exam);
+  1192→    setFormOpen(true);
+  1193→  };
+  1194→
+  1195→  const handleView = (exam: Exam) => {
+  1196→    setSelectedExam(exam);
+  1197→    setViewOpen(true);
+  1198→  };
+  1199→
+  1200→  const handleDelete = (exam: Exam) => {
+  1201→    setSelectedExam(exam);
+  1202→    setDeleteOpen(true);
+  1203→  };
+  1204→
+  1205→  const handleExportExams = () => {
+  1206→    const exportData = exams.map((e) => ({
+  1207→      title: e.title,
+  1208→      subject: e.subject,
+  1209→      score: e.score !== null ? String(e.score) : '',
+  1210→      maxScore: String(e.maxScore),
+  1211→      percentage: e.score !== null ? `${Math.round((e.score / e.maxScore) * 100)}%` : '',
+  1212→      date: formatCsvDate(e.date),
+  1213→      notes: e.notes || '',
+  1214→    }));
+  1215→    exportToCSV(exportData, 'exams', [
+  1216→      { key: 'title', label: 'العنوان' },
+  1217→      { key: 'subject', label: 'المادة' },
+  1218→      { key: 'score', label: 'الدرجة' },
+  1219→      { key: 'maxScore', label: 'الدرجة القصوى' },
+  1220→      { key: 'percentage', label: 'النسبة' },
+  1221→      { key: 'date', label: 'التاريخ' },
+  1222→      { key: 'notes', label: 'الملاحظات' },
+  1223→    ]);
+  1224→    toast.success('تم تصدير بيانات الامتحانات بنجاح');
+  1225→  };
+  1226→
+  1227→  return (
+  1228→    <div className="flex flex-col gap-6 card-depth-2" dir="rtl">
+  1229→      {/* ── Page Title ── */}
+  1230→      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+  1231→        <div className="flex items-center gap-3">
+  1232→          <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-[#D4A574]/10">
+  1233→            <FileText className="h-5 w-5 text-[#D4A574]" />
+  1234→          </div>
+  1235→          <div>
+  1236→            <h1 className="text-2xl font-bold text-white tracking-tight sm:text-3xl flex items-center gap-3">
+  1237→              إدارة الامتحانات
+  1238→              <Badge className="bg-[#D4A574]/15 text-[#D4A574] border-[#D4A574]/20 hover:bg-[#D4A574]/20 text-sm px-2.5 py-0.5 rounded-full font-semibold tabular-nums">
+  1239→                {exams.length}
+  1240→              </Badge>
+  1241→            </h1>
+  1242→            <p className="mt-0.5 text-sm text-muted-foreground">
+  1243→              إدارة الامتحانات ومتابعة نتائج الطلاب
+  1244→            </p>
+  1245→          </div>
+  1246→        </div>
+  1247→      </div>
+  1248→
+  1249→      {/* ── Summary Stats ── */}
+  1250→      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+  1251→        <StatCard
+  1252→          icon={TrendingUp}
+  1253→          label="متوسط الدرجات"
+  1254→          value={`${stats.avgScore}%`}
+  1255→          subtext="من جميع الامتحانات"
+  1256→          accentClass="bg-emerald-500/15"
+  1257→        />
+  1258→        <StatCard
+  1259→          icon={Award}
+  1260→          label="أعلى درجة"
+  1261→          value={`${stats.highestScore}`}
+  1262→          subtext="من بين جميع الطلاب"
+  1263→          accentClass="bg-amber-500/15"
+  1264→        />
+  1265→        <StatCard
+  1266→          icon={FileText}
+  1267→          label="إجمالي الامتحانات"
+  1268→          value={stats.totalExams}
+  1269→          subtext="امتحان مسجل"
+  1270→          accentClass="bg-sky-500/15"
+  1271→        />
+  1272→      </div>
+  1273→
+  1274→      {/* ── Action Bar ── */}
+  1275→      <div
+  1276→        className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl p-4"
+  1277→        style={{
+  1278→          backgroundColor: '#1A1A24',
+  1279→          border: '1px solid rgba(255,255,255,0.06)',
+  1280→        }}
+  1281→      >
+  1282→        {/* Add & Export buttons */}
+  1283→        <div className="flex items-center gap-2">
+  1284→          <Button
+  1285→            onClick={handleAdd}
+  1286→            className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold gap-2 rounded-lg px-5 h-10 btn-shine"
+  1287→          >
+  1288→            <Plus className="h-4 w-4" />
+  1289→            إضافة امتحان جديد
+  1290→          </Button>
+  1291→          <Button
+  1292→            variant="outline"
+  1293→            onClick={handleExportExams}
+  1294→            className="border-[#D4A574]/30 text-[#D4A574] hover:bg-[#D4A574]/10 gap-2 rounded-lg px-4 h-10 btn-amber-glow"
+  1295→          >
+  1296→            <Download className="h-4 w-4" />
+  1297→            تصدير CSV
+  1298→          </Button>
+  1299→        </div>
+  1300→
+  1301→        {/* Search & Filters */}
+  1302→        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+  1303→          {/* Search */}
+  1304→          <div className="relative">
+  1305→            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+  1306→            <Input
+  1307→              value={localSearch}
+  1308→              onChange={(e) => setLocalSearch(e.target.value)}
+  1309→              placeholder="بحث بالعنوان أو المادة أو الطالب..."
+  1310→              className="pr-10 w-full sm:w-64 bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 h-10"
+  1311→            />
+  1312→          </div>
+  1313→
+  1314→          {/* Subject filter */}
+  1315→          <Select value={subjectFilter} onValueChange={setSubjectFilter}>
+  1316→            <SelectTrigger className="w-full sm:w-36 bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 h-10">
+  1317→              <SelectValue />
+  1318→            </SelectTrigger>
+  1319→            <SelectContent className="bg-[#1A1A24] border-white/[0.08]">
+  1320→              {SUBJECT_OPTIONS.map((opt) => (
+  1321→                <SelectItem key={opt.value} value={opt.value} className="text-slate-200 focus:bg-white/[0.05] focus:text-white">
+  1322→                  {opt.label}
+  1323→                </SelectItem>
+  1324→              ))}
+  1325→            </SelectContent>
+  1326→          </Select>
+  1327→
+  1328→          {/* Class filter */}
+  1329→          <Select value={classFilter} onValueChange={setClassFilter}>
+  1330→            <SelectTrigger className="w-full sm:w-40 bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 h-10">
+  1331→              <SelectValue />
+  1332→            </SelectTrigger>
+  1333→            <SelectContent className="bg-[#1A1A24] border-white/[0.08]">
+  1334→              {CLASS_OPTIONS.map((opt) => (
+  1335→                <SelectItem key={opt.value} value={opt.value} className="text-slate-200 focus:bg-white/[0.05] focus:text-white">
+  1336→                  {opt.label}
+  1337→                </SelectItem>
+  1338→              ))}
+  1339→            </SelectContent>
+  1340→          </Select>
+  1341→        </div>
+  1342→      </div>
+  1343→
+  1344→      {/* ── Subject Comparison Chart ── */}
+  1345→      <SubjectComparisonChart data={subjectAverages} />
+  1346→
+  1347→      {/* ── Exam Statistics Summary Pills ── */}
+  1348→      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+  1349→        {[
+  1350→          {
+  1351→            icon: TrendingUp,
+  1352→            label: 'أعلى نسبة',
+  1353→            value: `${analysisStats.highest.pct}%`,
+  1354→            sub: analysisStats.highest.subject,
+  1355→            color: '#10b981',
+  1356→            bg: 'rgba(16,185,129,0.08)',
+  1357→          },
+  1358→          {
+  1359→            icon: TrendingDown,
+  1360→            label: 'أقل نسبة',
+  1361→            value: `${analysisStats.lowest.pct}%`,
+  1362→            sub: analysisStats.lowest.subject,
+  1363→            color: '#f43f5e',
+  1364→            bg: 'rgba(244,63,94,0.08)',
+  1365→          },
+  1366→          {
+  1367→            icon: Target,
+  1368→            label: 'متوسط عام',
+  1369→            value: `${analysisStats.overallAvg}%`,
+  1370→            sub: 'جميع المواد',
+  1371→            color: '#D4A574',
+  1372→            bg: 'rgba(212,165,116,0.08)',
+  1373→          },
+  1374→          {
+  1375→            icon: Award,
+  1376→            label: 'نسبة النجاح',
+  1377→            value: `${analysisStats.passRate}%`,
+  1378→            sub: 'درجة ≥ 50%',
+  1379→            color: '#0ea5e9',
+  1380→            bg: 'rgba(14,165,233,0.08)',
+  1381→          },
+  1382→        ].map((stat) => (
+  1383→          <div
+  1384→            key={stat.label}
+  1385→            className="flex items-center gap-3 rounded-xl p-3 transition-all duration-200 hover:scale-[1.02]"
+  1386→            style={{
+  1387→              backgroundColor: stat.bg,
+  1388→              border: '1px solid rgba(255,255,255,0.04)',
+  1389→            }}
+  1390→          >
+  1391→            <div
+  1392→              className="flex items-center justify-center h-9 w-9 rounded-lg shrink-0"
+  1393→              style={{ backgroundColor: `${stat.color}15` }}
+  1394→            >
+  1395→              <stat.icon className="h-4 w-4" style={{ color: stat.color }} />
+  1396→            </div>
+  1397→            <div className="min-w-0">
+  1398→              <p className="text-[11px] text-muted-foreground">{stat.label}</p>
+  1399→              <p className="text-base font-bold text-white tabular-nums leading-tight">{stat.value}</p>
+  1400→              <p className="text-[10px] text-muted-foreground/60 truncate">{stat.sub}</p>
+  1401→            </div>
+  1402→          </div>
+  1403→        ))}
+  1404→      </div>
+  1405→
+  1406→      {/* ── Exams Table ── */}
+  1407→      {filteredExams.length === 0 ? (
+  1408→        <div
+  1409→          className="rounded-xl"
+  1410→          style={{
+  1411→            backgroundColor: '#1A1A24',
+  1412→            border: '1px solid rgba(255,255,255,0.06)',
+  1413→          }}
+  1414→        >
+  1415→          <EmptyState onAdd={handleAdd} />
+  1416→        </div>
+  1417→      ) : (
+  1418→        <div
+  1419→          className="rounded-xl overflow-hidden"
+  1420→          style={{
+  1421→            backgroundColor: '#1A1A24',
+  1422→            border: '1px solid rgba(255,255,255,0.06)',
+  1423→          }}
+  1424→        >
+  1425→          <div className="overflow-x-auto">
+  1426→            <Table>
+  1427→              <TableHeader>
+  1428→                <TableRow className="border-b border-white/[0.06] hover:bg-transparent">
+  1429→                  <TableHead className="text-slate-400 font-semibold text-xs uppercase tracking-wider py-3.5 px-4">
+  1430→                    عنوان الامتحان
+  1431→                  </TableHead>
+  1432→                  <TableHead className="text-slate-400 font-semibold text-xs uppercase tracking-wider py-3.5 px-4">
+  1433→                    المادة
+  1434→                  </TableHead>
+  1435→                  <TableHead className="text-slate-400 font-semibold text-xs uppercase tracking-wider py-3.5 px-4 hidden md:table-cell">
+  1436→                    الطالب
+  1437→                  </TableHead>
+  1438→                  <TableHead className="text-slate-400 font-semibold text-xs uppercase tracking-wider py-3.5 px-4 hidden lg:table-cell">
+  1439→                    الفصل
+  1440→                  </TableHead>
+  1441→                  <TableHead className="text-slate-400 font-semibold text-xs uppercase tracking-wider py-3.5 px-4">
+  1442→                    الدرجة
+  1443→                  </TableHead>
+  1444→                  <TableHead className="text-slate-400 font-semibold text-xs uppercase tracking-wider py-3.5 px-4 hidden sm:table-cell">
+  1445→                    التاريخ
+  1446→                  </TableHead>
+  1447→                  <TableHead className="text-slate-400 font-semibold text-xs uppercase tracking-wider py-3.5 px-4 text-center">
+  1448→                    إجراءات
+  1449→                  </TableHead>
+  1450→                </TableRow>
+  1451→              </TableHeader>
+  1452→              <TableBody>
+  1453→                {filteredExams.map((exam, index) => (
+  1454→                  <TableRow
+  1455→                    key={exam.id}
+  1456→                    className={cn(
+  1457→                      'border-b border-white/[0.04] transition-all duration-200',
+  1458→                      'hover:bg-white/[0.04]',
+  1459→                      index % 2 === 1 ? 'bg-white/[0.015]' : 'bg-transparent',
+  1460→                    )}
+  1461→                  >
+  1462→                    {/* Title */}
+  1463→                    <TableCell className="py-3.5 px-4">
+  1464→                      <div className="flex items-center gap-3">
+  1465→                        <div className="flex items-center justify-center h-9 w-9 rounded-full bg-gradient-to-br from-[#D4A574]/20 to-[#D4A574]/5 shrink-0 border border-[#D4A574]/10">
+  1466→                          <FileText className="h-4 w-4 text-[#D4A574]" />
+  1467→                        </div>
+  1468→                        <span className="text-sm font-medium text-slate-200 truncate max-w-[180px]">
+  1469→                          {exam.title}
+  1470→                        </span>
+  1471→                      </div>
+  1472→                    </TableCell>
+  1473→
+  1474→                    {/* Subject */}
+  1475→                    <TableCell className="py-3.5 px-4">
+  1476→                      <Badge
+  1477→                        variant="outline"
+  1478→                        className="bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-500/15 text-xs px-2 py-0.5 rounded-full"
+  1479→                      >
+  1480→                        {exam.subject}
+  1481→                      </Badge>
+  1482→                    </TableCell>
+  1483→
+  1484→                    {/* Student */}
+  1485→                    <TableCell className="py-3.5 px-4 hidden md:table-cell">
+  1486→                      <span className="text-sm text-slate-300 truncate block max-w-[140px]">
+  1487→                        {getStudentName(exam.studentId)}
+  1488→                      </span>
+  1489→                    </TableCell>
+  1490→
+  1491→                    {/* Class */}
+  1492→                    <TableCell className="py-3.5 px-4 hidden lg:table-cell">
+  1493→                      <span className="text-sm text-slate-300">
+  1494→                        {getClassName(exam.classId)}
+  1495→                      </span>
+  1496→                    </TableCell>
+  1497→
+  1498→                    {/* Score */}
+  1499→                    <TableCell className="py-3.5 px-4">
+  1500→                      <ScoreCell score={exam.score} maxScore={exam.maxScore} />
+  1501→                    </TableCell>
+  1502→
+  1503→                    {/* Date */}
+  1504→                    <TableCell className="py-3.5 px-4 hidden sm:table-cell">
+  1505→                      <span className="text-sm text-muted-foreground tabular-nums">
+  1506→                        {exam.date ? new Date(exam.date).toLocaleDateString('ar-SA') : '—'}
+  1507→                      </span>
+  1508→                    </TableCell>
+  1509→
+  1510→                    {/* Actions */}
+  1511→                    <TableCell className="py-3.5 px-4">
+  1512→                      <div className="flex items-center justify-center gap-1">
+  1513→                        {/* View */}
+  1514→                        <Button
+  1515→                          variant="ghost"
+  1516→                          size="icon"
+  1517→                          onClick={() => handleView(exam)}
+  1518→                          className="h-8 w-8 text-slate-400 hover:text-sky-400 hover:bg-sky-400/10 rounded-lg"
+  1519→                          title="عرض"
+  1520→                        >
+  1521→                          <Eye className="h-4 w-4" />
+  1522→                        </Button>
+  1523→
+  1524→                        {/* Edit */}
+  1525→                        <Button
+  1526→                          variant="ghost"
+  1527→                          size="icon"
+  1528→                          onClick={() => handleEdit(exam)}
+  1529→                          className="h-8 w-8 text-slate-400 hover:text-amber-400 hover:bg-amber-400/10 rounded-lg"
+  1530→                          title="تعديل"
+  1531→                        >
+  1532→                          <Pencil className="h-4 w-4" />
+  1533→                        </Button>
+  1534→
+  1535→                        {/* Delete */}
+  1536→                        <Button
+  1537→                          variant="ghost"
+  1538→                          size="icon"
+  1539→                          onClick={() => handleDelete(exam)}
+  1540→                          className="h-8 w-8 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg"
+  1541→                          title="حذف"
+  1542→                        >
+  1543→                          <Trash2 className="h-4 w-4" />
+  1544→                        </Button>
+  1545→                      </div>
+  1546→                    </TableCell>
+  1547→                  </TableRow>
+  1548→                ))}
+  1549→              </TableBody>
+  1550→            </Table>
+  1551→          </div>
+  1552→        </div>
+  1553→      )}
+  1554→
+  1555→      {/* ── Dialogs ── */}
+  1556→      <ExamFormDialog
+  1557→        open={formOpen}
+  1558→        onOpenChange={setFormOpen}
+  1559→        editingExam={selectedExam}
+  1560→      />
+  1561→
+  1562→      <ViewExamDialog
+  1563→        exam={selectedExam}
+  1564→        open={viewOpen}
+  1565→        onOpenChange={setViewOpen}
+  1566→      />
+  1567→
+  1568→      <DeleteExamDialog
+  1569→        exam={selectedExam}
+  1570→        open={deleteOpen}
+  1571→        onOpenChange={setDeleteOpen}
+  1572→      />
+  1573→    </div>
+  1574→  );
+  1575→}
+  1576→

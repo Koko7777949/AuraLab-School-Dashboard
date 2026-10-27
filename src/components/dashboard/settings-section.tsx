@@ -713,7 +713,7 @@ function ThemeCustomizerCard() {
 /*  Admin Profile Card (Editable)                                      */
 /* ------------------------------------------------------------------ */
 function AdminProfileCard() {
-  const { adminProfile, updateAdminProfile } = useAppStore();
+  const { adminProfile, updateAdminProfile, locale } = useAppStore();
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
 
   const [name, setName] = useState(adminProfile.name);
@@ -744,16 +744,48 @@ function AdminProfileCard() {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      toast.error('يرجى اختيار ملف صورة');
+      toast.error(t('adminProfile.invalidImage', locale));
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const dataUrl = reader.result as string;
+    // Compress + resize the image via canvas so it always fits in
+    // localStorage (large photos previously made saving silently fail).
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      const MAX_SIZE = 256; // 256x256 avatar is plenty
+      const scale = Math.min(1, MAX_SIZE / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        URL.revokeObjectURL(objectUrl);
+        toast.error(t('adminProfile.invalidImage', locale));
+        return;
+      }
+      ctx.drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(objectUrl);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
       setAvatar(dataUrl);
+      if (file.size > 150 * 1024) {
+        toast.info(t('adminProfile.imageCompressed', locale));
+      }
     };
-    reader.readAsDataURL(file);
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      toast.error(t('adminProfile.invalidImage', locale));
+    };
+    img.src = objectUrl;
+    // Reset input value so re-selecting the same file works
+    e.target.value = '';
+  };
+
+  const handleAvatarRemove = () => {
+    setAvatar('');
   };
 
   const handleSaveProfile = () => {
@@ -831,8 +863,17 @@ function AdminProfileCard() {
                 onClick={() => avatarInputRef.current?.click()}
                 className="mt-1 text-[11px] text-[#D4A574] hover:underline"
               >
-                {t('adminProfile.avatarChange')}
+                {t('adminProfile.avatarChange', locale)}
               </button>
+              {avatar && (
+                <button
+                  type="button"
+                  onClick={handleAvatarRemove}
+                  className="mt-0.5 block text-[11px] text-rose-400/80 hover:text-rose-400 hover:underline"
+                >
+                  {t('adminProfile.avatarRemove', locale)}
+                </button>
+              )}
             </div>
           </div>
 

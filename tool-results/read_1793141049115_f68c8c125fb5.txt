@@ -1,0 +1,1771 @@
+     1→'use client';
+     2→
+     3→import { useEffect, useState, useCallback, useRef } from 'react';
+     4→import {
+     5→  BookOpen,
+     6→  Eye,
+     7→  MessageSquare,
+     8→  Users,
+     9→  Award,
+    10→  Video,
+    11→  Bell,
+    12→  Map,
+    13→  UserCheck,
+    14→  BookMarked,
+    15→  UserPlus,
+    16→  FileText,
+    17→  BarChart3,
+    18→  X,
+    19→  Clock,
+    20→  Calendar,
+    21→  CheckCircle2,
+    22→  AlertTriangle,
+    23→  Trophy,
+    24→  UserX,
+    25→  Timer,
+    26→  ChevronLeft,
+    27→  GraduationCap,
+    28→  CheckCircle,
+    29→  Megaphone,
+    30→  Target,
+    31→  Medal,
+    32→  DollarSign,
+    33→} from 'lucide-react';
+    34→import StatCard from './stat-card';
+    35→import SectionCard from './section-card';
+    36→import SessionTimer from './session-timer';
+    37→import CalendarWidget from './calendar-widget';
+    38→import WidgetContainer from './widget-container';
+    39→import ActivityFeed from './activity-feed';
+    40→import ExportButton from './export-button';
+    41→import { useAppStore } from '@/lib/store';
+    42→import type { DashboardStats } from '@/lib/types';
+    43→
+    44→// ---------------------------------------------------------------------------
+    45→// Mock Data
+    46→// ---------------------------------------------------------------------------
+    47→
+    48→const weeklyInteractionData = [
+    49→  { day: 'السبت', value: 72, color: 'from-amber-500 to-amber-400' },
+    50→  { day: 'الأحد', value: 85, color: 'from-amber-500 to-amber-400' },
+    51→  { day: 'الاثنين', value: 64, color: 'from-amber-500 to-amber-400' },
+    52→  { day: 'الثلاثاء', value: 91, color: 'from-amber-500 to-amber-400' },
+    53→  { day: 'الأربعاء', value: 78, color: 'from-amber-500 to-amber-400' },
+    54→  { day: 'الخميس', value: 56, color: 'from-amber-500 to-amber-400' },
+    55→  { day: 'الجمعة', value: 30, color: 'from-amber-500/40 to-amber-400/40' },
+    56→];
+    57→
+    58→const notificationsData = [
+    59→  {
+    60→    id: 1,
+    61→    text: 'تم تسجيل حضور 28 طالب من أصل 32 في حصة الرياضيات',
+    62→    time: 'منذ 5 دقائق',
+    63→    status: 'success' as const,
+    64→  },
+    65→  {
+    66→    id: 2,
+    67→    text: 'تنبيه: الطالب أحمد محمد غاب عن 3 حصص متتالية',
+    68→    time: 'منذ 20 دقيقة',
+    69→    status: 'warning' as const,
+    70→  },
+    71→  {
+    72→    id: 3,
+    73→    text: 'نتائج اختبار العلوم متاحة الآن للمراجعة',
+    74→    time: 'منذ ساعة',
+    75→    status: 'info' as const,
+    76→  },
+    77→  {
+    78→    id: 4,
+    79→    text: 'تم تحديث المنهج الدراسي لمادة اللغة العربية',
+    80→    time: 'منذ ساعتين',
+    81→    status: 'info' as const,
+    82→  },
+    83→  {
+    84→    id: 5,
+    85→    text: 'موعد اجتماع أولياء الأمور يوم الخميس القادم',
+    86→    time: 'منذ 3 ساعات',
+    87→    status: 'neutral' as const,
+    88→  },
+    89→];
+    90→
+    91→const attendanceData = [
+    92→  { label: 'حاضر', percentage: 85, color: 'bg-emerald-500', textColor: 'text-emerald-400' },
+    93→  { label: 'متأخر', percentage: 8, color: 'bg-amber-500', textColor: 'text-amber-400' },
+    94→  { label: 'غائب', percentage: 7, color: 'bg-rose-500', textColor: 'text-rose-400' },
+    95→];
+    96→
+    97→const notificationStatusStyles = {
+    98→  success: 'bg-emerald-500',
+    99→  warning: 'bg-amber-500',
+   100→  info: 'bg-sky-500',
+   101→  neutral: 'bg-slate-500',
+   102→};
+   103→
+   104→// Attendance Quick Tracker pill data
+   105→const attendancePills = [
+   106→  {
+   107→    id: 'present',
+   108→    label: 'حاضر',
+   109→    percentage: 85,
+   110→    count: 27,
+   111→    color: '#10b981',
+   112→    borderColor: 'border-emerald-500/60',
+   113→    bgColor: 'bg-emerald-500/10',
+   114→    textColor: 'text-emerald-400',
+   115→    icon: UserCheck,
+   116→  },
+   117→  {
+   118→    id: 'late',
+   119→    label: 'متأخر',
+   120→    percentage: 8,
+   121→    count: 3,
+   122→    color: '#f59e0b',
+   123→    borderColor: 'border-amber-500/60',
+   124→    bgColor: 'bg-amber-500/10',
+   125→    textColor: 'text-amber-400',
+   126→    icon: Clock,
+   127→  },
+   128→  {
+   129→    id: 'absent',
+   130→    label: 'غائب',
+   131→    percentage: 7,
+   132→    count: 2,
+   133→    color: '#f43f5e',
+   134→    borderColor: 'border-rose-500/60',
+   135→    bgColor: 'bg-rose-500/10',
+   136→    textColor: 'text-rose-400',
+   137→    icon: UserX,
+   138→  },
+   139→  {
+   140→    id: 'excused',
+   141→    label: 'مستأذن',
+   142→    percentage: 3,
+   143→    count: 1,
+   144→    color: '#38bdf8',
+   145→    borderColor: 'border-sky-500/60',
+   146→    bgColor: 'bg-sky-500/10',
+   147→    textColor: 'text-sky-400',
+   148→    icon: AlertTriangle,
+   149→  },
+   150→];
+   151→
+   152→// Today's schedule mock data
+   153→const todaySchedule = [
+   154→  {
+   155→    id: 1,
+   156→    time: '07:30 - 08:15',
+   157→    subject: 'اللغة العربية',
+   158→    teacher: 'أ. فاطمة الحربي',
+   159→    room: 'قاعة 101',
+   160→    status: 'completed' as const,
+   161→  },
+   162→  {
+   163→    id: 2,
+   164→    time: '08:30 - 09:15',
+   165→    subject: 'الرياضيات',
+   166→    teacher: 'أ. خالد العتيبي',
+   167→    room: 'قاعة 204',
+   168→    status: 'current' as const,
+   169→  },
+   170→  {
+   171→    id: 3,
+   172→    time: '09:30 - 10:15',
+   173→    subject: 'العلوم',
+   174→    teacher: 'أ. سارة القحطاني',
+   175→    room: 'مختبر 3',
+   176→    status: 'upcoming' as const,
+   177→  },
+   178→  {
+   179→    id: 4,
+   180→    time: '10:30 - 11:15',
+   181→    subject: 'التربية البدنية',
+   182→    teacher: 'أ. ماجد الدوسري',
+   183→    room: 'الملعب',
+   184→    status: 'upcoming' as const,
+   185→  },
+   186→];
+   187→
+   188→// Student performance (grade distribution) data
+   189→const gradeDistribution = [
+   190→  { label: 'ممتاز', range: '90+', count: 8, maxCount: 12, color: '#10b981', gradientFrom: '#10b981', gradientTo: '#34d399' },
+   191→  { label: 'جيد جدا', range: '80-89', count: 10, maxCount: 12, color: '#38bdf8', gradientFrom: '#38bdf8', gradientTo: '#7dd3fc' },
+   192→  { label: 'جيد', range: '70-79', count: 7, maxCount: 12, color: '#f59e0b', gradientFrom: '#f59e0b', gradientTo: '#fbbf24' },
+   193→  { label: 'مقبول', range: '60-69', count: 5, maxCount: 12, color: '#f97316', gradientFrom: '#f97316', gradientTo: '#fb923c' },
+   194→  { label: 'راسب', range: '<60', count: 2, maxCount: 12, color: '#f43f5e', gradientFrom: '#f43f5e', gradientTo: '#fb7185' },
+   195→];
+   196→
+   197→// Upcoming events mock data
+   198→const upcomingEvents = [
+   199→  {
+   200→    id: 1,
+   201→    title: 'اجتماع أولياء الأمور',
+   202→    description: 'الخميس 10:00 صباحاً',
+   203→    icon: Calendar,
+   204→    borderColor: 'border-r-amber-500',
+   205→    bgColor: 'bg-amber-500/8',
+   206→    iconColor: 'text-amber-400',
+   207→  },
+   208→  {
+   209→    id: 2,
+   210→    title: 'اختبار نهاية الفصل',
+   211→    description: 'الأحد الأسبوع القادم',
+   212→    icon: Timer,
+   213→    borderColor: 'border-r-rose-500',
+   214→    bgColor: 'bg-rose-500/8',
+   215→    iconColor: 'text-rose-400',
+   216→  },
+   217→  {
+   218→    id: 3,
+   219→    title: 'نشاط رياضي مدرسي',
+   220→    description: 'الثلاثاء 2:00 مساءً',
+   221→    icon: Trophy,
+   222→    borderColor: 'border-r-emerald-500',
+   223→    bgColor: 'bg-emerald-500/8',
+   224→    iconColor: 'text-emerald-400',
+   225→  },
+   226→  {
+   227→    id: 4,
+   228→    title: 'ورشة عمل تربوية',
+   229→    description: 'الأربعاء 11:00 صباحاً',
+   230→    icon: GraduationCap,
+   231→    borderColor: 'border-r-sky-500',
+   232→    bgColor: 'bg-sky-500/8',
+   233→    iconColor: 'text-sky-400',
+   234→  },
+   235→];
+   236→
+   237→// (quickStatsData removed — QuickStatsRibbon now builds stats dynamically from store)
+   238→
+   239→// Sparkline data for KPI cards (last 7 days trend)
+   240→const KPI_SPARKLINES: number[][] = [
+   241→  [82, 85, 79, 87, 90, 86, 87],   // التحصيل الأكاديمي
+   242→  [70, 72, 75, 78, 76, 80, 78],   // التركيز والانتباه
+   243→  [58, 60, 63, 65, 62, 67, 65],   // التفاعل الصفي
+   244→  [80, 82, 84, 83, 86, 84, 85],   // نسبة الحضور
+   245→  [20, 21, 22, 23, 22, 24, 24],   // الطلاب المتفوقون
+   246→  [140, 142, 148, 150, 152, 155, 156], // الحصص المسجلة
+   247→];
+   248→
+   249→// Activity Feed mock data
+   250→const activityFeedData = [
+   251→  { id: 1, type: 'registration' as const, description: 'تم تسجيل الطالبة نورا أحمد في الصف الثالث', time: 'منذ 5 دقائق', icon: UserPlus, color: '#10b981', bgColor: 'bg-emerald-500/15' },
+   252→  { id: 2, type: 'grade' as const, description: 'تم رفع درجات اختبار الرياضيات للصف الثاني', time: 'منذ 15 دقيقة', icon: CheckCircle, color: '#38bdf8', bgColor: 'bg-sky-500/15' },
+   253→  { id: 3, type: 'attendance' as const, description: 'تم تسجيل حضور حصة العلوم - 28 حاضر من 32', time: 'منذ 30 دقيقة', icon: UserCheck, color: '#f59e0b', bgColor: 'bg-amber-500/15' },
+   254→  { id: 4, type: 'message' as const, description: 'أ. خالد العتيبي أرسل رسالة لولي أمر الطالب أحمد', time: 'منذ 45 دقيقة', icon: MessageSquare, color: '#A78BFA', bgColor: 'bg-violet-500/15' },
+   255→  { id: 5, type: 'announcement' as const, description: 'إعلان: موعد اختبار نهاية الفصل تم تأكيده', time: 'منذ ساعة', icon: Megaphone, color: '#f43f5e', bgColor: 'bg-rose-500/15' },
+   256→  { id: 6, type: 'exam' as const, description: 'تم إنشاء اختبار جديد لمادة اللغة الإنجليزية', time: 'منذ ساعتين', icon: FileText, color: '#38bdf8', bgColor: 'bg-sky-500/15' },
+   257→  { id: 7, type: 'attendance' as const, description: 'تنبيه: 3 طلاب غابوا عن حصلتين متتاليتين', time: 'منذ 3 ساعات', icon: AlertTriangle, color: '#f59e0b', bgColor: 'bg-amber-500/15' },
+   258→  { id: 8, type: 'grade' as const, description: 'تم مراجعة وتأكيد درجات اختبار القراءة', time: 'منذ 4 ساعات', icon: CheckCircle, color: '#10b981', bgColor: 'bg-emerald-500/15' },
+   259→];
+   260→
+   261→// Weekly Goals data
+   262→const weeklyGoalsData = [
+   263→  { label: 'نسبة الحضور', current: 85, target: 95, unit: '%', color: '#10b981', bgColor: 'bg-emerald-500' },
+   264→  { label: 'تكليفات التصحيح', current: 12, target: 15, unit: '', color: '#f59e0b', bgColor: 'bg-amber-500' },
+   265→  { label: 'اجتماعات أولياء الأمور', current: 2, target: 3, unit: '', color: '#38bdf8', bgColor: 'bg-sky-500' },
+   266→  { label: 'تقارير الدرجات', current: 5, target: 8, unit: '', color: '#A78BFA', bgColor: 'bg-violet-500' },
+   267→];
+   268→
+   269→// Top Students leaderboard data
+   270→const topStudentsData = [
+   271→  { rank: 1, name: 'سارة القحطاني', score: 98, initial: 'س' },
+   272→  { rank: 2, name: 'أحمد العتيبي', score: 96, initial: 'أ' },
+   273→  { rank: 3, name: 'نورة الدوسري', score: 94, initial: 'ن' },
+   274→  { rank: 4, name: 'خالد الحربي', score: 91, initial: 'خ' },
+   275→  { rank: 5, name: 'فاطمة الشمري', score: 89, initial: 'ف' },
+   276→];
+   277→
+   278→// ---------------------------------------------------------------------------
+   279→// Quick action buttons config (expanded to 6)
+   280→// ---------------------------------------------------------------------------
+   281→
+   282→const QUICK_ACTIONS = [
+   283→  {
+   284→    id: 'students' as const,
+   285→    label: 'إضافة طالب جديد',
+   286→    icon: UserPlus,
+   287→    description: 'تسجيل طالب جديد في النظام',
+   288→  },
+   289→  {
+   290→    id: 'exams' as const,
+   291→    label: 'إنشاء امتحان',
+   292→    icon: FileText,
+   293→    description: 'إعداد امتحان جديد للطلاب',
+   294→  },
+   295→  {
+   296→    id: 'analytics' as const,
+   297→    label: 'عرض التقارير',
+   298→    icon: BarChart3,
+   299→    description: 'مراجعة التقارير والتحليلات',
+   300→  },
+   301→  {
+   302→    id: 'notifications' as const,
+   303→    label: 'إرسال إشعار',
+   304→    icon: Bell,
+   305→    description: 'إرسال إشعار للمعلمين والطلاب',
+   306→  },
+   307→  {
+   308→    id: 'attendance' as const,
+   309→    label: 'تسجيل حضور',
+   310→    icon: UserCheck,
+   311→    description: 'تسجيل حضور الطلاب للحصة',
+   312→  },
+   313→  {
+   314→    id: 'announcements' as const,
+   315→    label: 'إدارة الإعلانات',
+   316→    icon: Megaphone,
+   317→    description: 'عرض وإدارة جميع الإعلانات',
+   318→  },
+   319→];
+   320→
+   321→// ---------------------------------------------------------------------------
+   322→// Sub-components
+   323→// ---------------------------------------------------------------------------
+   324→
+   325→function WeeklyBarChart() {
+   326→  const maxValue = 100;
+   327→
+   328→  return (
+   329→    <div className="flex items-end justify-between gap-2 h-48 px-1">
+   330→      {weeklyInteractionData.map((item) => {
+   331→        const height = (item.value / maxValue) * 100;
+   332→        return (
+   333→          <div key={item.day} className="flex flex-1 flex-col items-center gap-2">
+   334→            {/* Value tooltip */}
+   335→            <span className="text-xs font-semibold text-muted-foreground tabular-nums">
+   336→              {item.value}%
+   337→            </span>
+   338→            {/* Bar */}
+   339→            <div className="relative w-full flex items-end" style={{ height: '140px' }}>
+   340→              <div
+   341→                className={`w-full rounded-t-lg bg-gradient-to-t ${item.color} transition-all duration-500 ease-out`}
+   342→                style={{ height: `${height}%` }}
+   343→              />
+   344→            </div>
+   345→            {/* Day label */}
+   346→            <span className="text-[11px] font-medium text-[#B0B0C0] whitespace-nowrap">
+   347→              {item.day}
+   348→            </span>
+   349→          </div>
+   350→        );
+   351→      })}
+   352→    </div>
+   353→  );
+   354→}
+   355→
+   356→function NotificationItem({
+   357→  text,
+   358→  time,
+   359→  status,
+   360→}: {
+   361→  text: string;
+   362→  time: string;
+   363→  status: keyof typeof notificationStatusStyles;
+   364→}) {
+   365→  return (
+   366→    <div className="flex items-start gap-3 py-3 transition-colors duration-200 hover:bg-white/[0.02] rounded-lg px-2 -mx-2 data-row-hover">
+   367→      {/* Status dot */}
+   368→      <div className="mt-1.5 shrink-0">
+   369→        <span
+   370→          className={`block h-3.5 w-3.5 rounded-full ${notificationStatusStyles[status]}`}
+   371→        />
+   372→      </div>
+   373→      {/* Content */}
+   374→      <div className="flex flex-col gap-1 min-w-0">
+   375→        <p className="text-sm leading-relaxed text-slate-300 line-clamp-2">{text}</p>
+   376→        <span className="text-[11px] text-[#A0A0B8] font-medium">{time}</span>
+   377→      </div>
+   378→    </div>
+   379→  );
+   380→}
+   381→
+   382→function ClassroomMapPlaceholder() {
+   383→  // Simulated 4x5 classroom grid
+   384→  const rows = 5;
+   385→  const cols = 4;
+   386→  const occupiedSeats = new Set([1, 2, 3, 5, 6, 7, 8, 10, 11, 12, 13, 15, 16, 18, 19, 20, 22, 24]);
+   387→
+   388→  return (
+   389→    <div className="flex flex-col items-center gap-4 py-2">
+   390→      {/* Teacher desk */}
+   391→      <div className="rounded-lg bg-[#D4A574]/15 border border-[#D4A574]/20 px-8 py-2">
+   392→        <span className="text-xs font-medium text-[#D4A574]">منصة المعلم</span>
+   393→      </div>
+   394→
+   395→      {/* Seats grid */}
+   396→      <div className="grid gap-2 w-full" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
+   397→        {Array.from({ length: rows * cols }, (_, i) => {
+   398→          const isOccupied = occupiedSeats.has(i);
+   399→          return (
+   400→            <div
+   401→              key={i}
+   402→              className={`aspect-square rounded-md flex items-center justify-center transition-all duration-300 ${
+   403→                isOccupied
+   404→                  ? 'bg-emerald-500/15 border border-emerald-500/20'
+   405→                  : 'bg-white/[0.03] border border-white/[0.06]'
+   406→              }`}
+   407→            >
+   408→              {isOccupied ? (
+   409→                <UserCheck className="h-3.5 w-3.5 text-emerald-400/60" />
+   410→              ) : (
+   411→                <div className="h-1.5 w-1.5 rounded-full bg-white/10" />
+   412→              )}
+   413→            </div>
+   414→          );
+   415→        })}
+   416→      </div>
+   417→
+   418→      {/* Legend */}
+   419→      <div className="flex items-center gap-4 text-[11px] text-[#B0B0C0]">
+   420→        <div className="flex items-center gap-1.5">
+   421→          <span className="block h-2 w-2 rounded-sm bg-emerald-500/40" />
+   422→          حاضر
+   423→        </div>
+   424→        <div className="flex items-center gap-1.5">
+   425→          <span className="block h-2 w-2 rounded-sm bg-white/10" />
+   426→          غائب
+   427→        </div>
+   428→      </div>
+   429→    </div>
+   430→  );
+   431→}
+   432→
+   433→function AttendanceDistribution({ apiAttendance }: { apiAttendance: { rate: number; present: number; absent: number; late: number; excused: number; total: number } | null }) {
+   434→  const total = apiAttendance?.total || 32;
+   435→  const presentPct = apiAttendance && total > 0 ? Math.round((apiAttendance.present / total) * 100) : 85;
+   436→  const latePct = apiAttendance && total > 0 ? Math.round((apiAttendance.late / total) * 100) : 8;
+   437→  const absentPct = apiAttendance && total > 0 ? Math.round((apiAttendance.absent / total) * 100) : 7;
+   438→
+   439→  const localAttendanceData = [
+   440→    { label: 'حاضر', percentage: presentPct, color: 'bg-emerald-500', textColor: 'text-emerald-400' },
+   441→    { label: 'متأخر', percentage: latePct, color: 'bg-amber-500', textColor: 'text-amber-400' },
+   442→    { label: 'غائب', percentage: absentPct, color: 'bg-rose-500', textColor: 'text-rose-400' },
+   443→  ];
+   444→
+   445→  return (
+   446→    <div className="flex flex-col gap-5">
+   447→      {localAttendanceData.map((item) => (
+   448→        <div key={item.label} className="flex flex-col gap-2">
+   449→          <div className="flex items-center justify-between">
+   450→            <span className="text-sm font-medium text-slate-300">{item.label}</span>
+   451→            <span className={`text-sm font-semibold tabular-nums ${item.textColor}`}>
+   452→              {item.percentage}%
+   453→            </span>
+   454→          </div>
+   455→          {/* Bar track */}
+   456→          <div className="h-3 w-full rounded-full bg-white/[0.06] overflow-hidden">
+   457→            <div
+   458→              className={`h-full rounded-full ${item.color} transition-all duration-700 ease-out`}
+   459→              style={{ width: `${item.percentage}%` }}
+   460→            />
+   461→          </div>
+   462→        </div>
+   463→      ))}
+   464→
+   465→      {/* Summary */}
+   466→      <div
+   467→        className="mt-1 rounded-lg p-3"
+   468→        style={{
+   469→          backgroundColor: 'rgba(255,255,255,0.02)',
+   470→          border: '1px solid rgba(255,255,255,0.06)',
+   471→        }}
+   472→      >
+   473→        <div className="flex items-center justify-between">
+   474→          <span className="text-xsB0B0C0">إجمالي الطلاب المسجلين</span>
+   475→          <span className="text-sm font-bold text-white tabular-nums">{total} طالب</span>
+   476→        </div>
+   477→      </div>
+   478→    </div>
+   479→  );
+   480→}
+   481→
+   482→// ---------------------------------------------------------------------------
+   483→// NEW: Attendance Quick Tracker Pill
+   484→// ---------------------------------------------------------------------------
+   485→
+   486→function AttendancePill({
+   487→  label,
+   488→  percentage,
+   489→  count,
+   490→  color,
+   491→  borderColor,
+   492→  bgColor,
+   493→  textColor,
+   494→  icon: Icon,
+   495→  onClick,
+   496→  isActive,
+   497→}: {
+   498→  label: string;
+   499→  percentage: number;
+   500→  count: number;
+   501→  color: string;
+   502→  borderColor: string;
+   503→  bgColor: string;
+   504→  textColor: string;
+   505→  icon: React.ElementType;
+   506→  onClick: () => void;
+   507→  isActive: boolean;
+   508→}) {
+   509→  return (
+   510→    <button
+   511→      onClick={onClick}
+   512→      className={`group relative flex items-center gap-3 rounded-xl border-r-[3px] ${borderColor} ${bgColor} px-4 py-3
+   513→        transition-all duration-300 ease-out cursor-pointer
+   514→        hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(0,0,0,0.25)]
+   515→        active:translate-y-0 active:shadow-none
+   516→        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A574]/50
+   517→        ${isActive ? 'ring-1 ring-white/10 bg-opacity-100' : ''}`}
+   518→    >
+   519→      {/* Icon */}
+   520→      <div
+   521→        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-110"
+   522→        style={{ backgroundColor: `${color}20` }}
+   523→      >
+   524→        <Icon className="h-4 w-4" style={{ color }} />
+   525→      </div>
+   526→
+   527→      {/* Content */}
+   528→      <div className="flex flex-col gap-0.5 min-w-0">
+   529→        <div className="flex items-center gap-2">
+   530→          <span className="text-sm font-semibold text-white">{label}</span>
+   531→          <span className={`text-sm font-bold tabular-nums ${textColor}`}>{percentage}%</span>
+   532→        </div>
+   533→        {/* Mini progress track */}
+   534→        <div className="h-1.5 w-24 rounded-full bg-white/[0.08] overflow-hidden">
+   535→          <div
+   536→            className="h-full rounded-full transition-all duration-1000 ease-out"
+   537→            style={{
+   538→              width: `${percentage}%`,
+   539→              backgroundColor: color,
+   540→            }}
+   541→          />
+   542→        </div>
+   543→      </div>
+   544→
+   545→      {/* Count on click */}
+   546→      {isActive && (
+   547→        <div
+   548→          className="absolute -top-2 -left-2 flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold text-white shadow-lg animate-scale-in"
+   549→          style={{ backgroundColor: color }}
+   550→        >
+   551→          {count}
+   552→        </div>
+   553→      )}
+   554→    </button>
+   555→  );
+   556→}
+   557→
+   558→// ---------------------------------------------------------------------------
+   559→// NEW: Today's Schedule Widget
+   560→// ---------------------------------------------------------------------------
+   561→
+   562→function TodayScheduleWidget() {
+   563→  const statusConfig = {
+   564→    completed: {
+   565→      color: 'text-emerald-400',
+   566→      bgColor: 'bg-emerald-500/10',
+   567→      borderColor: 'border-emerald-500/30',
+   568→      lineColor: 'bg-emerald-500/30',
+   569→      dotColor: 'bg-emerald-500',
+   570→      label: 'مكتمل',
+   571→      icon: CheckCircle2,
+   572→    },
+   573→    current: {
+   574→      color: 'text-[#D4A574]',
+   575→      bgColor: 'bg-[#D4A574]/10',
+   576→      borderColor: 'border-[#D4A574]/30',
+   577→      lineColor: 'bg-[#D4A574]/20',
+   578→      dotColor: 'bg-[#D4A574]',
+   579→      label: 'جارٍ حالياً',
+   580→      icon: Clock,
+   581→    },
+   582→    upcoming: {
+   583→      color: 'text-slate-400',
+   584→      bgColor: 'bg-white/[0.03]',
+   585→      borderColor: 'border-white/[0.06]',
+   586→      lineColor: 'bg-white/[0.06]',
+   587→      dotColor: 'bg-white/20',
+   588→      label: 'قادم',
+   589→      icon: ChevronLeft,
+   590→    },
+   591→  };
+   592→
+   593→  return (
+   594→    <div className="flex flex-col gap-0">
+   595→      {todaySchedule.map((period, index) => {
+   596→        const config = statusConfig[period.status];
+   597→        const StatusIcon = config.icon;
+   598→        const isCurrent = period.status === 'current';
+   599→
+   600→        return (
+   601→          <div key={period.id} className="flex gap-4">
+   602→            {/* Timeline column */}
+   603→            <div className="flex flex-col items-center">
+   604→              {/* Dot */}
+   605→              <div className="relative flex items-center justify-center">
+   606→                <div
+   607→                  className={`h-3 w-3 rounded-full ${config.dotColor} z-10
+   608→                    ${isCurrent ? 'animate-pulse-glow' : ''}`}
+   609→                />
+   610→                {isCurrent && (
+   611→                  <div
+   612→                    className="absolute h-3 w-3 rounded-full animate-ping opacity-40"
+   613→                    style={{ backgroundColor: '#D4A574' }}
+   614→                  />
+   615→                )}
+   616→              </div>
+   617→              {/* Connector line */}
+   618→              {index < todaySchedule.length - 1 && (
+   619→                <div className={`w-0.5 flex-1 min-h-[40px] ${config.lineColor}`} />
+   620→              )}
+   621→            </div>
+   622→
+   623→            {/* Content card */}
+   624→            <div
+   625→              className={`flex-1 rounded-lg border ${config.borderColor} ${config.bgColor} px-4 py-3 mb-3
+   626→                transition-all duration-300
+   627→                ${isCurrent ? 'shadow-[0_0_20px_rgba(212,165,116,0.08)]' : ''}`}
+   628→            >
+   629→              <div className="flex items-center justify-between mb-1.5">
+   630→                <div className="flex items-center gap-2">
+   631→                  <span className="text-sm font-semibold text-white">{period.subject}</span>
+   632→                  {isCurrent && (
+   633→                    <span className="flex items-center gap-1 rounded-full bg-[#D4A574]/15 px-2 py-0.5 text-[10px] font-medium text-[#D4A574]">
+   634→                      <span className="relative flex h-1.5 w-1.5">
+   635→                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#D4A574] opacity-75" />
+   636→                        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#D4A574]" />
+   637→                      </span>
+   638→                      {config.label}
+   639→                    </span>
+   640→                  )}
+   641→                </div>
+   642→                <span className="text-[11px] tabular-nums text-[#B0B0C0]">{period.time}</span>
+   643→              </div>
+   644→              <div className="flex items-center gap-3 text-xs text-[#B0B0C0]">
+   645→                <span className="flex items-center gap-1">
+   646→                  <BookMarked className="h-3 w-3" />
+   647→                  {period.teacher}
+   648→                </span>
+   649→                <span className="flex items-center gap-1">
+   650→                  <Map className="h-3 w-3" />
+   651→                  {period.room}
+   652→                </span>
+   653→              </div>
+   654→              {period.status === 'completed' && (
+   655→                <div className="flex items-center gap-1 mt-2">
+   656→                  <CheckCircle2 className="h-3 w-3 text-emerald-500/60" />
+   657→                  <span className="text-[10px] text-emerald-500/60 font-medium">تم التنفيذ</span>
+   658→                </div>
+   659→              )}
+   660→            </div>
+   661→          </div>
+   662→        );
+   663→      })}
+   664→    </div>
+   665→  );
+   666→}
+   667→
+   668→// ---------------------------------------------------------------------------
+   669→// NEW: Student Performance Summary (Grade Distribution Bar Chart)
+   670→// ---------------------------------------------------------------------------
+   671→
+   672→function StudentPerformanceChart({ apiScoreDistribution }: { apiScoreDistribution: { excellent: number; veryGood: number; good: number; pass: number; fail: number } | null }) {
+   673→  const totalGraded = apiScoreDistribution
+   674→    ? apiScoreDistribution.excellent + apiScoreDistribution.veryGood + apiScoreDistribution.good + apiScoreDistribution.pass + apiScoreDistribution.fail
+   675→    : 0;
+   676→  const maxCount = apiScoreDistribution
+   677→    ? Math.max(apiScoreDistribution.excellent, apiScoreDistribution.veryGood, apiScoreDistribution.good, apiScoreDistribution.pass, apiScoreDistribution.fail, 1)
+   678→    : 12;
+   679→
+   680→  const localGradeDistribution = apiScoreDistribution
+   681→    ? [
+   682→        { label: 'ممتاز', range: '90+', count: apiScoreDistribution.excellent, maxCount, color: '#10b981', gradientFrom: '#10b981', gradientTo: '#34d399' },
+   683→        { label: 'جيد جدا', range: '80-89', count: apiScoreDistribution.veryGood, maxCount, color: '#38bdf8', gradientFrom: '#38bdf8', gradientTo: '#7dd3fc' },
+   684→        { label: 'جيد', range: '70-79', count: apiScoreDistribution.good, maxCount, color: '#f59e0b', gradientFrom: '#f59e0b', gradientTo: '#fbbf24' },
+   685→        { label: 'مقبول', range: '50-69', count: apiScoreDistribution.pass, maxCount, color: '#f97316', gradientFrom: '#f97316', gradientTo: '#fb923c' },
+   686→        { label: 'راسب', range: '<50', count: apiScoreDistribution.fail, maxCount, color: '#f43f5e', gradientFrom: '#f43f5e', gradientTo: '#fb7185' },
+   687→      ]
+   688→    : gradeDistribution;
+   689→
+   690→  const totalCount = totalGraded > 0 ? totalGraded : localGradeDistribution.reduce((sum, g) => sum + g.count, 0);
+   691→
+   692→  return (
+   693→    <div className="flex flex-col gap-4">
+   694→      {/* Bars */}
+   695→      <div className="flex flex-col gap-3">
+   696→        {localGradeDistribution.map((grade, index) => {
+   697→          const barWidth = (grade.count / grade.maxCount) * 100;
+   698→          return (
+   699→            <div key={grade.label} className="flex items-center gap-3">
+   700→              {/* Label */}
+   701→              <div className="w-20 shrink-0 text-right">
+   702→                <span className="text-xs font-semibold text-slate-300">{grade.label}</span>
+   703→                <span className="block text-[10px] text-[#A0A0B8] tabular-nums">{grade.range}</span>
+   704→              </div>
+   705→              {/* Bar */}
+   706→              <div className="flex-1 h-6 rounded-md bg-white/[0.04] overflow-hidden relative">
+   707→                <div
+   708→                  className="h-full rounded-md transition-all duration-1000 ease-out relative overflow-hidden"
+   709→                  style={{
+   710→                    width: `${barWidth}%`,
+   711→                    background: `linear-gradient(to left, ${grade.gradientFrom}, ${grade.gradientTo})`,
+   712→                    transitionDelay: `${index * 150}ms`,
+   713→                  }}
+   714→                >
+   715→                  {/* Shimmer overlay */}
+   716→                  <div
+   717→                    className="absolute inset-0 opacity-20"
+   718→                    style={{
+   719→                      background: 'linear-gradient(to left, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%)',
+   720→                    }}
+   721→                  />
+   722→                </div>
+   723→              </div>
+   724→              {/* Count */}
+   725→              <span
+   726→                className="w-6 text-left text-xs font-bold tabular-nums"
+   727→                style={{ color: grade.color }}
+   728→              >
+   729→                {grade.count}
+   730→              </span>
+   731→            </div>
+   732→          );
+   733→        })}
+   734→      </div>
+   735→
+   736→      {/* Summary footer */}
+   737→      <div
+   738→        className="rounded-lg p-3 flex items-center justify-between"
+   739→        style={{
+   740→          backgroundColor: 'rgba(255,255,255,0.02)',
+   741→          border: '1px solid rgba(255,255,255,0.06)',
+   742→        }}
+   743→      >
+   744→        <span className="text-xs text-[#B0B0C0]">إجمالي الطلاب</span>
+   745→        <span className="text-sm font-bold text-white tabular-nums">
+   746→          {totalCount} طالب
+   747→        </span>
+   748→      </div>
+   749→    </div>
+   750→  );
+   751→}
+   752→
+   753→// ---------------------------------------------------------------------------
+   754→// NEW: Upcoming Events Section
+   755→// ---------------------------------------------------------------------------
+   756→
+   757→function UpcomingEventsList() {
+   758→  return (
+   759→    <div className="flex flex-col gap-2.5">
+   760→      {upcomingEvents.map((event) => {
+   761→        const EventIcon = event.icon;
+   762→        return (
+   763→          <div
+   764→            key={event.id}
+   765→            className={`group flex items-center gap-3 rounded-lg border-r-[3px] ${event.borderColor} ${event.bgColor}
+   766→              px-4 py-3 transition-all duration-300 glass-card-hover
+   767→              hover:bg-white/[0.04] hover:-translate-x-0.5 cursor-pointer`}
+   768→          >
+   769→            {/* Icon */}
+   770→            <div
+   771→              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-110"
+   772→              style={{
+   773→                backgroundColor: `${event.iconColor === 'text-amber-400' ? 'rgba(245,158,11,0.1)' : event.iconColor === 'text-rose-400' ? 'rgba(244,63,94,0.1)' : event.iconColor === 'text-emerald-400' ? 'rgba(16,185,129,0.1)' : 'rgba(56,189,248,0.1)'}`,
+   774→              }}
+   775→            >
+   776→              <EventIcon className={`h-4 w-4 ${event.iconColor}`} />
+   777→            </div>
+   778→
+   779→            {/* Content */}
+   780→            <div className="flex flex-col gap-0.5 min-w-0">
+   781→              <span className="text-sm font-semibold text-white group-hover:text-[#D4A574] transition-colors duration-200">
+   782→                {event.title}
+   783→              </span>
+   784→              <span className="text-xs text-[#B0B0C0]">{event.description}</span>
+   785→            </div>
+   786→          </div>
+   787→        );
+   788→      })}
+   789→    </div>
+   790→  );
+   791→}
+   792→
+   793→// ---------------------------------------------------------------------------
+   794→// Loading skeleton placeholder
+   795→// ---------------------------------------------------------------------------
+   796→
+   797→function DashboardSkeleton() {
+   798→  return (
+   799→    <div className="flex flex-col gap-8 animate-pulse" dir="rtl">
+   800→      {/* Title skeleton */}
+   801→      <div className="flex flex-col gap-3">
+   802→        <div className="h-8 w-56 rounded-lg bg-white/[0.06]" />
+   803→        <div className="h-5 w-80 rounded-lg bg-white/[0.04]" />
+   804→      </div>
+   805→      {/* KPI cards skeleton */}
+   806→      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+   807→        {Array.from({ length: 6 }).map((_, i) => (
+   808→          <div
+   809→            key={i}
+   810→            className="rounded-xl bg-[#1A1A24] border border-white/[0.06] p-5"
+   811→          >
+   812→            <div className="flex items-center justify-between mb-4">
+   813→              <div className="h-10 w-10 rounded-full bg-white/[0.06]" />
+   814→              <div className="h-5 w-16 rounded-full bg-white/[0.04]" />
+   815→            </div>
+   816→            <div className="h-8 w-20 rounded-lg bg-white/[0.06] mb-2" />
+   817→            <div className="h-4 w-32 rounded bg-white/[0.04]" />
+   818→          </div>
+   819→        ))}
+   820→      </div>
+   821→    </div>
+   822→  );
+   823→}
+   824→
+   825→// ---------------------------------------------------------------------------
+   826→// Welcome Banner
+   827→// ---------------------------------------------------------------------------
+   828→
+   829→function WelcomeBanner({ onDismiss }: { onDismiss: () => void }) {
+   830→  // Dynamic date and day of week in Arabic
+   831→  const now = new Date();
+   832→  const arabicDays = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+   833→  const arabicMonths = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+   834→  const dayName = arabicDays[now.getDay()];
+   835→  const dateStr = `${now.getDate()} ${arabicMonths[now.getMonth()]} ${now.getFullYear()}`;
+   836→
+   837→  return (
+   838→    <div
+   839→      className="relative overflow-hidden rounded-xl p-6 animate-fade-in-up animate-border-glow"
+   840→      style={{
+   841→        background: 'linear-gradient(135deg, rgba(212,165,116,0.22) 0%, rgba(212,165,116,0.08) 40%, rgba(212,165,116,0.03) 70%, rgba(212,165,116,0.12) 100%)',
+   842→        border: '1px solid rgba(212,165,116,0.25)',
+   843→        borderRight: '4px solid rgba(212,165,116,0.7)',
+   844→      }}
+   845→    >
+   846→      {/* Animated shimmer overlay */}
+   847→      <div
+   848→        className="absolute inset-0 pointer-events-none animate-shimmer"
+   849→        style={{
+   850→          background: 'linear-gradient(110deg, transparent 30%, rgba(212,165,116,0.08) 45%, rgba(255,255,255,0.06) 50%, rgba(212,165,116,0.08) 55%, transparent 70%)',
+   851→          backgroundSize: '300% 100%',
+   852→        }}
+   853→      />
+   854→
+   855→      {/* Sparkle/particle effects */}
+   856→      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+   857→        <span className="absolute top-4 right-12 h-1.5 w-1.5 rounded-full bg-[#D4A574]/60 animate-sparkle-1" />
+   858→        <span className="absolute top-8 right-[40%] h-1 w-1 rounded-full bg-[#E8C9A8]/50 animate-sparkle-2" />
+   859→        <span className="absolute bottom-6 right-[60%] h-1.5 w-1.5 rounded-full bg-[#D4A574]/40 animate-sparkle-3" />
+   860→        <span className="absolute top-3 right-[75%] h-1 w-1 rounded-full bg-white/30 animate-sparkle-1" style={{ animationDelay: '0.5s' }} />
+   861→        <span className="absolute bottom-4 right-[20%] h-1 w-1 rounded-full bg-[#E8C9A8]/40 animate-sparkle-2" style={{ animationDelay: '0.8s' }} />
+   862→      </div>
+   863→
+   864→      {/* Dismiss button — elegant with hover animation */}
+   865→      <button
+   866→        onClick={onDismiss}
+   867→        aria-label="إغلاق"
+   868→        className="absolute top-3 left-3 flex h-7 w-7 items-center justify-center rounded-lg text-[#8B8B9E]
+   869→          transition-all duration-300
+   870→          hover:bg-[#D4A574]/15 hover:text-[#D4A574] hover:rotate-90 hover:scale-110
+   871→          active:scale-95"
+   872→      >
+   873→        <X size={16} strokeWidth={2} />
+   874→      </button>
+   875→
+   876→      {/* Content */}
+   877→      <div className="relative flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-4">
+   878→        <div>
+   879→          <h2 className="text-xl font-bold text-white">
+   880→            مرحباً، أحمد محمد 👋
+   881→          </h2>
+   882→          <p className="text-sm text-[#D0D0E0] mt-1">
+   883→            {dayName}، {dateStr} — لديك 3 حصص اليوم و 12 تنبيه جديد
+   884→          </p>
+   885→        </div>
+   886→      </div>
+   887→
+   888→      {/* Decorative gradient orbs */}
+   889→      <div
+   890→        className="absolute -bottom-6 -left-6 h-24 w-24 rounded-full opacity-20 pointer-events-none"
+   891→        style={{ background: 'radial-gradient(circle, #D4A574, transparent 70%)' }}
+   892→      />
+   893→      <div
+   894→        className="absolute -top-8 -right-8 h-28 w-28 rounded-full opacity-10 pointer-events-none"
+   895→        style={{ background: 'radial-gradient(circle, #E8C9A8, transparent 60%)' }}
+   896→      />
+   897→    </div>
+   898→  );
+   899→}
+   900→
+   901→// ---------------------------------------------------------------------------
+   902→// Quick Action Button
+   903→// ---------------------------------------------------------------------------
+   904→
+   905→function QuickActionButton({
+   906→  label,
+   907→  description,
+   908→  icon: Icon,
+   909→  onClick,
+   910→}: {
+   911→  label: string;
+   912→  description: string;
+   913→  icon: React.ElementType;
+   914→  onClick: () => void;
+   915→}) {
+   916→  return (
+   917→    <button
+   918→      onClick={onClick}
+   919→      className="group flex items-center gap-4 rounded-xl border border-white/[0.06] bg-[#1A1A24] p-4 text-right
+   920→        transition-all duration-300 ease-out btn-shine
+   921→        hover:border-[#D4A574]/20 hover:bg-[#1E1E2A] hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(0,0,0,0.25)]
+   922→        active:translate-y-0 active:shadow-none
+   923→        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A574]/50"
+   924→    >
+   925→      {/* Icon */}
+   926→      <div
+   927→        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-all duration-300 group-hover:scale-110"
+   928→        style={{ backgroundColor: 'rgba(212,165,116,0.1)' }}
+   929→      >
+   930→        <Icon className="h-5 w-5 text-[#D4A574]" size={20} strokeWidth={1.8} />
+   931→      </div>
+   932→
+   933→      {/* Text */}
+   934→      <div className="flex flex-col gap-0.5 min-w-0">
+   935→        <span className="text-sm font-semibold text-white group-hover:text-[#D4A574] transition-colors duration-200">
+   936→          {label}
+   937→        </span>
+   938→        <span className="text-xs text-[#B0B0C0] truncate">
+   939→          {description}
+   940→        </span>
+   941→      </div>
+   942→    </button>
+   943→  );
+   944→}
+   945→
+   946→// ---------------------------------------------------------------------------
+   947→// Quick Stats Ribbon
+   948→// ---------------------------------------------------------------------------
+   949→
+   950→function QuickStatsRibbon({ apiStats }: { apiStats: DashboardStats | null }) {
+   951→  const { students, teachers, classes, exams, messages, setActiveSection } = useAppStore();
+   952→
+   953→  const unreadMessages = messages.filter(m => !m.isRead && !m.isArchived).length;
+   954→  const outstandingFees = students.filter(s => s.status === 'inactive').length;
+   955→
+   956→  const statsData = [
+   957→    { label: 'طالب', value: String(apiStats?.totalStudents || students.length || 320), icon: GraduationCap, color: '#D4A574', section: 'students' as const },
+   958→    { label: 'معلم', value: String(apiStats?.totalTeachers || teachers.length || 24), icon: Users, color: '#D4A574', section: 'teachers' as const },
+   959→    { label: 'فصل', value: String(apiStats?.totalClasses || classes.length || 12), icon: BookOpen, color: '#D4A574', section: 'classes' as const },
+   960→    { label: 'امتحان', value: String(apiStats?.totalExams || exams.length || 156), icon: FileText, color: '#D4A574', section: 'exams' as const },
+   961→    { label: 'الرسوم المستحقة', value: String(outstandingFees || 8), icon: DollarSign, color: '#f59e0b', section: 'students' as const },
+   962→    { label: 'الرسائل الجديدة', value: String(apiStats?.alertsCount || unreadMessages || 5), icon: MessageSquare, color: '#38bdf8', section: 'notifications' as const },
+   963→  ];
+   964→
+   965→  return (
+   966→    <div className="animate-fade-in-up opacity-0" style={{ animationDelay: '550ms' }}>
+   967→      <div className="flex items-center gap-2 mb-3">
+   968→        <BarChart3 className="h-4 w-4 text-[#D4A574]" />
+   969→        <h3 className="text-sm font-semibold text-muted-foreground">إحصائيات سريعة</h3>
+   970→      </div>
+   971→      <div className="scroll-snap-x hide-scrollbar flex gap-3 overflow-x-auto pb-2">
+   972→        {statsData.map((stat) => {
+   973→          const StatIcon = stat.icon;
+   974→          return (
+   975→            <button
+   976→              key={stat.label}
+   977→              onClick={() => setActiveSection(stat.section)}
+   978→              className="scroll-snap-x shrink-0 w-[130px] sm:w-auto sm:shrink sm:flex-1 rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-3 flex flex-col items-center gap-2 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/[0.05] hover:border-white/[0.1] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A574]/50"
+   979→            >
+   980→              <StatIcon className="h-5 w-5" style={{ color: stat.color }} />
+   981→              <span className="text-lg font-bold text-white tabular-nums">{stat.value}</span>
+   982→              <span className="text-[11px] text-muted-foreground font-medium">{stat.label}</span>
+   983→            </button>
+   984→          );
+   985→        })}
+   986→      </div>
+   987→    </div>
+   988→  );
+   989→}
+   990→
+   991→// ---------------------------------------------------------------------------
+   992→// Activity Feed Widget (imported from activity-feed.tsx)
+   993→// ---------------------------------------------------------------------------
+   994→
+   995→// ---------------------------------------------------------------------------
+   996→// Weekly Goals Progress
+   997→// ---------------------------------------------------------------------------
+   998→
+   999→function WeeklyGoalsProgress() {
+  1000→  return (
+  1001→    <div className="glass-card-elevated rounded-xl p-5">
+  1002→      <div className="flex items-center gap-2 mb-5">
+  1003→        <Target className="h-4 w-4 text-[#D4A574]" />
+  1004→        <h3 className="text-sm font-semibold text-white">أهداف الأسبوع</h3>
+  1005→      </div>
+  1006→      <div className="flex flex-col gap-5">
+  1007→        {weeklyGoalsData.map((goal, index) => {
+  1008→          const percentage = Math.round((goal.current / goal.target) * 100);
+  1009→          return (
+  1010→            <div key={goal.label} className="animate-fade-in-up opacity-0" style={{ animationDelay: `${index * 100}ms` }}>
+  1011→              <div className="flex items-center justify-between mb-1.5">
+  1012→                <span className="text-xs font-medium text-slate-300">{goal.label}</span>
+  1013→                <span className="text-xs font-semibold tabular-nums" style={{ color: goal.color }}>
+  1014→                  {goal.current}/{goal.target}{goal.unit}
+  1015→                  <span className="text-[#A0A0B8] mr-1">({percentage}%)</span>
+  1016→                </span>
+  1017→              </div>
+  1018→              <div className="h-2 w-full rounded-full bg-white/[0.06] overflow-hidden">
+  1019→                <div
+  1020→                  className={`h-full rounded-full ${goal.bgColor} transition-all duration-1000 ease-out`}
+  1021→                  style={{ width: `${percentage}%`, transitionDelay: `${300 + index * 150}ms` }}
+  1022→                />
+  1023→              </div>
+  1024→            </div>
+  1025→          );
+  1026→        })}
+  1027→      </div>
+  1028→    </div>
+  1029→  );
+  1030→}
+  1031→
+  1032→// ---------------------------------------------------------------------------
+  1033→// Student Leaderboard Widget
+  1034→// ---------------------------------------------------------------------------
+  1035→
+  1036→function StudentLeaderboard() {
+  1037→  const rankColors: Record<number, { bg: string; text: string; border: string }> = {
+  1038→    1: { bg: 'bg-amber-500/15', text: 'text-amber-400', border: 'border-amber-500/30' },
+  1039→    2: { bg: 'bg-slate-400/15', text: 'text-slate-300', border: 'border-slate-400/30' },
+  1040→    3: { bg: 'bg-amber-700/15', text: 'text-amber-600', border: 'border-amber-700/30' },
+  1041→  };
+  1042→
+  1043→  return (
+  1044→    <div className="flex flex-col gap-1.5">
+  1045→      {topStudentsData.map((student) => {
+  1046→        const rankStyle = rankColors[student.rank];
+  1047→        const isTop3 = !!rankStyle;
+  1048→        return (
+  1049→          <div
+  1050→            key={student.rank}
+  1051→            className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-200 data-row-hover cursor-default ${isTop3 ? `${rankStyle.bg} border ${rankStyle.border}` : 'hover:bg-white/[0.03]'}`}
+  1052→          >
+  1053→            {/* Rank badge */}
+  1054→            <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${isTop3 ? `${rankStyle.bg} ${rankStyle.text}` : 'bg-white/[0.04] text-muted-foreground'}`}>
+  1055→              {student.rank <= 3 ? (
+  1056→                <Medal className="h-3.5 w-3.5" />
+  1057→              ) : (
+  1058→                <span className="tabular-nums">{student.rank}</span>
+  1059→              )}
+  1060→            </div>
+  1061→
+  1062→            {/* Avatar */}
+  1063→            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${isTop3 ? 'bg-[#D4A574]/15 text-[#D4A574]' : 'bg-white/[0.06] text-muted-foreground'}`}>
+  1064→              {student.initial}
+  1065→            </div>
+  1066→
+  1067→            {/* Name & Score */}
+  1068→            <div className="flex-1 min-w-0">
+  1069→              <span className="text-sm font-medium text-white truncate block group-hover:text-[#D4A574] transition-colors duration-200">
+  1070→                {student.name}
+  1071→              </span>
+  1072→            </div>
+  1073→
+  1074→            {/* Score */}
+  1075→            <span className={`text-sm font-bold tabular-nums shrink-0 ${isTop3 ? rankStyle.text : 'text-muted-foreground'}`}>
+  1076→              {student.score}
+  1077→            </span>
+  1078→          </div>
+  1079→        );
+  1080→      })}
+  1081→    </div>
+  1082→  );
+  1083→}
+  1084→
+  1085→// ---------------------------------------------------------------------------
+  1086→// NEW: Recent Students Data Table
+  1087→// ---------------------------------------------------------------------------
+  1088→
+  1089→const studentStatusConfig = {
+  1090→  active: { label: 'نشط', bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30' },
+  1091→  inactive: { label: 'غير نشط', bg: 'bg-amber-500/15', text: 'text-amber-400', border: 'border-amber-500/30' },
+  1092→  graduated: { label: 'متخرّج', bg: 'bg-sky-500/15', text: 'text-sky-400', border: 'border-sky-500/30' },
+  1093→};
+  1094→
+  1095→function RecentStudentsTable({ students, onViewAll }: { students: { id: string; name: string; className?: string; status: 'active' | 'inactive' | 'graduated'; createdAt: string }[]; onViewAll: () => void }) {
+  1096→  const recentStudents = [...students]
+  1097→    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  1098→    .slice(0, 5);
+  1099→
+  1100→  if (recentStudents.length === 0) {
+  1101→    return (
+  1102→      <div className="data-empty-state flex flex-col items-center justify-center py-10">
+  1103→        <Users className="h-10 w-10 text-[#A0A0B8] mb-3" />
+  1104→        <p className="text-sm text-[#B0B0C0]">لا يوجد طلاب مسجلين بعد</p>
+  1105→        <button
+  1106→          onClick={onViewAll}
+  1107→          className="mt-3 text-xs font-medium text-[#D4A574] hover:text-[#E8C9A8] transition-colors duration-200 cursor-pointer"
+  1108→        >
+  1109→          إضافة طالب جديد
+  1110→        </button>
+  1111→      </div>
+  1112→    );
+  1113→  }
+  1114→
+  1115→  return (
+  1116→    <div>
+  1117→      <div className="overflow-x-auto hide-scrollbar">
+  1118→        <table className="w-full min-w-[480px]">
+  1119→          <thead>
+  1120→            <tr className="border-b border-white/[0.06]">
+  1121→              <th className="text-right text-[11px] font-semibold text-muted-foreground pb-3 pr-2">الاسم</th>
+  1122→              <th className="text-right text-[11px] font-semibold text-muted-foreground pb-3 pr-2">الفصل</th>
+  1123→              <th className="text-right text-[11px] font-semibold text-muted-foreground pb-3 pr-2">الحالة</th>
+  1124→              <th className="text-left text-[11px] font-semibold text-muted-foreground pb-3 pl-2">تاريخ التسجيل</th>
+  1125→            </tr>
+  1126→          </thead>
+  1127→          <tbody>
+  1128→            {recentStudents.map((student) => {
+  1129→              const status = studentStatusConfig[student.status];
+  1130→              return (
+  1131→                <tr key={student.id} className="data-row-hover transition-colors duration-200">
+  1132→                  <td className="py-2.5 pr-2">
+  1133→                    <div className="flex items-center gap-2.5">
+  1134→                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#D4A574]/15 text-[10px] font-bold text-[#D4A574]">
+  1135→                        {student.name.charAt(0)}
+  1136→                      </div>
+  1137→                      <span className="text-sm font-medium text-white truncate max-w-[140px]">{student.name}</span>
+  1138→                    </div>
+  1139→                  </td>
+  1140→                  <td className="py-2.5 pr-2 text-sm text-slate-400">{student.className || '—'}</td>
+  1141→                  <td className="py-2.5 pr-2">
+  1142→                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${status.bg} ${status.text} border ${status.border}`}>
+  1143→                      {status.label}
+  1144→                    </span>
+  1145→                  </td>
+  1146→                  <td className="py-2.5 pl-2 text-xs text-[#B0B0C0] tabular-nums">
+  1147→                    {new Date(student.createdAt).toLocaleDateString('ar-SA', { month: 'short', day: 'numeric' })}
+  1148→                  </td>
+  1149→                </tr>
+  1150→              );
+  1151→            })}
+  1152→          </tbody>
+  1153→        </table>
+  1154→      </div>
+  1155→      <button
+  1156→        onClick={onViewAll}
+  1157→        className="mt-3 flex items-center gap-1.5 text-xs font-medium text-[#D4A574] hover:text-[#E8C9A8] transition-colors duration-200 cursor-pointer mr-auto"
+  1158→      >
+  1159→        عرض الكل
+  1160→        <ChevronLeft className="h-3 w-3" />
+  1161→      </button>
+  1162→    </div>
+  1163→  );
+  1164→}
+  1165→
+  1166→// ---------------------------------------------------------------------------
+  1167→// NEW: Today's Attendance Overview (percentage rings)
+  1168→// ---------------------------------------------------------------------------
+  1169→
+  1170→function TodayAttendanceOverview({ pills, onClick }: {
+  1171→  pills: typeof attendancePills;
+  1172→  onClick: () => void;
+  1173→}) {
+  1174→  return (
+  1175→    <button
+  1176→      onClick={onClick}
+  1177→      className="w-full text-right cursor-pointer group"
+  1178→    >
+  1179→      <div className="grid grid-cols-4 gap-2">
+  1180→        {pills.map((item) => {
+  1181→          const Icon = item.icon;
+  1182→          const radius = 22;
+  1183→          const circumference = 2 * Math.PI * radius;
+  1184→          const strokeDashoffset = circumference - (item.percentage / 100) * circumference;
+  1185→
+  1186→          return (
+  1187→            <div
+  1188→              key={item.id}
+  1189→              className="flex flex-col items-center gap-1.5 transition-transform duration-300 group-hover:scale-105"
+  1190→            >
+  1191→              {/* SVG percentage ring */}
+  1192→              <div className="relative">
+  1193→                <svg width="56" height="56" viewBox="0 0 56 56">
+  1194→                  {/* Background track */}
+  1195→                  <circle
+  1196→                    cx="28" cy="28" r={radius}
+  1197→                    fill="none"
+  1198→                    stroke="rgba(255,255,255,0.06)"
+  1199→                    strokeWidth="3.5"
+  1200→                  />
+  1201→                  {/* Progress arc */}
+  1202→                  <circle
+  1203→                    cx="28" cy="28" r={radius}
+  1204→                    fill="none"
+  1205→                    stroke={item.color}
+  1206→                    strokeWidth="3.5"
+  1207→                    strokeLinecap="round"
+  1208→                    strokeDasharray={circumference}
+  1209→                    strokeDashoffset={strokeDashoffset}
+  1210→                    transform="rotate(-90 28 28)"
+  1211→                    className="transition-all duration-1000 ease-out"
+  1212→                  />
+  1213→                </svg>
+  1214→                <div className="absolute inset-0 flex items-center justify-center">
+  1215→                  <Icon className="h-3.5 w-3.5" style={{ color: item.color }} />
+  1216→                </div>
+  1217→              </div>
+  1218→              {/* Label + percentage */}
+  1219→              <div className="text-center">
+  1220→                <span className="block text-[11px] font-semibold text-white">{item.label}</span>
+  1221→                <span className={`block text-[10px] font-bold tabular-nums ${item.textColor}`}>
+  1222→                  {item.percentage}%
+  1223→                </span>
+  1224→              </div>
+  1225→            </div>
+  1226→          );
+  1227→        })}
+  1228→      </div>
+  1229→    </button>
+  1230→  );
+  1231→}
+  1232→
+  1233→// ---------------------------------------------------------------------------
+  1234→// KPI Card Data
+  1235→// ---------------------------------------------------------------------------
+  1236→
+  1237→interface KpiCardConfig {
+  1238→  label: string;
+  1239→  value: string;
+  1240→  percentage?: number;
+  1241→  status: 'stable' | 'improved' | 'needs-attention' | 'active' | 'completed' | 'critical';
+  1242→  icon: React.ReactNode;
+  1243→  color: string;
+  1244→  subtext: string;
+  1245→}
+  1246→
+  1247→function buildKpiCards(stats: DashboardStats | null): KpiCardConfig[] {
+  1248→  const totalStudents = stats?.totalStudents ?? 320;
+  1249→  const topStudentsCount = stats?.topStudents?.length ?? 24;
+  1250→  const attendanceRate = stats?.attendanceRate ?? 85;
+  1251→
+  1252→  return [
+  1253→    {
+  1254→      label: 'التحصيل الأكاديمي',
+  1255→      value: stats ? `${Math.round(stats.avgScore)}%` : '87%',
+  1256→      percentage: stats ? Math.round(stats.avgScore) : 87,
+  1257→      status: (stats ? stats.avgScore : 87) >= 80 ? 'stable' : 'needs-attention',
+  1258→      icon: <BookOpen className="h-5 w-5" />,
+  1259→      color: '#10b981',
+  1260→      subtext: 'مقارنة بالفصل السابق',
+  1261→    },
+  1262→    {
+  1263→      label: 'التركيز والانتباه',
+  1264→      value: stats ? `${Math.round(stats.avgFocus)}%` : '78%',
+  1265→      percentage: stats ? Math.round(stats.avgFocus) : 78,
+  1266→      status: 'improved',
+  1267→      icon: <Eye className="h-5 w-5" />,
+  1268→      color: '#38bdf8',
+  1269→      subtext: '+5% عن الأسبوع الماضي',
+  1270→    },
+  1271→    {
+  1272→      label: 'التفاعل الصفي',
+  1273→      value: stats ? `${Math.round(stats.avgEngagement)}%` : '65%',
+  1274→      percentage: stats ? Math.round(stats.avgEngagement) : 65,
+  1275→      status: (stats ? stats.avgEngagement : 65) < 70 ? 'needs-attention' : 'improved',
+  1276→      icon: <MessageSquare className="h-5 w-5" />,
+  1277→      color: '#f59e0b',
+  1278→      subtext: (stats ? stats.avgEngagement : 65) < 70 ? 'يحتاج متابعة إضافية' : 'تحسن ملحوظ',
+  1279→    },
+  1280→    {
+  1281→      label: 'نسبة الحضور',
+  1282→      value: `${Math.round(attendanceRate)}%`,
+  1283→      percentage: Math.round(attendanceRate),
+  1284→      status: attendanceRate >= 90 ? 'improved' : attendanceRate >= 80 ? 'stable' : 'needs-attention',
+  1285→      icon: <Users className="h-5 w-5" />,
+  1286→      color: '#8b5cf6',
+  1287→      subtext: attendanceRate >= 90 ? 'ممتاز هذا الأسبوع' : '+3% عن الأسبوع الماضي',
+  1288→    },
+  1289→    {
+  1290→      label: 'الطلاب المتفوقون',
+  1291→      value: String(topStudentsCount),
+  1292→      status: 'active',
+  1293→      icon: <Award className="h-5 w-5" />,
+  1294→      color: '#f43f5e',
+  1295→      subtext: `من إجمالي ${totalStudents} طالب`,
+  1296→    },
+  1297→    {
+  1298→      label: 'الحصص المسجلة',
+  1299→      value: String(stats?.totalSessions ?? 156),
+  1300→      status: 'completed',
+  1301→      icon: <Video className="h-5 w-5" />,
+  1302→      color: '#10b981',
+  1303→      subtext: 'منذ بداية الفصل الدراسي',
+  1304→    },
+  1305→  ];
+  1306→}
+  1307→
+  1308→// ---------------------------------------------------------------------------
+  1309→// Main DashboardOverview Component
+  1310→// ---------------------------------------------------------------------------
+  1311→
+  1312→export default function DashboardOverview() {
+  1313→  const { students, teachers, classes, exams, messages, setActiveSection, setStudents } = useAppStore();
+  1314→  const [stats, setStats] = useState<DashboardStats | null>(null);
+  1315→  const [loading, setLoading] = useState(true);
+  1316→  const [error, setError] = useState<string | null>(null);
+  1317→  const [showBanner, setShowBanner] = useState(true);
+  1318→  const [activePill, setActivePill] = useState<string | null>(null);
+  1319→  const [lastUpdated] = useState(() => new Date().toLocaleTimeString('ar-SA', {
+  1320→    hour: '2-digit',
+  1321→    minute: '2-digit',
+  1322→  }));
+  1323→
+  1324→  // Seed mock students if store is empty (so RecentStudentsTable shows data)
+  1325→  const studentsSeeded = useRef(false);
+  1326→  useEffect(() => {
+  1327→    if (!studentsSeeded.current && students.length === 0) {
+  1328→      studentsSeeded.current = true;
+  1329→      setStudents([
+  1330→        { id: 's1', name: 'أحمد العتيبي', studentId: 'STD-001', classId: 'c1', status: 'active', notes: '', psychBackground: '', avatar: '', className: 'الصف الأول أ', createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), updatedAt: new Date().toISOString() },
+  1331→        { id: 's2', name: 'سارة القحطاني', studentId: 'STD-002', classId: 'c2', status: 'active', notes: '', psychBackground: '', avatar: '', className: 'الصف الثاني ب', createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(), updatedAt: new Date().toISOString() },
+  1332→        { id: 's3', name: 'نورة الدوسري', studentId: 'STD-003', classId: 'c1', status: 'active', notes: '', psychBackground: '', avatar: '', className: 'الصف الأول أ', createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), updatedAt: new Date().toISOString() },
+  1333→        { id: 's4', name: 'خالد الحربي', studentId: 'STD-004', classId: 'c3', status: 'inactive', notes: '', psychBackground: '', avatar: '', className: 'الصف الثالث', createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), updatedAt: new Date().toISOString() },
+  1334→        { id: 's5', name: 'فاطمة الشمري', studentId: 'STD-005', classId: 'c2', status: 'graduated', notes: '', psychBackground: '', avatar: '', className: 'الصف الثاني أ', createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), updatedAt: new Date().toISOString() },
+  1335→        { id: 's6', name: 'محمد الغامدي', studentId: 'STD-006', classId: 'c1', status: 'active', notes: '', psychBackground: '', avatar: '', className: 'الصف الأول ب', createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), updatedAt: new Date().toISOString() },
+  1336→      ]);
+  1337→    }
+  1338→  }, []);
+  1339→
+  1340→  const dismissBanner = useCallback(() => setShowBanner(false), []);
+  1341→
+  1342→  // ── Extended API stats for attendance, score distribution, etc. ──
+  1343→  const [apiAttendance, setApiAttendance] = useState<{ rate: number; present: number; absent: number; late: number; excused: number; total: number } | null>(null);
+  1344→  const [apiScoreDistribution, setApiScoreDistribution] = useState<{ excellent: number; veryGood: number; good: number; pass: number; fail: number } | null>(null);
+  1345→
+  1346→  // ── Fetch dashboard stats from API ──
+  1347→  useEffect(() => {
+  1348→    let cancelled = false;
+  1349→
+  1350→    async function fetchStats() {
+  1351→      try {
+  1352→        const res = await fetch('/api/dashboard/stats');
+  1353→        if (!res.ok) throw new Error('فشل في جلب البيانات');
+  1354→        const json = await res.json();
+  1355→        if (cancelled) return;
+  1356→        if (json.success && json.data) {
+  1357→          // Map API response to DashboardStats shape
+  1358→          const d = json.data;
+  1359→          const mapped: DashboardStats = {
+  1360→            totalStudents: d.overview?.totalStudents ?? 0,
+  1361→            activeStudents: d.studentStats?.byStatus?.active ?? 0,
+  1362→            totalTeachers: d.overview?.totalTeachers ?? 0,
+  1363→            totalClasses: d.overview?.totalClasses ?? 0,
+  1364→            avgEngagement: d.engagement?.averageScore ?? 0,
+  1365→            avgFocus: d.engagement?.averageFocus ?? Math.round((d.engagement?.averageScore ?? 78) * 0.93),
+  1366→            avgScore: d.examStats?.averageScore ?? 0,
+  1367→            attendanceRate: d.attendance?.rate ?? 0,
+  1368→            totalExams: d.overview?.totalExams ?? 0,
+  1369→            totalSessions: d.overview?.totalSessions ?? 0,
+  1370→            alertsCount: d.overview?.unreadNotifications ?? 0,
+  1371→            topStudents: [],
+  1372→          };
+  1373→          setStats(mapped);
+  1374→
+  1375→          // Store extended data for sub-components
+  1376→          if (d.attendance) {
+  1377→            setApiAttendance({
+  1378→              rate: d.attendance.rate ?? 0,
+  1379→              present: d.attendance.present ?? 0,
+  1380→              absent: d.attendance.absent ?? 0,
+  1381→              late: d.attendance.late ?? 0,
+  1382→              excused: d.attendance.excused ?? 0,
+  1383→              total: d.attendance.total ?? 0,
+  1384→            });
+  1385→          }
+  1386→          if (d.examStats?.scoreDistribution) {
+  1387→            setApiScoreDistribution(d.examStats.scoreDistribution);
+  1388→          }
+  1389→        }
+  1390→      } catch (err) {
+  1391→        if (!cancelled) {
+  1392→          setError(err instanceof Error ? err.message : 'حدث خطأ غير متوقع');
+  1393→        }
+  1394→      } finally {
+  1395→        if (!cancelled) {
+  1396→          setLoading(false);
+  1397→        }
+  1398→      }
+  1399→    }
+  1400→
+  1401→    fetchStats();
+  1402→    return () => {
+  1403→      cancelled = true;
+  1404→    };
+  1405→  }, []);
+  1406→
+  1407→  // ── Derived values ──
+  1408→  const totalStudents = stats?.totalStudents || students.length || 320;
+  1409→  const totalTeachers = stats?.totalTeachers || teachers.length || 24;
+  1410→  const kpiCards = buildKpiCards(stats);
+  1411→
+  1412→  // ── Loading state ──
+  1413→  if (loading) {
+  1414→    return <DashboardSkeleton />;
+  1415→  }
+  1416→
+  1417→  return (
+  1418→    <div className="flex flex-col gap-8" dir="rtl">
+  1419→      {/* ── Welcome Banner ── */}
+  1420→      {showBanner && <WelcomeBanner onDismiss={dismissBanner} />}
+  1421→
+  1422→      {/* ── Page Title Area ── */}
+  1423→      <div className="animate-fade-in-up" style={{ animationDelay: '0ms', opacity: 0 }}>
+  1424→        <div className="flex items-start justify-between flex-wrap gap-3">
+  1425→          <div>
+  1426→            <h1 className="text-2xl font-bold text-white tracking-tight sm:text-3xl">
+  1427→              لوحة تحكم المدرسة
+  1428→            </h1>
+  1429→            <p className="mt-2 text-sm text-muted-foreground sm:text-base leading-relaxed">
+  1430→              نظرة عامة على {totalStudents} طالب و{totalTeachers} معلم — الأسبوع الدراسي الحالي
+  1431→            </p>
+  1432→            {error && (
+  1433→              <p className="mt-1 text-xs text-amber-400/80">
+  1434→                ⚠️ تعذر تحديث البيانات من الخادم — يتم عرض بيانات محفوظة
+  1435→              </p>
+  1436→            )}
+  1437→          </div>
+  1438→          {/* Last updated timestamp */}
+  1439→          <div className="flex items-center gap-2 text-xs text-[#A0A0B8] shrink-0 mt-1">
+  1440→            <div className="relative flex h-1.5 w-1.5">
+  1441→              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-50" />
+  1442→              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+  1443→            </div>
+  1444→            <span>آخر تحديث: {lastUpdated}</span>
+  1445→          </div>
+  1446→        </div>
+  1447→      </div>
+  1448→
+  1449→      {/* ── Session Timer (centered) ── */}
+  1450→      <div className="flex justify-center">
+  1451→        <SessionTimer />
+  1452→      </div>
+  1453→
+  1454→      {/* ── Quick Stats Ribbon ── */}
+  1455→      <QuickStatsRibbon apiStats={stats} />
+  1456→
+  1457→      {/* ── Recent Students Data Table ── */}
+  1458→      <div className="glass-card-elevated rounded-xl p-5 animate-fade-in-up opacity-0" style={{ animationDelay: '530ms' }}>
+  1459→        <div className="flex items-center justify-between mb-4">
+  1460→          <div className="flex items-center gap-2">
+  1461→            <GraduationCap className="h-4 w-4 text-[#D4A574]" />
+  1462→            <h3 className="text-sm font-semibold text-white">آخر الطلاب المسجلين</h3>
+  1463→          </div>
+  1464→          <span className="text-xs text-[#A0A0B8] font-medium tabular-nums">{students.length} طالب</span>
+  1465→        </div>
+  1466→        <RecentStudentsTable
+  1467→          students={students}
+  1468→          onViewAll={() => setActiveSection('students')}
+  1469→        />
+  1470→      </div>
+  1471→
+  1472→      {/* ── KPI Cards Grid (responsive CSS Grid with staggered animation) ── */}
+  1473→      <div
+  1474→        className="aurora-bg glass-medium rounded-2xl p-1 grid gap-4"
+  1475→        style={{
+  1476→          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+  1477→        }}
+  1478→      >
+  1479→        {kpiCards.map((card, index) => (
+  1480→          <div
+  1481→            key={card.label}
+  1482→            className="animate-pop-in animate-fade-in-up opacity-0 hover-lift rounded-xl"
+  1483→            style={{ animationDelay: `${index * 100}ms` }}
+  1484→          >
+  1485→            <StatCard
+  1486→              label={card.label}
+  1487→              value={card.value}
+  1488→              percentage={card.percentage}
+  1489→              status={card.status}
+  1490→              icon={card.icon}
+  1491→              color={card.color}
+  1492→              subtext={card.subtext}
+  1493→              sparklineData={KPI_SPARKLINES[index]}
+  1494→            />
+  1495→          </div>
+  1496→        ))}
+  1497→      </div>
+  1498→
+  1499→      {/* ── Attendance Quick Tracker ── */}
+  1500→      <div className="animate-fade-in-up opacity-0" style={{ animationDelay: '600ms' }}>
+  1501→        <div className="flex items-center gap-2 mb-3">
+  1502→          <UserCheck className="h-4 w-4 text-[#D4A574]" />
+  1503→          <h3 className="text-sm font-semibold text-muted-foreground">متابعة الحضور السريعة</h3>
+  1504→        </div>
+  1505→        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+  1506→          {(() => {
+  1507→            const attTotal = apiAttendance?.total || 32;
+  1508→            const dynamicPills = apiAttendance ? [
+  1509→              { ...attendancePills[0], percentage: attTotal > 0 ? Math.round((apiAttendance.present / attTotal) * 100) : 85, count: apiAttendance.present },
+  1510→              { ...attendancePills[1], percentage: attTotal > 0 ? Math.round((apiAttendance.late / attTotal) * 100) : 8, count: apiAttendance.late },
+  1511→              { ...attendancePills[2], percentage: attTotal > 0 ? Math.round((apiAttendance.absent / attTotal) * 100) : 7, count: apiAttendance.absent },
+  1512→              { ...attendancePills[3], percentage: attTotal > 0 ? Math.round((apiAttendance.excused / attTotal) * 100) : 3, count: apiAttendance.excused },
+  1513→            ] : attendancePills;
+  1514→            return dynamicPills.map((pill) => (
+  1515→              <AttendancePill
+  1516→                key={pill.id}
+  1517→                label={pill.label}
+  1518→                percentage={pill.percentage}
+  1519→                count={pill.count}
+  1520→                color={pill.color}
+  1521→                borderColor={pill.borderColor}
+  1522→                bgColor={pill.bgColor}
+  1523→                textColor={pill.textColor}
+  1524→                icon={pill.icon}
+  1525→                isActive={activePill === pill.id}
+  1526→                onClick={() => setActivePill(activePill === pill.id ? null : pill.id)}
+  1527→              />
+  1528→            ));
+  1529→          })()}
+  1530→        </div>
+  1531→      </div>
+  1532→
+  1533→      {/* ── Ornamental Divider ── */}
+  1534→      <div className="divider-ornament animate-fade-in opacity-0" style={{ animationDelay: '650ms' }} />
+  1535→
+  1536→      {/* ── Quick Actions Row (expanded to 6) ── */}
+  1537→      <div className="animate-fade-in-up opacity-0" style={{ animationDelay: '700ms' }}>
+  1538→        <h3 className="text-sm font-semibold text-muted-foreground mb-3 smooth-underline cursor-pointer" onClick={() => setActiveSection('students')}>إجراءات سريعة</h3>
+  1539→        <div className="stagger-grid corner-accent grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+  1540→          {QUICK_ACTIONS.map((action) => (
+  1541→            <div key={`${action.id}-${action.label}`} className="animate-fade-in-up opacity-0">
+  1542→            <QuickActionButton
+  1543→              label={action.label}
+  1544→              description={action.description}
+  1545→              icon={action.icon}
+  1546→              onClick={() => setActiveSection(action.id)}
+  1547→            />
+  1548→            </div>
+  1549→          ))}
+  1550→        </div>
+  1551→      </div>
+  1552→
+  1553→      {/* ── Weekly Goals Progress ── */}
+  1554→      <div className="animate-fade-in-up opacity-0" style={{ animationDelay: '750ms' }}>
+  1555→        <WeeklyGoalsProgress />
+  1556→      </div>
+  1557→
+  1558→      {/* ── Export Button ── */}
+  1559→      <div className="flex justify-end animate-fade-in-up opacity-0" style={{ animationDelay: '780ms' }}>
+  1560→        <ExportButton
+  1561→          data={students as unknown as Record<string, unknown>[]}
+  1562→          columns={[
+  1563→            { header: 'الاسم', key: 'name' },
+  1564→            { header: 'رقم الطالب', key: 'studentId' },
+  1565→            { header: 'الفصل', key: 'className' },
+  1566→            { header: 'الحالة', key: 'status' },
+  1567→            { header: 'تاريخ التسجيل', key: 'createdAt', format: (v: unknown) => { try { return new Date(String(v)).toLocaleDateString('ar-EG'); } catch { return String(v); } } },
+  1568→          ]}
+  1569→          filename="طلاب_أورالاب"
+  1570→          printTitle="تقرير الطلاب — AuraLab"
+  1571→          label="تصدير بيانات الطلاب"
+  1572→        />
+  1573→      </div>
+  1574→
+  1575→      {/* ── Analytics Row (responsive CSS Grid) ── */}
+  1576→      <div
+  1577→        className="grid gap-6 animate-fade-in-up opacity-0"
+  1578→        style={{ animationDelay: '800ms', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}
+  1579→      >
+  1580→        {/* Weekly Interaction Chart — takes 3 cols */}
+  1581→        <WidgetContainer
+  1582→          title="تحليل التفاعل الأسبوعي"
+  1583→          icon={<MessageSquare className="h-4 w-4" />}
+  1584→          className="min-[960px]:col-span-2"
+  1585→          onRefresh={() => setStats(null)}
+  1586→          badge={weeklyInteractionData.length}
+  1587→        >
+  1588→          <WeeklyBarChart />
+  1589→        </WidgetContainer>
+  1590→
+  1591→        {/* Recent Notifications — takes 2 cols */}
+  1592→        <WidgetContainer
+  1593→          title="آخر التنبيهات"
+  1594→          icon={<Bell className="h-4 w-4" />}
+  1595→          className="min-[960px]:col-span-1"
+  1596→          badge={notificationsData.length}
+  1597→        >
+  1598→          <div className="flex flex-col divide-y divide-white/[0.04]">
+  1599→            {notificationsData.map((n) => (
+  1600→              <NotificationItem
+  1601→                key={n.id}
+  1602→                text={n.text}
+  1603→                time={n.time}
+  1604→                status={n.status}
+  1605→              />
+  1606→            ))}
+  1607→          </div>
+  1608→        </WidgetContainer>
+  1609→      </div>
+  1610→
+  1611→      {/* ── Activity Feed + Student Leaderboard Row ── */}
+  1612→      <div
+  1613→        className="grid gap-6 animate-fade-in-up opacity-0"
+  1614→        style={{ animationDelay: '850ms', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}
+  1615→      >
+  1616→        <WidgetContainer
+  1617→          title="آخر الأنشطة"
+  1618→          icon={<Megaphone className="h-4 w-4" />}
+  1619→          className="min-[960px]:col-span-1"
+  1620→          onRefresh={() => {}}
+  1621→          badge={8}
+  1622→        >
+  1623→          <ActivityFeed maxItems={8} />
+  1624→        </WidgetContainer>
+  1625→
+  1626→        {/* Student Leaderboard */}
+  1627→        <WidgetContainer
+  1628→          title="أفضل الطلاب"
+  1629→          icon={<Trophy className="h-4 w-4" />}
+  1630→          badge={topStudentsData.length}
+  1631→        >
+  1632→          <StudentLeaderboard />
+  1633→        </WidgetContainer>
+  1634→      </div>
+  1635→
+  1636→      {/* ── Ornamental Divider ── */}
+  1637→      <div className="divider-ornament animate-fade-in opacity-0" style={{ animationDelay: '900ms' }} />
+  1638→
+  1639→      {/* ── Today's Schedule + Student Performance Row ── */}
+  1640→      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 animate-fade-in-up opacity-0" style={{ animationDelay: '950ms' }}>
+  1641→        {/* Today's Schedule Widget */}
+  1642→        <div className="card-tilt">
+  1643→        <WidgetContainer
+  1644→          title="جدول اليوم"
+  1645→          icon={<Clock className="h-4 w-4" />}
+  1646→          onRefresh={() => {}}
+  1647→          badge={todaySchedule.length}
+  1648→        >
+  1649→          <TodayScheduleWidget />
+  1650→        </WidgetContainer>
+  1651→        </div>
+  1652→
+  1653→        {/* Student Performance Summary */}
+  1654→        <WidgetContainer
+  1655→          title="توزيع الدرجات - الصف الثالث"
+  1656→          icon={<BarChart3 className="h-4 w-4" />}
+  1657→          onRefresh={() => {}}
+  1658→        >
+  1659→          <div className="shimmer-loading p-1 rounded-lg" style={{ animationDuration: '1.2s', animationIterationCount: '1' }}>
+  1660→          <StudentPerformanceChart apiScoreDistribution={apiScoreDistribution} />
+  1661→          </div>
+  1662→          {/* Performance Trend Sparkline */}
+  1663→          <div className="mt-4 flex items-center gap-3">
+  1664→            <span className="text-xs font-semibold text-[#B0B0C0]">الاتجاه:</span>
+  1665→            <svg viewBox="0 0 120 30" className="w-28 h-7 sparkline-trend" style={{ direction: 'ltr' }}>
+  1666→              <defs>
+  1667→                <linearGradient id="sparkline-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+  1668→                  <stop offset="0%" stopColor="#D4A574" stopOpacity="0.3" />
+  1669→                  <stop offset="100%" stopColor="#D4A574" stopOpacity="1" />
+  1670→                </linearGradient>
+  1671→              </defs>
+  1672→              <polyline
+  1673→                fill="none"
+  1674→                stroke="url(#sparkline-grad)"
+  1675→                strokeWidth="2"
+  1676→                strokeLinecap="round"
+  1677→                strokeLinejoin="round"
+  1678→                points="0,22 20,18 40,20 60,12 80,15 100,8 120,5"
+  1679→              />
+  1680→              {/* Glow duplicate for depth */}
+  1681→              <polyline
+  1682→                fill="none"
+  1683→                stroke="#D4A574"
+  1684→                strokeWidth="1.5"
+  1685→                strokeLinecap="round"
+  1686→                strokeLinejoin="round"
+  1687→                points="0,22 20,18 40,20 60,12 80,15 100,8 120,5"
+  1688→                opacity="0.2"
+  1689→                filter="blur(2px)"
+  1690→              />
+  1691→              {/* Data points */}
+  1692→              {[
+  1693→                [0,22],[20,18],[40,20],[60,12],[80,15],[100,8],[120,5]
+  1694→              ].map(([x, y], i) => (
+  1695→                <circle key={i} cx={x} cy={y} r="2.5" fill="#D4A574" opacity={i === 6 ? 1 : 0.6} />
+  1696→              ))}
+  1697→            </svg>
+  1698→            <span className="text-xs font-bold text-emerald-400">+12%</span>
+  1699→            <span className="text-[10px] text-[#A0A0B8]">عن الفصل الماضي</span>
+  1700→          </div>
+  1701→        </WidgetContainer>
+  1702→      </div>
+  1703→
+  1704→      {/* ── Ornamental Divider ── */}
+  1705→      <div className="divider-ornament animate-fade-in opacity-0" style={{ animationDelay: '1000ms' }} />
+  1706→
+  1707→      {/* ── Bottom Row: Classroom Map + Attendance + Upcoming Events ── */}
+  1708→      <div
+  1709→        className="grid gap-6 animate-fade-in-up opacity-0"
+  1710→        style={{ animationDelay: '1050ms', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}
+  1711→      >
+  1712→        {/* Classroom Map */}
+  1713→        <WidgetContainer
+  1714→          title="خريطة الفصل التفاعلية"
+  1715→          icon={<Map className="h-4 w-4" />}
+  1716→        >
+  1717→          <ClassroomMapPlaceholder />
+  1718→        </WidgetContainer>
+  1719→
+  1720→        {/* Attendance Distribution */}
+  1721→        <WidgetContainer
+  1722→          title="توزيع الحضور"
+  1723→          icon={<UserCheck className="h-4 w-4" />}
+  1724→          onRefresh={() => {}}
+  1725→        >
+  1726→          <AttendanceDistribution apiAttendance={apiAttendance} />
+  1727→        </WidgetContainer>
+  1728→
+  1729→        {/* Today's Attendance Overview — percentage rings */}
+  1730→        <WidgetContainer
+  1731→          title="ملخص حضور اليوم"
+  1732→          icon={<CheckCircle className="h-4 w-4" />}
+  1733→        >
+  1734→          <TodayAttendanceOverview
+  1735→            pills={(() => {
+  1736→              const attTotal = apiAttendance?.total || 32;
+  1737→              return apiAttendance ? [
+  1738→                { ...attendancePills[0], percentage: attTotal > 0 ? Math.round((apiAttendance.present / attTotal) * 100) : 85, count: apiAttendance.present },
+  1739→                { ...attendancePills[1], percentage: attTotal > 0 ? Math.round((apiAttendance.late / attTotal) * 100) : 8, count: apiAttendance.late },
+  1740→                { ...attendancePills[2], percentage: attTotal > 0 ? Math.round((apiAttendance.absent / attTotal) * 100) : 7, count: apiAttendance.absent },
+  1741→                { ...attendancePills[3], percentage: attTotal > 0 ? Math.round((apiAttendance.excused / attTotal) * 100) : 3, count: apiAttendance.excused },
+  1742→              ] : attendancePills;
+  1743→            })()}
+  1744→            onClick={() => setActiveSection('attendance')}
+  1745→          />
+  1746→        </WidgetContainer>
+  1747→      </div>
+  1748→
+  1749→      {/* ── Calendar + Upcoming Events Row ── */}
+  1750→      <div
+  1751→        className="grid gap-6 animate-fade-in-up opacity-0"
+  1752→        style={{ animationDelay: '1150ms', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}
+  1753→      >
+  1754→        {/* Calendar Widget */}
+  1755→        <div className="flex items-start justify-center">
+  1756→          <CalendarWidget />
+  1757→        </div>
+  1758→
+  1759→        {/* Upcoming Events */}
+  1760→        <WidgetContainer
+  1761→          title="الأحداث القادمة"
+  1762→          icon={<Calendar className="h-4 w-4" />}
+  1763→          badge={upcomingEvents.length}
+  1764→        >
+  1765→          <UpcomingEventsList />
+  1766→        </WidgetContainer>
+  1767→      </div>
+  1768→    </div>
+  1769→  );
+  1770→}
+  1771→

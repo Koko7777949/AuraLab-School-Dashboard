@@ -1,0 +1,923 @@
+     1→'use client';
+     2→
+     3→import { useState, useEffect, useMemo, useRef } from 'react';
+     4→import {
+     5→  UserPlus,
+     6→  Pencil,
+     7→  Trash2,
+     8→  Mail,
+     9→  Phone,
+    10→  BookOpen,
+    11→  Search,
+    12→  Users,
+    13→  Download,
+    14→  Upload,
+    15→} from 'lucide-react';
+    16→import { useAppStore } from '@/lib/store';
+    17→import type { Teacher } from '@/lib/types';
+    18→import { cn } from '@/lib/utils';
+    19→import { toast } from 'sonner';
+    20→import { exportToCSV } from '@/lib/csv-export';
+    21→import { TEACHER_IMPORT_COLUMNS } from '@/lib/csv-import';
+    22→import ImportDialog from '@/components/dashboard/import-dialog';
+    23→
+    24→// shadcn/ui
+    25→import { Button } from '@/components/ui/button';
+    26→import { Input } from '@/components/ui/input';
+    27→import { Label } from '@/components/ui/label';
+    28→import { Badge } from '@/components/ui/badge';
+    29→import {
+    30→  Dialog,
+    31→  DialogContent,
+    32→  DialogDescription,
+    33→  DialogFooter,
+    34→  DialogHeader,
+    35→  DialogTitle,
+    36→} from '@/components/ui/dialog';
+    37→import {
+    38→  AlertDialog,
+    39→  AlertDialogAction,
+    40→  AlertDialogCancel,
+    41→  AlertDialogContent,
+    42→  AlertDialogDescription,
+    43→  AlertDialogFooter,
+    44→  AlertDialogHeader,
+    45→  AlertDialogTitle,
+    46→} from '@/components/ui/alert-dialog';
+    47→import {
+    48→  Select,
+    49→  SelectContent,
+    50→  SelectItem,
+    51→  SelectTrigger,
+    52→  SelectValue,
+    53→} from '@/components/ui/select';
+    54→
+    55→// ---------------------------------------------------------------------------
+    56→// Constants
+    57→// ---------------------------------------------------------------------------
+    58→
+    59→const STATUS_MAP: Record<Teacher['status'], { label: string; className: string }> = {
+    60→  active: {
+    61→    label: 'نشط',
+    62→    className: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20',
+    63→  },
+    64→  inactive: {
+    65→    label: 'غير نشط',
+    66→    className: 'bg-rose-500/15 text-rose-400 border-rose-500/20 hover:bg-rose-500/20',
+    67→  },
+    68→};
+    69→
+    70→const PERMISSION_MAP: Record<Teacher['permissions'], { label: string; className: string }> = {
+    71→  admin: {
+    72→    label: 'مدير',
+    73→    className: 'bg-amber-500/15 text-amber-400 border-amber-500/20',
+    74→  },
+    75→  teacher: {
+    76→    label: 'معلم',
+    77→    className: 'bg-sky-500/15 text-sky-400 border-sky-500/20',
+    78→  },
+    79→  supervisor: {
+    80→    label: 'مشرف',
+    81→    className: 'bg-violet-500/15 text-violet-400 border-violet-500/20',
+    82→  },
+    83→};
+    84→
+    85→const FILTER_OPTIONS: { value: string; label: string }[] = [
+    86→  { value: 'all', label: 'الكل' },
+    87→  { value: 'active', label: 'نشط' },
+    88→  { value: 'inactive', label: 'غير نشط' },
+    89→];
+    90→
+    91→const PERMISSION_OPTIONS: { value: Teacher['permissions']; label: string }[] = [
+    92→  { value: 'admin', label: 'مدير' },
+    93→  { value: 'teacher', label: 'معلم' },
+    94→  { value: 'supervisor', label: 'مشرف' },
+    95→];
+    96→
+    97→// ---------------------------------------------------------------------------
+    98→// Mock Data – 8 Arabic teacher names
+    99→// ---------------------------------------------------------------------------
+   100→
+   101→const INITIAL_TEACHERS: Teacher[] = [
+   102→  {
+   103→    id: 'tch-001',
+   104→    name: 'محمد بن عبدالله السالم',
+   105→    subject: 'الرياضيات',
+   106→    status: 'active',
+   107→    permissions: 'teacher',
+   108→    avatar: '',
+   109→    email: 'm.salem@auralab.edu',
+   110→    phone: '0501234567',
+   111→    createdAt: '2024-09-01T08:00:00.000Z',
+   112→    updatedAt: '2024-09-01T08:00:00.000Z',
+   113→    classNames: ['الصف الأول أ', 'الصف الثاني ب'],
+   114→  },
+   115→  {
+   116→    id: 'tch-002',
+   117→    name: 'فاطمة علي الحربي',
+   118→    subject: 'اللغة العربية',
+   119→    status: 'active',
+   120→    permissions: 'supervisor',
+   121→    avatar: '',
+   122→    email: 'f.harbi@auralab.edu',
+   123→    phone: '0502345678',
+   124→    createdAt: '2024-09-01T08:00:00.000Z',
+   125→    updatedAt: '2024-09-02T10:00:00.000Z',
+   126→    classNames: ['الصف الأول أ', 'الصف الثالث أ'],
+   127→  },
+   128→  {
+   129→    id: 'tch-003',
+   130→    name: 'خالد إبراهيم الدوسري',
+   131→    subject: 'العلوم',
+   132→    status: 'active',
+   133→    permissions: 'teacher',
+   134→    avatar: '',
+   135→    email: 'k.dosari@auralab.edu',
+   136→    phone: '0503456789',
+   137→    createdAt: '2024-09-01T08:00:00.000Z',
+   138→    updatedAt: '2024-09-03T14:00:00.000Z',
+   139→    classNames: ['الصف الثاني أ'],
+   140→  },
+   141→  {
+   142→    id: 'tch-004',
+   143→    name: 'نورة سعد القحطاني',
+   144→    subject: 'اللغة الإنجليزية',
+   145→    status: 'inactive',
+   146→    permissions: 'teacher',
+   147→    avatar: '',
+   148→    email: 'n.qahtani@auralab.edu',
+   149→    phone: '0504567890',
+   150→    createdAt: '2024-09-01T08:00:00.000Z',
+   151→    updatedAt: '2024-10-15T09:00:00.000Z',
+   152→    classNames: ['الصف الأول ب'],
+   153→  },
+   154→  {
+   155→    id: 'tch-005',
+   156→    name: 'عبدالرحمن يوسف الشمري',
+   157→    subject: 'التربية الإسلامية',
+   158→    status: 'active',
+   159→    permissions: 'admin',
+   160→    avatar: '',
+   161→    email: 'a.shamri@auralab.edu',
+   162→    phone: '0505678901',
+   163→    createdAt: '2024-09-01T08:00:00.000Z',
+   164→    updatedAt: '2024-09-10T11:00:00.000Z',
+   165→    classNames: ['الصف الثاني ب', 'الصف الثالث أ', 'الصف الثالث ب'],
+   166→  },
+   167→  {
+   168→    id: 'tch-006',
+   169→    name: 'سارة ماجد المطيري',
+   170→    subject: 'التربية الفنية',
+   171→    status: 'active',
+   172→    permissions: 'teacher',
+   173→    avatar: '',
+   174→    email: 's.mutairi@auralab.edu',
+   175→    phone: '0506789012',
+   176→    createdAt: '2024-09-01T08:00:00.000Z',
+   177→    updatedAt: '2024-09-20T13:00:00.000Z',
+   178→    classNames: ['الصف الأول أ', 'الصف الثاني أ'],
+   179→  },
+   180→  {
+   181→    id: 'tch-007',
+   182→    name: 'سلطان فهد العتيبي',
+   183→    subject: 'الفيزياء',
+   184→    status: 'inactive',
+   185→    permissions: 'supervisor',
+   186→    avatar: '',
+   187→    email: 's.otaibi@auralab.edu',
+   188→    phone: '0507890123',
+   189→    createdAt: '2024-09-01T08:00:00.000Z',
+   190→    updatedAt: '2024-11-01T10:00:00.000Z',
+   191→    classNames: ['الصف الثالث ب'],
+   192→  },
+   193→  {
+   194→    id: 'tch-008',
+   195→    name: 'هند تركي الزهراني',
+   196→    subject: 'الرياضيات',
+   197→    status: 'active',
+   198→    permissions: 'teacher',
+   199→    avatar: '',
+   200→    email: 'h.zahrani@auralab.edu',
+   201→    phone: '0508901234',
+   202→    createdAt: '2024-09-01T08:00:00.000Z',
+   203→    updatedAt: '2024-09-15T08:00:00.000Z',
+   204→    classNames: ['الصف الثاني ب', 'الصف الثالث أ'],
+   205→  },
+   206→];
+   207→
+   208→// ---------------------------------------------------------------------------
+   209→// Helper: initials from Arabic name
+   210→// ---------------------------------------------------------------------------
+   211→
+   212→function getInitials(name: string): string {
+   213→  const parts = name.trim().split(/\s+/);
+   214→  if (parts.length >= 2) {
+   215→    return parts[0].charAt(0) + parts[1].charAt(0);
+   216→  }
+   217→  return name.charAt(0);
+   218→}
+   219→
+   220→// ---------------------------------------------------------------------------
+   221→// Sub-components
+   222→// ---------------------------------------------------------------------------
+   223→
+   224→/** Status badge */
+   225→function TeacherStatusBadge({ status }: { status: Teacher['status'] }) {
+   226→  const config = STATUS_MAP[status];
+   227→  return (
+   228→    <Badge
+   229→      variant="outline"
+   230→      className={cn('text-xs font-medium px-2.5 py-0.5 rounded-full', config.className)}
+   231→    >
+   232→      <span
+   233→        className={cn('inline-block h-1.5 w-1.5 rounded-full', {
+   234→          'bg-emerald-400': status === 'active',
+   235→          'bg-rose-400': status === 'inactive',
+   236→        })}
+   237→      />
+   238→      {config.label}
+   239→    </Badge>
+   240→  );
+   241→}
+   242→
+   243→/** Permission badge */
+   244→function PermissionBadge({ permissions }: { permissions: Teacher['permissions'] }) {
+   245→  const config = PERMISSION_MAP[permissions];
+   246→  return (
+   247→    <Badge
+   248→      variant="outline"
+   249→      className={cn('text-xs font-medium px-2 py-0.5 rounded-full', config.className)}
+   250→    >
+   251→      {config.label}
+   252→    </Badge>
+   253→  );
+   254→}
+   255→
+   256→/** Empty state */
+   257→function EmptyState({ onAdd }: { onAdd: () => void }) {
+   258→  return (
+   259→    <div className="flex flex-col items-center justify-center py-16 px-4">
+   260→      <div className="flex items-center justify-center h-20 w-20 rounded-2xl bg-white/[0.03] border border-white/[0.06] mb-6">
+   261→        <Users className="h-10 w-10 text-slate-500" />
+   262→      </div>
+   263→      <h3 className="text-lg font-semibold text-slate-300 mb-2">
+   264→        لا يوجد معلمون حالياً
+   265→      </h3>
+   266→      <p className="text-sm text-muted-foreground mb-6 text-center max-w-sm">
+   267→        ابدأ بإضافة معلمين جدد إلى النظام لإدارة بياناتهم وتوزيعهم على الصفوف
+   268→      </p>
+   269→      <Button
+   270→        onClick={onAdd}
+   271→        className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold gap-2 rounded-lg px-6"
+   272→      >
+   273→        <UserPlus className="h-4 w-4" />
+   274→        إضافة معلم جديد
+   275→      </Button>
+   276→    </div>
+   277→  );
+   278→}
+   279→
+   280→// ---------------------------------------------------------------------------
+   281→// Teacher Card
+   282→// ---------------------------------------------------------------------------
+   283→
+   284→function TeacherCard({
+   285→  teacher,
+   286→  onEdit,
+   287→  onDelete,
+   288→}: {
+   289→  teacher: Teacher;
+   290→  onEdit: (t: Teacher) => void;
+   291→  onDelete: (t: Teacher) => void;
+   292→}) {
+   293→  return (
+   294→    <div
+   295→      className="group card-interactive rounded-xl p-5 transition-all duration-200 hover:bg-white/[0.04] hover-glow-amber"
+   296→      style={{
+   297→        backgroundColor: 'rgba(255,255,255,0.02)',
+   298→        border: '1px solid rgba(255,255,255,0.06)',
+   299→      }}
+   300→    >
+   301→      {/* Top row: avatar + name + actions */}
+   302→      <div className="flex items-start justify-between gap-3 mb-4">
+   303→        <div className="flex items-center gap-3 min-w-0">
+   304→          {/* Avatar circle */}
+   305→          <div className="flex items-center justify-center h-12 w-12 rounded-full bg-gradient-to-br from-[#D4A574]/25 to-[#D4A574]/5 shrink-0 border border-[#D4A574]/15">
+   306→            <span className="text-base font-bold text-[#D4A574]">
+   307→              {getInitials(teacher.name)}
+   308→            </span>
+   309→          </div>
+   310→          <div className="min-w-0">
+   311→            <h3 className="text-sm font-semibold text-slate-100 truncate">
+   312→              {teacher.name}
+   313→            </h3>
+   314→            <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+   315→              <BookOpen className="h-3 w-3" />
+   316→              {teacher.subject}
+   317→            </p>
+   318→          </div>
+   319→        </div>
+   320→
+   321→        {/* Action buttons */}
+   322→        <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+   323→          <Button
+   324→            variant="ghost"
+   325→            size="icon"
+   326→            onClick={() => onEdit(teacher)}
+   327→            className="h-8 w-8 text-slate-400 hover:text-amber-400 hover:bg-amber-400/10 rounded-lg"
+   328→            title="تعديل"
+   329→          >
+   330→            <Pencil className="h-4 w-4" />
+   331→          </Button>
+   332→          <Button
+   333→            variant="ghost"
+   334→            size="icon"
+   335→            onClick={() => onDelete(teacher)}
+   336→            className="h-8 w-8 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg"
+   337→            title="حذف"
+   338→          >
+   339→            <Trash2 className="h-4 w-4" />
+   340→          </Button>
+   341→        </div>
+   342→      </div>
+   343→
+   344→      {/* Contact info */}
+   345→      <div className="flex flex-col gap-2 mb-4">
+   346→        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+   347→          <Mail className="h-3.5 w-3.5 shrink-0 text-slate-500" />
+   348→          <span className="truncate" dir="ltr">{teacher.email}</span>
+   349→        </div>
+   350→        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+   351→          <Phone className="h-3.5 w-3.5 shrink-0 text-slate-500" />
+   352→          <span dir="ltr">{teacher.phone}</span>
+   353→        </div>
+   354→      </div>
+   355→
+   356→      {/* Classes badges */}
+   357→      {teacher.classNames && teacher.classNames.length > 0 && (
+   358→        <div className="flex flex-wrap gap-1.5 mb-3">
+   359→          {teacher.classNames.slice(0, 3).map((cls, idx) => (
+   360→            <Badge
+   361→              key={idx}
+   362→              variant="outline"
+   363→              className="text-[10px] font-medium px-2 py-0 rounded-full bg-white/[0.03] border-white/[0.08] text-slate-400"
+   364→            >
+   365→              {cls}
+   366→            </Badge>
+   367→          ))}
+   368→          {teacher.classNames.length > 3 && (
+   369→            <Badge
+   370→              variant="outline"
+   371→              className="text-[10px] font-medium px-2 py-0 rounded-full bg-white/[0.03] border-white/[0.08] text-slate-500"
+   372→            >
+   373→              +{teacher.classNames.length - 3}
+   374→            </Badge>
+   375→          )}
+   376→        </div>
+   377→      )}
+   378→
+   379→      {/* Bottom row: badges */}
+   380→      <div className="flex items-center justify-between pt-3 border-t border-white/[0.05]">
+   381→        <TeacherStatusBadge status={teacher.status} />
+   382→        <PermissionBadge permissions={teacher.permissions} />
+   383→      </div>
+   384→    </div>
+   385→  );
+   386→}
+   387→
+   388→// ---------------------------------------------------------------------------
+   389→// Add / Edit form – inner content (mounts only when dialog is open)
+   390→// ---------------------------------------------------------------------------
+   391→
+   392→function TeacherFormContent({
+   393→  editingTeacher,
+   394→  onClose,
+   395→}: {
+   396→  editingTeacher: Teacher | null;
+   397→  onClose: () => void;
+   398→}) {
+   399→  const { addTeacher, updateTeacher } = useAppStore();
+   400→  const isEditing = !!editingTeacher;
+   401→
+   402→  // Form state
+   403→  const [name, setName] = useState(editingTeacher?.name ?? '');
+   404→  const [subject, setSubject] = useState(editingTeacher?.subject ?? '');
+   405→  const [email, setEmail] = useState(editingTeacher?.email ?? '');
+   406→  const [phone, setPhone] = useState(editingTeacher?.phone ?? '');
+   407→  const [permissions, setPermissions] = useState<Teacher['permissions']>(
+   408→    editingTeacher?.permissions ?? 'teacher'
+   409→  );
+   410→  const [status, setStatus] = useState<Teacher['status']>(
+   411→    editingTeacher?.status ?? 'active'
+   412→  );
+   413→
+   414→  const handleSubmit = (e: React.FormEvent) => {
+   415→    e.preventDefault();
+   416→    if (!name.trim() || !subject.trim()) return;
+   417→
+   418→    const now = new Date().toISOString();
+   419→
+   420→    if (isEditing && editingTeacher) {
+   421→      updateTeacher(editingTeacher.id, {
+   422→        name: name.trim(),
+   423→        subject: subject.trim(),
+   424→        email: email.trim(),
+   425→        phone: phone.trim(),
+   426→        permissions,
+   427→        status,
+   428→        updatedAt: now,
+   429→      });
+   430→      toast.success('تم تحديث بيانات المعلم');
+   431→    } else {
+   432→      const newTeacher: Teacher = {
+   433→        id: `tch-${Date.now()}`,
+   434→        name: name.trim(),
+   435→        subject: subject.trim(),
+   436→        status,
+   437→        permissions,
+   438→        avatar: '',
+   439→        email: email.trim(),
+   440→        phone: phone.trim(),
+   441→        createdAt: now,
+   442→        updatedAt: now,
+   443→        classNames: [],
+   444→      };
+   445→      addTeacher(newTeacher);
+   446→      toast.success('تم إضافة المعلم بنجاح');
+   447→    }
+   448→
+   449→    onClose();
+   450→  };
+   451→
+   452→  return (
+   453→    <form onSubmit={handleSubmit} className="flex flex-col gap-5 mt-2">
+   454→      {/* Name */}
+   455→      <div className="flex flex-col gap-2">
+   456→        <Label className="text-slate-300 text-sm">اسم المعلم الكامل</Label>
+   457→        <Input
+   458→          value={name}
+   459→          onChange={(e) => setName(e.target.value)}
+   460→          placeholder="مثال: محمد بن عبدالله السالم"
+   461→          className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   462→          required
+   463→        />
+   464→      </div>
+   465→
+   466→      {/* Subject */}
+   467→      <div className="flex flex-col gap-2">
+   468→        <Label className="text-slate-300 text-sm">المادة الدراسية</Label>
+   469→        <Input
+   470→          value={subject}
+   471→          onChange={(e) => setSubject(e.target.value)}
+   472→          placeholder="مثال: الرياضيات"
+   473→          className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   474→          required
+   475→        />
+   476→      </div>
+   477→
+   478→      {/* Email & Phone row */}
+   479→      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   480→        <div className="flex flex-col gap-2">
+   481→          <Label className="text-slate-300 text-sm">البريد الإلكتروني</Label>
+   482→          <Input
+   483→            value={email}
+   484→            onChange={(e) => setEmail(e.target.value)}
+   485→            placeholder="البريد الإلكتروني"
+   486→            type="email"
+   487→            dir="ltr"
+   488→            className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   489→          />
+   490→        </div>
+   491→        <div className="flex flex-col gap-2">
+   492→          <Label className="text-slate-300 text-sm">رقم الهاتف</Label>
+   493→          <Input
+   494→            value={phone}
+   495→            onChange={(e) => setPhone(e.target.value)}
+   496→            placeholder="050XXXXXXXX"
+   497→            dir="ltr"
+   498→            className="bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20"
+   499→          />
+   500→        </div>
+   501→      </div>
+   502→
+   503→      {/* Permissions & Status row */}
+   504→      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   505→        {/* Permissions dropdown */}
+   506→        <div className="flex flex-col gap-2">
+   507→          <Label className="text-slate-300 text-sm">الصلاحيات</Label>
+   508→          <Select value={permissions} onValueChange={(val) => setPermissions(val as Teacher['permissions'])}>
+   509→            <SelectTrigger className="w-full bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20">
+   510→              <SelectValue placeholder="اختر الصلاحيات" />
+   511→            </SelectTrigger>
+   512→            <SelectContent className="bg-[#1A1A24] border-white/[0.08]">
+   513→              {PERMISSION_OPTIONS.map((opt) => (
+   514→                <SelectItem key={opt.value} value={opt.value} className="text-slate-200 focus:bg-white/[0.05] focus:text-white">
+   515→                  {opt.label}
+   516→                </SelectItem>
+   517→              ))}
+   518→            </SelectContent>
+   519→          </Select>
+   520→        </div>
+   521→
+   522→        {/* Status dropdown */}
+   523→        <div className="flex flex-col gap-2">
+   524→          <Label className="text-slate-300 text-sm">الحالة</Label>
+   525→          <Select value={status} onValueChange={(val) => setStatus(val as Teacher['status'])}>
+   526→            <SelectTrigger className="w-full bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20">
+   527→              <SelectValue placeholder="اختر الحالة" />
+   528→            </SelectTrigger>
+   529→            <SelectContent className="bg-[#1A1A24] border-white/[0.08]">
+   530→              <SelectItem value="active" className="text-slate-200 focus:bg-white/[0.05] focus:text-white">
+   531→                نشط
+   532→              </SelectItem>
+   533→              <SelectItem value="inactive" className="text-slate-200 focus:bg-white/[0.05] focus:text-white">
+   534→                غير نشط
+   535→              </SelectItem>
+   536→            </SelectContent>
+   537→          </Select>
+   538→        </div>
+   539→      </div>
+   540→
+   541→      {/* Actions */}
+   542→      <DialogFooter className="flex-row gap-3 sm:justify-start pt-2">
+   543→        <Button
+   544→          type="submit"
+   545→          className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold rounded-lg px-6 gap-2"
+   546→        >
+   547→          {isEditing ? (
+   548→            <>
+   549→              <Pencil className="h-4 w-4" />
+   550→              حفظ التغييرات
+   551→            </>
+   552→          ) : (
+   553→            <>
+   554→              <UserPlus className="h-4 w-4" />
+   555→              إضافة المعلم
+   556→            </>
+   557→          )}
+   558→        </Button>
+   559→        <Button
+   560→          type="button"
+   561→          variant="outline"
+   562→          onClick={onClose}
+   563→          className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-6"
+   564→        >
+   565→          إلغاء
+   566→        </Button>
+   567→      </DialogFooter>
+   568→    </form>
+   569→  );
+   570→}
+   571→
+   572→/** Add / Edit teacher form dialog */
+   573→function TeacherFormDialog({
+   574→  open,
+   575→  onOpenChange,
+   576→  editingTeacher,
+   577→}: {
+   578→  open: boolean;
+   579→  onOpenChange: (open: boolean) => void;
+   580→  editingTeacher: Teacher | null;
+   581→}) {
+   582→  return (
+   583→    <Dialog open={open} onOpenChange={onOpenChange}>
+   584→      <DialogContent
+   585→        className="sm:max-w-lg max-h-[90vh] overflow-y-auto"
+   586→        dir="rtl"
+   587→        style={{
+   588→          backgroundColor: '#1A1A24',
+   589→          border: '1px solid rgba(255,255,255,0.06)',
+   590→        }}
+   591→      >
+   592→        <DialogHeader>
+   593→          <DialogTitle className="text-white text-xl">
+   594→            {editingTeacher ? 'تعديل بيانات المعلم' : 'إضافة معلم جديد'}
+   595→          </DialogTitle>
+   596→          <DialogDescription className="text-muted-foreground">
+   597→            {editingTeacher
+   598→              ? 'قم بتعديل بيانات المعلم المطلوبة ثم اضغط حفظ التغييرات'
+   599→              : 'أدخل بيانات المعلم الجديد لإضافته إلى النظام'}
+   600→          </DialogDescription>
+   601→        </DialogHeader>
+   602→        {open && (
+   603→          <TeacherFormContent
+   604→            editingTeacher={editingTeacher}
+   605→            onClose={() => onOpenChange(false)}
+   606→          />
+   607→        )}
+   608→      </DialogContent>
+   609→    </Dialog>
+   610→  );
+   611→}
+   612→
+   613→/** Delete confirmation dialog */
+   614→function DeleteTeacherDialog({
+   615→  teacher,
+   616→  open,
+   617→  onOpenChange,
+   618→}: {
+   619→  teacher: Teacher | null;
+   620→  open: boolean;
+   621→  onOpenChange: (open: boolean) => void;
+   622→}) {
+   623→  const { deleteTeacher, addToTrash } = useAppStore();
+   624→
+   625→  const handleDelete = () => {
+   626→    if (teacher) {
+   627→      addToTrash({
+   628→        id: `trash-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+   629→        itemType: 'teacher',
+   630→        itemId: teacher.id,
+   631→        itemName: teacher.name,
+   632→        deletedBy: 'المدير',
+   633→        dataJson: JSON.stringify(teacher),
+   634→        restoredAt: null,
+   635→        createdAt: new Date().toISOString(),
+   636→      });
+   637→      deleteTeacher(teacher.id);
+   638→      toast.success('تم حذف المعلم');
+   639→      onOpenChange(false);
+   640→    }
+   641→  };
+   642→
+   643→  return (
+   644→    <AlertDialog open={open} onOpenChange={onOpenChange}>
+   645→      <AlertDialogContent
+   646→        dir="rtl"
+   647→        style={{
+   648→          backgroundColor: '#1A1A24',
+   649→          border: '1px solid rgba(255,255,255,0.06)',
+   650→        }}
+   651→      >
+   652→        <AlertDialogHeader>
+   653→          <AlertDialogTitle className="text-white text-lg">
+   654→            تأكيد حذف المعلم
+   655→          </AlertDialogTitle>
+   656→          <AlertDialogDescription className="text-muted-foreground leading-relaxed">
+   657→            هل أنت متأكد من حذف المعلم{' '}
+   658→            <span className="font-semibold text-slate-200">{teacher?.name}</span>؟
+   659→            <br />
+   660→            لا يمكن التراجع عن هذا الإجراء. سيتم حذف جميع بيانات المعلم بشكل نهائي.
+   661→          </AlertDialogDescription>
+   662→        </AlertDialogHeader>
+   663→        <AlertDialogFooter className="flex-row gap-3 sm:justify-start mt-2">
+   664→          <AlertDialogCancel
+   665→            className="border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white rounded-lg px-6 mt-0"
+   666→          >
+   667→            إلغاء
+   668→          </AlertDialogCancel>
+   669→          <AlertDialogAction
+   670→            onClick={handleDelete}
+   671→            className="bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-lg px-6 gap-2"
+   672→          >
+   673→            <Trash2 className="h-4 w-4" />
+   674→            نعم، احذف
+   675→          </AlertDialogAction>
+   676→        </AlertDialogFooter>
+   677→      </AlertDialogContent>
+   678→    </AlertDialog>
+   679→  );
+   680→}
+   681→
+   682→// ---------------------------------------------------------------------------
+   683→// Main Component
+   684→// ---------------------------------------------------------------------------
+   685→
+   686→export default function TeachersSection() {
+   687→  const { teachers, addTeacher, setTeachers } = useAppStore();
+   688→
+   689→  // Local UI state
+   690→  const [localSearch, setLocalSearch] = useState('');
+   691→  const [formOpen, setFormOpen] = useState(false);
+   692→  const [deleteOpen, setDeleteOpen] = useState(false);
+   693→  const [importOpen, setImportOpen] = useState(false);
+   694→  const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
+   695→  const [statusFilter, setStatusFilter] = useState<string>('all');
+   696→
+   697→  // Initialize mock data once
+   698→  const initialized = useRef(false);
+   699→  useEffect(() => {
+   700→    if (!initialized.current && teachers.length === 0) {
+   701→      initialized.current = true;
+   702→      setTeachers(INITIAL_TEACHERS);
+   703→    }
+   704→  }, []);  
+   705→
+   706→  // Filtered & searched list
+   707→  const filteredTeachers = useMemo(() => {
+   708→    let result = [...teachers];
+   709→
+   710→    // Status filter
+   711→    if (statusFilter !== 'all') {
+   712→      result = result.filter((t) => t.status === statusFilter);
+   713→    }
+   714→
+   715→    // Search filter
+   716→    if (localSearch.trim()) {
+   717→      const query = localSearch.trim().toLowerCase();
+   718→      result = result.filter(
+   719→        (t) =>
+   720→          t.name.toLowerCase().includes(query) ||
+   721→          t.subject.toLowerCase().includes(query) ||
+   722→          t.email.toLowerCase().includes(query)
+   723→      );
+   724→    }
+   725→
+   726→    return result;
+   727→  }, [teachers, statusFilter, localSearch]);
+   728→
+   729→  // Handlers
+   730→  const handleAdd = () => {
+   731→    setSelectedTeacher(null);
+   732→    setFormOpen(true);
+   733→  };
+   734→
+   735→  const handleEdit = (teacher: Teacher) => {
+   736→    setSelectedTeacher(teacher);
+   737→    setFormOpen(true);
+   738→  };
+   739→
+   740→  const handleDelete = (teacher: Teacher) => {
+   741→    setSelectedTeacher(teacher);
+   742→    setDeleteOpen(true);
+   743→  };
+   744→
+   745→  const handleImportTeachers = (data: Record<string, unknown>[]) => {
+   746→    const now = new Date().toISOString();
+   747→    data.forEach((row) => {
+   748→      const newTeacher: Teacher = {
+   749→        id: `tch-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+   750→        name: String(row.name ?? ''),
+   751→        subject: String(row.subject ?? ''),
+   752→        status: (row.status as Teacher['status']) ?? 'active',
+   753→        permissions: (row.permissions as Teacher['permissions']) ?? 'teacher',
+   754→        avatar: '',
+   755→        email: String(row.email ?? ''),
+   756→        phone: String(row.phone ?? ''),
+   757→        createdAt: now,
+   758→        updatedAt: now,
+   759→        classNames: [],
+   760→      };
+   761→      addTeacher(newTeacher);
+   762→    });
+   763→  };
+   764→
+   765→  const handleExportTeachers = () => {
+   766→    const exportData = teachers.map((t) => ({
+   767→      name: t.name,
+   768→      subject: t.subject,
+   769→      status: STATUS_MAP[t.status].label,
+   770→      permissions: PERMISSION_MAP[t.permissions].label,
+   771→      email: t.email || '',
+   772→      phone: t.phone || '',
+   773→    }));
+   774→    exportToCSV(exportData, 'teachers', [
+   775→      { key: 'name', label: 'الاسم' },
+   776→      { key: 'subject', label: 'المادة' },
+   777→      { key: 'status', label: 'الحالة' },
+   778→      { key: 'permissions', label: 'الصلاحية' },
+   779→      { key: 'email', label: 'البريد' },
+   780→      { key: 'phone', label: 'الهاتف' },
+   781→    ]);
+   782→    toast.success('تم تصدير بيانات المعلمين بنجاح');
+   783→  };
+   784→
+   785→  return (
+   786→    <div className="flex flex-col gap-6" dir="rtl">
+   787→      {/* ── Page Title ── */}
+   788→      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+   789→        <div className="flex items-center gap-3">
+   790→          <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-[#D4A574]/10">
+   791→            <Users className="h-5 w-5 text-[#D4A574]" />
+   792→          </div>
+   793→          <div>
+   794→            <h1 className="text-2xl font-bold text-white tracking-tight sm:text-3xl flex items-center gap-3">
+   795→              إدارة المعلمين
+   796→              <Badge className="bg-[#D4A574]/15 text-[#D4A574] border-[#D4A574]/20 hover:bg-[#D4A574]/20 text-sm px-2.5 py-0.5 rounded-full font-semibold tabular-nums">
+   797→                {teachers.length}
+   798→              </Badge>
+   799→            </h1>
+   800→            <p className="mt-0.5 text-sm text-muted-foreground">
+   801→              إدارة بيانات المعلمين وتوزيعهم على الصفوف الدراسية
+   802→            </p>
+   803→          </div>
+   804→        </div>
+   805→      </div>
+   806→
+   807→      {/* ── Action Bar ── */}
+   808→      <div
+   809→        className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl p-4"
+   810→        style={{
+   811→          backgroundColor: '#1A1A24',
+   812→          border: '1px solid rgba(255,255,255,0.06)',
+   813→        }}
+   814→      >
+   815→        {/* Add & Export buttons */}
+   816→        <div className="flex items-center gap-2">
+   817→          <Button
+   818→            onClick={handleAdd}
+   819→            className="bg-[#D4A574] hover:bg-[#B8895A] text-slate-900 font-semibold gap-2 rounded-lg px-5 h-10 btn-shine"
+   820→          >
+   821→            <UserPlus className="h-4 w-4" />
+   822→            إضافة معلم جديد
+   823→          </Button>
+   824→          <Button
+   825→            variant="outline"
+   826→            onClick={() => setImportOpen(true)}
+   827→            className="border-[#D4A574]/30 text-[#D4A574] hover:bg-[#D4A574]/10 gap-2 rounded-lg px-4 h-10"
+   828→          >
+   829→            <Upload className="h-4 w-4" />
+   830→            استيراد CSV
+   831→          </Button>
+   832→          <Button
+   833→            variant="outline"
+   834→            onClick={handleExportTeachers}
+   835→            className="border-[#D4A574]/30 text-[#D4A574] hover:bg-[#D4A574]/10 gap-2 rounded-lg px-4 h-10 btn-amber-glow"
+   836→          >
+   837→            <Download className="h-4 w-4" />
+   838→            تصدير CSV
+   839→          </Button>
+   840→        </div>
+   841→
+   842→        {/* Search & Filter */}
+   843→        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+   844→          {/* Search */}
+   845→          <div className="relative">
+   846→            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+   847→            <Input
+   848→              value={localSearch}
+   849→              onChange={(e) => setLocalSearch(e.target.value)}
+   850→              placeholder="بحث بالاسم أو المادة أو البريد..."
+   851→              className="pr-10 w-full sm:w-72 bg-white/[0.03] border-white/[0.08] text-slate-200 placeholder:text-muted-foreground/50 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 h-10"
+   852→            />
+   853→          </div>
+   854→
+   855→          {/* Filter dropdown */}
+   856→          <Select value={statusFilter} onValueChange={setStatusFilter}>
+   857→            <SelectTrigger className="w-full sm:w-36 bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-[#D4A574]/50 focus:ring-[#D4A574]/20 h-10">
+   858→              <SelectValue />
+   859→            </SelectTrigger>
+   860→            <SelectContent className="bg-[#1A1A24] border-white/[0.08]">
+   861→              {FILTER_OPTIONS.map((opt) => (
+   862→                <SelectItem
+   863→                  key={opt.value}
+   864→                  value={opt.value}
+   865→                  className="text-slate-200 focus:bg-white/[0.05] focus:text-white"
+   866→                >
+   867→                  {opt.label}
+   868→                </SelectItem>
+   869→              ))}
+   870→            </SelectContent>
+   871→          </Select>
+   872→        </div>
+   873→      </div>
+   874→
+   875→      {/* ── Teachers Card Grid ── */}
+   876→      {filteredTeachers.length === 0 ? (
+   877→        <div
+   878→          className="rounded-xl"
+   879→          style={{
+   880→            backgroundColor: '#1A1A24',
+   881→            border: '1px solid rgba(255,255,255,0.06)',
+   882→          }}
+   883→        >
+   884→          <EmptyState onAdd={handleAdd} />
+   885→        </div>
+   886→      ) : (
+   887→        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+   888→          {filteredTeachers.map((teacher) => (
+   889→            <TeacherCard
+   890→              key={teacher.id}
+   891→              teacher={teacher}
+   892→              onEdit={handleEdit}
+   893→              onDelete={handleDelete}
+   894→            />
+   895→          ))}
+   896→        </div>
+   897→      )}
+   898→
+   899→      {/* ── Dialogs ── */}
+   900→      <TeacherFormDialog
+   901→        open={formOpen}
+   902→        onOpenChange={setFormOpen}
+   903→        editingTeacher={selectedTeacher}
+   904→      />
+   905→
+   906→      <DeleteTeacherDialog
+   907→        teacher={selectedTeacher}
+   908→        open={deleteOpen}
+   909→        onOpenChange={setDeleteOpen}
+   910→      />
+   911→
+   912→      <ImportDialog
+   913→        open={importOpen}
+   914→        onOpenChange={setImportOpen}
+   915→        type="teachers"
+   916→        columns={TEACHER_IMPORT_COLUMNS}
+   917→        onImport={handleImportTeachers}
+   918→        templateFilename="teachers-template"
+   919→      />
+   920→    </div>
+   921→  );
+   922→}
+   923→

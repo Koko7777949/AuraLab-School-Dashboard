@@ -23,6 +23,7 @@ model Student {
   exams    Exam[]
   sessions Session[]
   analytics Analytics[]
+  attendances Attendance[]
 }
 
 model Teacher {
@@ -156,6 +157,8 @@ model Attendance {
   status    String   @default("present") // present, absent, late, excused
   notes     String   @default("")
   createdAt DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, date])
 }

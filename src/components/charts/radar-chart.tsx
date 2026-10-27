@@ -220,7 +220,7 @@ export default function RadarChart({
           const isTop = Math.sin(angle) < -0.1;
           const isBottom = Math.sin(angle) > 0.1;
 
-          let anchor = 'middle';
+          let anchor: 'start' | 'middle' | 'end' = 'middle';
           if (isRight) anchor = 'start';
           else if (isLeft) anchor = 'end';
 

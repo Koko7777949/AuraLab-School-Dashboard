@@ -33,11 +33,13 @@ import {
 } from 'lucide-react';
 import StatCard from './stat-card';
 import SectionCard from './section-card';
+import BlurText from '@/components/reactbits/BlurText/BlurText';
 import SessionTimer from './session-timer';
 import CalendarWidget from './calendar-widget';
 import WidgetContainer from './widget-container';
 import ActivityFeed from './activity-feed';
 import ExportButton from './export-button';
+import CameraWidgetDashboard from './camera-widget-dashboard';
 import { useAppStore } from '@/lib/store';
 import type { DashboardStats } from '@/lib/types';
 
@@ -876,9 +878,14 @@ function WelcomeBanner({ onDismiss }: { onDismiss: () => void }) {
       {/* Content */}
       <div className="relative flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-4">
         <div>
-          <h2 className="text-xl font-bold text-white">
-            مرحباً، أحمد محمد 👋
-          </h2>
+          <BlurText
+            text="مرحباً، أحمد محمد 👋"
+            animateBy="words"
+            direction="top"
+            delay={90}
+            trigger="load"
+            className="text-xl font-bold text-white"
+          />
           <p className="text-sm text-[#D0D0E0] mt-1">
             {dayName}، {dateStr} — لديك 3 حصص اليوم و 12 تنبيه جديد
           </p>
@@ -1454,19 +1461,24 @@ export default function DashboardOverview() {
       {/* ── Quick Stats Ribbon ── */}
       <QuickStatsRibbon apiStats={stats} />
 
-      {/* ── Recent Students Data Table ── */}
-      <div className="glass-card-elevated rounded-xl p-5 animate-fade-in-up opacity-0" style={{ animationDelay: '530ms' }}>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <GraduationCap className="h-4 w-4 text-[#D4A574]" />
-            <h3 className="text-sm font-semibold text-white">آخر الطلاب المسجلين</h3>
-          </div>
-          <span className="text-xs text-[#A0A0B8] font-medium tabular-nums">{students.length} طالب</span>
+      {/* ── Live Cameras + Recent Students (responsive 2-col) ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+        <div className="lg:col-span-3 animate-fade-in-up opacity-0" style={{ animationDelay: '420ms' }}>
+          <CameraWidgetDashboard />
         </div>
-        <RecentStudentsTable
-          students={students}
-          onViewAll={() => setActiveSection('students')}
-        />
+        <div className="lg:col-span-2 glass-card-elevated rounded-xl p-5 animate-fade-in-up opacity-0" style={{ animationDelay: '470ms' }}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <GraduationCap className="h-4 w-4 text-[#D4A574]" />
+              <h3 className="text-sm font-semibold text-white">آخر الطلاب المسجلين</h3>
+            </div>
+            <span className="text-xs text-[#A0A0B8] font-medium tabular-nums">{students.length} طالب</span>
+          </div>
+          <RecentStudentsTable
+            students={students}
+            onViewAll={() => setActiveSection('students')}
+          />
+        </div>
       </div>
 
       {/* ── KPI Cards Grid (responsive CSS Grid with staggered animation) ── */}

@@ -1,0 +1,634 @@
+     1→     1→'use client';
+     2→     2→
+     3→     3→import { useCallback, useState, useRef, useEffect, useMemo } from 'react';
+     4→     4→import {
+     5→     5→  Search,
+     6→     6→  FileDown,
+     7→     7→  Download,
+     8→     8→  Upload,
+     9→     9→  Globe,
+    10→    10→  Settings,
+    11→    11→  ChevronDown,
+    12→    12→  Users,
+    13→    13→  Bell,
+    14→    14→  User,
+    15→    15→  LogOut,
+    16→    16→  Clock,
+    17→    17→  Keyboard,
+    18→    18→  GraduationCap,
+    19→    19→  RefreshCw,
+    20→    20→} from 'lucide-react';
+    21→    21→import {
+    22→    22→  Tooltip,
+    23→    23→  TooltipTrigger,
+    24→    24→  TooltipContent,
+    25→    25→} from '@/components/ui/tooltip';
+    26→    26→import {
+    27→    27→  DropdownMenu,
+    28→    28→  DropdownMenuTrigger,
+    29→    29→  DropdownMenuContent,
+    30→    30→  DropdownMenuLabel,
+    31→    31→  DropdownMenuItem,
+    32→    32→  DropdownMenuSeparator,
+    33→    33→} from '@/components/ui/dropdown-menu';
+    34→    34→import { useAppStore } from '@/lib/store';
+    35→    35→import type { ActiveSection } from '@/lib/types';
+    36→    36→import { t } from '@/lib/i18n';
+    37→    37→import { toast } from 'sonner';
+    38→    38→
+    39→    39→// ---------------------------------------------------------------------------
+    40→    40→// Reusable action button
+    41→    41→// ---------------------------------------------------------------------------
+    42→    42→function HeaderButton({
+    43→    43→  icon: Icon,
+    44→    44→  label,
+    45→    45→  onClick,
+    46→    46→}: {
+    47→    47→  icon: React.ElementType;
+    48→    48→  label: string;
+    49→    49→  onClick?: () => void;
+    50→    50→}) {
+    51→    51→  return (
+    52→    52→    <Tooltip>
+    53→    53→      <TooltipTrigger asChild>
+    54→    54→        <button
+    55→    55→          onClick={onClick}
+    56→    56→          aria-label={label}
+    57→    57→          className="ripple-effect flex h-9 w-9 shrink-0 items-center justify-center rounded-lg
+    58→    58→            border border-[#2A2A38] bg-[#1A1A24]/80 text-[#C4C4D4]
+    59→    59→            transition-all duration-200
+    60→    60→            hover:scale-[1.02] hover:border-[#D4A574]/40 hover:text-[#D4A574]
+    61→    61→            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A574]/50
+    62→    62→            active:scale-[0.98]"
+    63→    63→        >
+    64→    64→          <Icon size={18} strokeWidth={1.8} />
+    65→    65→        </button>
+    66→    66→      </TooltipTrigger>
+    67→    67→      <TooltipContent
+    68→    68→        sideOffset={8}
+    69→    69→        className="rounded-lg border border-[#2A2A38] bg-[#1A1A24] px-3 py-1.5 text-xs text-[#C4C4D4] shadow-lg"
+    70→    70→      >
+    71→    71→        {label}
+    72→    72→      </TooltipContent>
+    73→    73→    </Tooltip>
+    74→    74→  );
+    75→    75→}
+    76→    76→
+    77→    77→// ---------------------------------------------------------------------------
+    78→    78→// Search suggestions (visual)
+    79→    79→// ---------------------------------------------------------------------------
+    80→    80→const SEARCH_SUGGESTIONS: { text: string; section: ActiveSection; icon: React.ElementType }[] = [
+    81→    81→  { text: 'بحث في الطلاب...', section: 'students', icon: Users },
+    82→    82→  { text: 'عرض الحصص', section: 'sessions', icon: Settings },
+    83→    83→  { text: 'الامتحانات', section: 'exams', icon: Settings },
+    84→    84→];
+    85→    85→
+    86→    86→// ---------------------------------------------------------------------------
+    87→    87→// Header Component
+    88→    88→// ---------------------------------------------------------------------------
+    89→    89→export default function Header() {
+    90→    90→  const { searchQuery, setSearchQuery, setActiveSection, sidebarOpen, notifications, students, teachers, locale, toggleLocale } = useAppStore();
+    91→    91→  const [showSuggestions, setShowSuggestions] = useState(false);
+    92→    92→  const [filteredSuggestions, setFilteredSuggestions] = useState<typeof SEARCH_SUGGESTIONS>([]);
+    93→    93→  const searchRef = useRef<HTMLDivElement>(null);
+    94→    94→
+    95→    95→  // Data refresh indicator (initialize empty to avoid hydration mismatch)
+    96→    96→  const [lastRefreshed, setLastRefreshed] = useState('');
+    97→    97→  const [isRefreshing, setIsRefreshing] = useState(false);
+    98→    98→  const [refreshFlash, setRefreshFlash] = useState(false);
+    99→    99→
+   100→   100→  // Locale-aware time formatter
+   101→   101→  const timeLocale = locale === 'ar' ? 'ar-SA' : 'en-US';
+   102→   102→
+   103→   103→  // Set initial refresh time client-side
+   104→   104→  useEffect(() => {
+   105→   105→    // eslint-disable-next-line react-hooks/set-state-in-effect -- client-only init to avoid hydration mismatch
+   106→   106→    setLastRefreshed(new Date().toLocaleTimeString(timeLocale, { hour: '2-digit', minute: '2-digit' }));
+   107→   107→  }, [timeLocale]);
+   108→   108→
+   109→   109→  const handleRefresh = useCallback(() => {
+   110→   110→    setIsRefreshing(true);
+   111→   111→    setRefreshFlash(true);
+   112→   112→    setTimeout(() => {
+   113→   113→      setIsRefreshing(false);
+   114→   114→      setLastRefreshed(new Date().toLocaleTimeString(timeLocale, { hour: '2-digit', minute: '2-digit' }));
+   115→   115→    }, 800);
+   116→   116→    setTimeout(() => setRefreshFlash(false), 1200);
+   117→   117→  }, [timeLocale]);
+   118→   118→
+   119→   119→  // Auto-refresh every 5 minutes
+   120→   120→  useEffect(() => {
+   121→   121→    const interval = setInterval(() => {
+   122→   122→      handleRefresh();
+   123→   123→    }, 5 * 60 * 1000);
+   124→   124→    return () => clearInterval(interval);
+   125→   125→  }, [handleRefresh]);
+   126→   126→
+   127→   127→  // Dynamic unread notification count
+   128→   128→  const unreadCount = notifications.filter((n) => !n.isRead).length;
+   129→   129→
+   130→   130→  // Live clock
+   131→   131→  const [currentTime, setCurrentTime] = useState('');
+   132→   132→  const [currentDate, setCurrentDate] = useState('');
+   133→   133→  const [hijriDate, setHijriDate] = useState('');
+   134→   134→  const [greeting, setGreeting] = useState('');
+   135→   135→
+   136→   136→  useEffect(() => {
+   137→   137→    const updateClock = () => {
+   138→   138→      const now = new Date();
+   139→   139→      setCurrentTime(now.toLocaleTimeString(timeLocale, { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+   140→   140→      setCurrentDate(now.toLocaleDateString(timeLocale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }));
+   141→   141→
+   142→   142→      // Hijri date approximation (only for Arabic)
+   143→   143→      if (locale === 'ar') {
+   144→   144→        try {
+   145→   145→          setHijriDate(now.toLocaleDateString('ar-SA-u-ca-islamic', { year: 'numeric', month: 'long', day: 'numeric' }));
+   146→   146→        } catch {
+   147→   147→          setHijriDate('');
+   148→   148→        }
+   149→   149→      } else {
+   150→   150→        setHijriDate('');
+   151→   151→      }
+   152→   152→
+   153→   153→      // Time-based greeting
+   154→   154→      const hour = now.getHours();
+   155→   155→      if (hour >= 5 && hour < 12) {
+   156→   156→        setGreeting(t('greeting.morning', locale));
+   157→   157→      } else if (hour >= 12 && hour < 17) {
+   158→   158→        setGreeting(t('greeting.afternoon', locale));
+   159→   159→      } else {
+   160→   160→        setGreeting(t('greeting.evening', locale));
+   161→   161→      }
+   162→   162→    };
+   163→   163→    updateClock();
+   164→   164→    const interval = setInterval(updateClock, 1000);
+   165→   165→    return () => clearInterval(interval);
+   166→   166→  }, [locale, timeLocale]);
+   167→   167→
+   168→   168→  const timeParts = useMemo(() => {
+   169→   169→    if (!currentTime) return { time: '', seconds: '' };
+   170→   170→    const parts = currentTime.split(':');
+   171→   171→    return { time: `${parts[0]}:${parts[1]}`, seconds: parts[2] || '' };
+   172→   172→  }, [currentTime]);
+   173→   173→
+   174→   174→// locale toggle is handled by store toggleLocale
+   175→   175→
+   176→   176→  const handleSearchKeyDown = useCallback(
+   177→   177→    (e: React.KeyboardEvent<HTMLInputElement>) => {
+   178→   178→      if (e.key === 'Enter' && searchQuery.trim()) {
+   179→   179→        const q = searchQuery.trim().toLowerCase();
+   180→   180→        // Search across students and teachers
+   181→   181→        const matchedStudent = students.find((s) => s.name.toLowerCase().includes(q));
+   182→   182→        const matchedTeacher = teachers.find((t) => t.name.toLowerCase().includes(q));
+   183→   183→        if (matchedStudent) {
+   184→   184→          setActiveSection('students');
+   185→   185→        } else if (matchedTeacher) {
+   186→   186→          setActiveSection('teachers');
+   187→   187→        } else {
+   188→   188→          setActiveSection('students');
+   189→   189→        }
+   190→   190→        setShowSuggestions(false);
+   191→   191→        (e.target as HTMLInputElement).blur();
+   192→   192→      }
+   193→   193→    },
+   194→   194→    [searchQuery, students, teachers, setActiveSection],
+   195→   195→  );
+   196→   196→
+   197→   197→  const handleSearchChange = useCallback(
+   198→   198→    (e: React.ChangeEvent<HTMLInputElement>) => {
+   199→   199→      const value = e.target.value;
+   200→   200→      setSearchQuery(value);
+   201→   201→      if (value.trim()) {
+   202→   202→        const q = value.trim().toLowerCase();
+   203→   203→        // Build dynamic suggestions from store data
+   204→   204→        const dynamicSuggestions: typeof SEARCH_SUGGESTIONS = [];
+   205→   205→        const matchedStudents = students.filter((s) => s.name.toLowerCase().includes(q)).slice(0, 3);
+   206→   206→        const matchedTeachers = teachers.filter((t) => t.name.toLowerCase().includes(q)).slice(0, 3);
+   207→   207→        for (const s of matchedStudents) {
+   208→   208→          dynamicSuggestions.push({ text: s.name, section: 'students' as const, icon: GraduationCap });
+   209→   209→        }
+   210→   210→        for (const t of matchedTeachers) {
+   211→   211→          dynamicSuggestions.push({ text: t.name, section: 'teachers' as const, icon: Users });
+   212→   212→        }
+   213→   213→        // Fallback to static suggestions if no matches
+   214→   214→        setFilteredSuggestions(
+   215→   215→          dynamicSuggestions.length > 0
+   216→   216→            ? dynamicSuggestions
+   217→   217→            : SEARCH_SUGGESTIONS.filter((s) => s.text.includes(value.trim()))
+   218→   218→        );
+   219→   219→        setShowSuggestions(true);
+   220→   220→      } else {
+   221→   221→        setShowSuggestions(false);
+   222→   222→      }
+   223→   223→    },
+   224→   224→    [setSearchQuery, students, teachers],
+   225→   225→  );
+   226→   226→
+   227→   227→  const handleSuggestionClick = useCallback(
+   228→   228→    (section: typeof SEARCH_SUGGESTIONS[number]['section']) => {
+   229→   229→      setActiveSection(section);
+   230→   230→      setShowSuggestions(false);
+   231→   231→    },
+   232→   232→    [setActiveSection],
+   233→   233→  );
+   234→   234→
+   235→   235→  // Close suggestions on click outside
+   236→   236→  useEffect(() => {
+   237→   237→    const handleClickOutside = (e: MouseEvent) => {
+   238→   238→      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+   239→   239→        setShowSuggestions(false);
+   240→   240→      }
+   241→   241→    };
+   242→   242→    document.addEventListener('mousedown', handleClickOutside);
+   243→   243→    return () => document.removeEventListener('mousedown', handleClickOutside);
+   244→   244→  }, []);
+   245→   245→
+   246→   246→  return (
+   247→   247→    <>
+   248→   248→      <header
+   249→   249→        dir="rtl"
+   250→   250→        className={`
+   251→   251→          fixed top-0 inset-x-0 z-30
+   252→   252→          flex h-16 items-center justify-between gap-3 px-3 sm:px-6
+   253→   253→          border-b border-[#2A2A38]/60
+   254→   254→          bg-[#121218]/60 backdrop-blur-2xl
+   255→   255→          transition-all duration-300 ease-in-out
+   256→   256→          ${sidebarOpen ? 'lg:mr-60' : 'lg:mr-[72px]'}
+   257→   257→        `}
+   258→   258→      >
+   259→   259→        {/* Subtle gradient overlay (amber-to-transparent) */}
+   260→   260→        <div
+   261→   261→          className="absolute inset-0 pointer-events-none rounded-none"
+   262→   262→          style={{
+   263→   263→            background: 'linear-gradient(to bottom, rgba(212,165,116,0.03), transparent)',
+   264→   264→          }}
+   265→   265→        />
+   266→   266→        {/* ----------------------------------------------------------------- */}
+   267→   267→        {/* Right side (RTL start) — Search bar */}
+   268→   268→        {/* ----------------------------------------------------------------- */}
+   269→   269→        <div className="relative w-full max-w-xs min-w-0 sm:max-w-sm" ref={searchRef}>
+   270→   270→          <Search
+   271→   271→            size={18}
+   272→   272→            strokeWidth={1.8}
+   273→   273→            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#8B8B9E]"
+   274→   274→          />
+   275→   275→          <input
+   276→   276→            type="text"
+   277→   277→            value={searchQuery}
+   278→   278→            onChange={handleSearchChange}
+   279→   279→            onKeyDown={handleSearchKeyDown}
+   280→   280→            onFocus={() => {
+   281→   281→              if (searchQuery.trim()) setShowSuggestions(true);
+   282→   282→            }}
+   283→   283→            placeholder={t('header.search', locale)}
+   284→   284→            className="
+   285→   285→              h-9 w-full rounded-lg border border-[#2A2A38] bg-[#1A1A24]/80
+   286→   286→              pr-10 pl-4 text-sm text-[#E4E4EC] placeholder-[#8B8B9E]
+   287→   287→              outline-none backdrop-blur-sm
+   288→   288→              transition-all duration-200
+   289→   289→              focus:border-[#D4A574]/50
+   290→   290→              focus:shadow-[0_0_12px_2px_rgba(212,165,116,0.15),0_0_4px_0px_rgba(212,165,116,0.1)]
+   291→   291→              focus:ring-0
+   292→   292→            "
+   293→   293→          />
+   294→   294→
+   295→   295→          {/* Search suggestions dropdown */}
+   296→   296→          {showSuggestions && (
+   297→   297→            <div
+   298→   298→              className="absolute top-full right-0 left-0 mt-1.5 z-50 rounded-lg border border-[#2A2A38] bg-[#1A1A24] py-1.5 shadow-xl animate-fade-in-up overflow-hidden"
+   299→   299→              style={{ animationDuration: '0.2s' }}
+   300→   300→            >
+   301→   301→              {filteredSuggestions.length > 0 ? (
+   302→   302→                filteredSuggestions.map((suggestion, i) => {
+   303→   303→                  const Icon = suggestion.icon;
+   304→   304→                  return (
+   305→   305→                    <button
+   306→   306→                      key={i}
+   307→   307→                      onClick={() => handleSuggestionClick(suggestion.section)}
+   308→   308→                      className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-[#C4C4D4] transition-colors duration-150 hover:bg-[#22222E] hover:text-[#D4A574]"
+   309→   309→                    >
+   310→   310→                      <Icon size={14} strokeWidth={1.5} className="text-[#8B8B9E]" />
+   311→   311→                      <span>{suggestion.text}</span>
+   312→   312→                      <span className="mr-auto text-[11px] text-[#8B8B9E]/60">
+   313→   313→                        Enter ↵
+   314→   314→                      </span>
+   315→   315→                    </button>
+   316→   316→                  );
+   317→   317→                })
+   318→   318→              ) : (
+   319→   319→                <div className="flex items-center gap-2 px-3 py-2 text-sm text-[#8B8B9E]">
+   320→   320→                  <Search size={14} strokeWidth={1.5} />
+   321→   321→                  <span>{t('header.searchStudents', locale)}</span>
+   322→   322→                </div>
+   323→   323→              )}
+   324→   324→            </div>
+   325→   325→          )}
+   326→   326→        </div>
+   327→   327→
+   328→   328→        {/* ----------------------------------------------------------------- */}
+   329→   329→        {/* Center — Live Clock + App name */}
+   330→   330→        {/* ----------------------------------------------------------------- */}
+   331→   331→        <div className="hidden sm:flex flex-col items-center justify-center gap-0.5 min-w-0">
+   332→   332→          {/* Greeting */}
+   333→   333→          {greeting && (
+   334→   334→            <span className="text-[10px] font-medium text-[#D4A574]/70">{greeting}</span>
+   335→   335→          )}
+   336→   336→          {/* Live clock */}
+   337→   337→          <div className="flex items-center gap-2 select-none">
+   338→   338→            <Clock size={13} strokeWidth={1.8} className="text-[#D4A574]/60" />
+   339→   339→            <span className="text-sm font-semibold tabular-nums tracking-wider text-[#C4C4D4]" dir="ltr">
+   340→   340→              {timeParts.time}
+   341→   341→            </span>
+   342→   342→            <span className="text-xs font-medium tabular-nums text-[#8B8B9E] min-w-[18px] text-center animate-pulse" dir="ltr">
+   343→   343→              {timeParts.seconds}
+   344→   344→            </span>
+   345→   345→          </div>
+   346→   346→          {/* App name */}
+   347→   347→          <h1 className="text-sm font-bold tracking-tight select-none">
+   348→   348→            <span
+   349→   349→              className="bg-clip-text text-transparent"
+   350→   350→              style={{
+   351→   351→                backgroundImage:
+   352→   352→                  'linear-gradient(135deg, #D4A574 0%, #E8C9A0 50%, #D4A574 100%)',
+   353→   353→              }}
+   354→   354→            >
+   355→   355→              AuraLab
+   356→   356→            </span>
+   357→   357→          </h1>
+   358→   358→          {/* Gregorian date */}
+   359→   359→          <span className="text-[10px] text-[#5A5A6E] truncate max-w-[180px]">
+   360→   360→            {currentDate}
+   361→   361→          </span>
+   362→   362→          {/* Hijri date */}
+   363→   363→          {hijriDate && (
+   364→   364→            <span className="text-[9px] text-[#5A5A6E]/60 truncate max-w-[180px]">
+   365→   365→              {hijriDate}
+   366→   366→            </span>
+   367→   367→          )}
+   368→   368→        </div>
+   369→   369→
+   370→   370→        {/* ----------------------------------------------------------------- */}
+   371→   371→        {/* Left side (RTL end) — Action buttons */}
+   372→   372→        {/* ----------------------------------------------------------------- */}
+   373→   373→        <div className="flex items-center gap-2 sm:gap-3">
+   374→   374→          {/* Last Refreshed indicator + Refresh button */}
+   375→   375→          <div className={`hidden sm:flex items-center gap-1.5 text-[10px] text-[#8B8B9E] transition-all duration-300 ${refreshFlash ? 'opacity-100 scale-105' : 'opacity-70'}`}>
+   376→   376→            <span>{t('header.lastRefresh', locale)}</span>
+   377→   377→            <span className="tabular-nums font-medium" dir="ltr">{lastRefreshed}</span>
+   378→   378→            <button
+   379→   379→              onClick={handleRefresh}
+   380→   380→              aria-label={t('header.refreshData', locale)}
+   381→   381→              className="flex items-center justify-center h-5 w-5 rounded text-[#8B8B9E] hover:text-[#D4A574] hover:bg-[#D4A574]/10 transition-all duration-200"
+   382→   382→            >
+   383→   383→              <RefreshCw
+   384→   384→                size={12}
+   385→   385→                strokeWidth={2}
+   386→   386→                className={isRefreshing ? 'animate-spin' : ''}
+   387→   387→              />
+   388→   388→            </button>
+   389→   389→          </div>
+   390→   390→
+   391→   391→          {/* PDF Export → analytics */}
+   392→   392→          <HeaderButton
+   393→   393→            icon={FileDown}
+   394→   394→            label={t('header.exportPdf', locale)}
+   395→   395→            onClick={() => setActiveSection('analytics')}
+   396→   396→          />
+   397→   397→
+   398→   398→          {/* Export → analytics */}
+   399→   399→          <div className="hidden sm:block">
+   400→   400→            <HeaderButton
+   401→   401→              icon={Download}
+   402→   402→              label={t('header.export', locale)}
+   403→   403→              onClick={() => setActiveSection('analytics')}
+   404→   404→            />
+   405→   405→          </div>
+   406→   406→
+   407→   407→          {/* Import → students */}
+   408→   408→          <div className="hidden sm:block">
+   409→   409→            <HeaderButton
+   410→   410→              icon={Upload}
+   411→   411→              label={t('header.import', locale)}
+   412→   412→              onClick={() => setActiveSection('students')}
+   413→   413→            />
+   414→   414→          </div>
+   415→   415→
+   416→   416→          {/* Divider */}
+   417→   417→          <div className="mx-1 hidden h-5 w-px bg-[#2A2A38] sm:block" />
+   418→   418→
+   419→   419→          {/* Language toggle */}
+   420→   420→          <Tooltip>
+   421→   421→            <TooltipTrigger asChild>
+   422→   422→              <button
+   423→   423→                onClick={() => {
+   424→   424→                  toggleLocale();
+   425→   425→                  toast.success(locale === 'ar' ? t('lang.changedToEn', locale) : t('lang.changedToAr', locale));
+   426→   426→                }}
+   427→   427→                aria-label={t('header.changeLanguage', locale)}
+   428→   428→                className="flex h-9 items-center gap-1.5 rounded-lg
+   429→   429→                  border border-[#2A2A38] bg-[#1A1A24]/80 px-2.5
+   430→   430→                  text-xs font-semibold text-[#C4C4D4]
+   431→   431→                  transition-all duration-200
+   432→   432→                  hover:scale-[1.02] hover:border-[#D4A574]/40 hover:text-[#D4A574]
+   433→   433→                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A574]/50
+   434→   434→                  active:scale-[0.98]"
+   435→   435→              >
+   436→   436→                <Globe size={16} strokeWidth={1.8} />
+   437→   437→                <span className="hidden sm:inline">{locale === 'ar' ? 'AR' : 'EN'}</span>
+   438→   438→              </button>
+   439→   439→            </TooltipTrigger>
+   440→   440→            <TooltipContent
+   441→   441→              sideOffset={8}
+   442→   442→              className="rounded-lg border border-[#2A2A38] bg-[#1A1A24] px-3 py-1.5 text-xs text-[#C4C4D4] shadow-lg"
+   443→   443→            >
+   444→   444→              {locale === 'ar' ? 'English' : 'العربية'}
+   445→   445→            </TooltipContent>
+   446→   446→          </Tooltip>
+   447→   447→
+   448→   448→          {/* Settings → settings */}
+   449→   449→          <HeaderButton
+   450→   450→            icon={Settings}
+   451→   451→            label={t('header.settings', locale)}
+   452→   452→            onClick={() => setActiveSection('settings')}
+   453→   453→          />
+   454→   454→
+   455→   455→          {/* Divider */}
+   456→   456→          <div className="mx-1 hidden h-5 w-px bg-[#2A2A38] sm:block" />
+   457→   457→
+   458→   458→          {/* Notification bell → notifications */}
+   459→   459→          <Tooltip>
+   460→   460→            <TooltipTrigger asChild>
+   461→   461→              <button
+   462→   462→                onClick={() => setActiveSection('notifications')}
+   463→   463→                aria-label={t('header.notifications', locale)}
+   464→   464→                className="relative ripple-effect glow-amber-sm flex h-9 w-9 shrink-0 items-center justify-center rounded-lg
+   465→   465→                  border border-[#2A2A38] bg-[#1A1A24]/80 text-[#C4C4D4]
+   466→   466→                  transition-all duration-200
+   467→   467→                  hover:scale-[1.02] hover:border-[#D4A574]/40 hover:text-[#D4A574]
+   468→   468→                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A574]/50
+   469→   469→                  active:scale-[0.98]"
+   470→   470→              >
+   471→   471→                <span className={unreadCount > 0 ? 'animate-bell-ring' : ''}>
+   472→   472→                  <Bell size={18} strokeWidth={1.8} />
+   473→   473→                </span>
+   474→   474→                {/* Dynamic notification count badge with pulse ring */}
+   475→   475→                {unreadCount > 0 && (
+   476→   476→                  <span className="absolute -top-1 -left-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white px-1 tabular-nums shadow-lg animate-badge-pulse-ring">
+   477→   477→                    {unreadCount > 99 ? '99+' : unreadCount}
+   478→   478→                  </span>
+   479→   479→                )}
+   480→   480→              </button>
+   481→   481→            </TooltipTrigger>
+   482→   482→            <TooltipContent
+   483→   483→              sideOffset={8}
+   484→   484→              className="rounded-lg border border-[#2A2A38] bg-[#1A1A24] px-3 py-1.5 text-xs text-[#C4C4D4] shadow-lg"
+   485→   485→            >
+   486→   486→              {t('header.notifications', locale)} {unreadCount > 0 && `(${unreadCount})`}
+   487→   487→            </TooltipContent>
+   488→   488→          </Tooltip>
+   489→   489→
+   490→   490→          {/* ----------------------------------------------------------------- */}
+   491→   491→          {/* User Profile Dropdown */}
+   492→   492→          {/* ----------------------------------------------------------------- */}
+   493→   493→          <DropdownMenu dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+   494→   494→            <DropdownMenuTrigger asChild>
+   495→   495→              <button
+   496→   496→                aria-label={t('header.userMenu', locale)}
+   497→   497→                className="flex items-center gap-2 rounded-lg
+   498→   498→                  border border-[#2A2A38] bg-[#1A1A24]/80 py-1.5 pl-2 pr-3
+   499→   499→                  transition-all duration-200
+   500→   500→                  hover:scale-[1.02] hover:border-[#D4A574]/40
+   501→   501→                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A574]/50
+   502→   502→                  active:scale-[0.98]"
+   503→   503→              >
+   504→   504→                {/* Avatar circle */}
+   505→   505→                <span
+   506→   506→                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-[#1A1A24]"
+   507→   507→                  style={{
+   508→   508→                    background:
+   509→   509→                      'linear-gradient(135deg, #D4A574 0%, #E8C9A0 60%, #D4A574 100%)',
+   510→   510→                  }}
+   511→   511→                >
+   512→   512→                  {locale === 'ar' ? 'أم' : 'AM'}
+   513→   513→                </span>
+   514→   514→
+   515→   515→                {/* Name (hidden on small screens) */}
+   516→   516→                <span className="hidden text-sm font-medium text-[#E4E4EC] sm:block">
+   517→   517→                  {locale === 'ar' ? 'أحمد محمد' : 'Ahmed Mohamed'}
+   518→   518→                </span>
+   519→   519→
+   520→   520→                {/* Dropdown chevron */}
+   521→   521→                <ChevronDown
+   522→   522→                  size={14}
+   523→   523→                  strokeWidth={2}
+   524→   524→                  className="hidden text-[#8B8B9E] sm:block"
+   525→   525→                />
+   526→   526→              </button>
+   527→   527→            </DropdownMenuTrigger>
+   528→   528→            <DropdownMenuContent
+   529→   529→              sideOffset={8}
+   530→   530→              align="start"
+   531→   531→              className="w-60 rounded-xl border border-[#2A2A38] bg-[#1A1A24]/95 backdrop-blur-xl p-1.5 shadow-2xl shadow-black/40"
+   532→   532→            >
+   533→   533→              {/* User info header */}
+   534→   534→              <DropdownMenuLabel className="px-3 py-2.5">
+   535→   535→                <div className="flex items-center gap-3">
+   536→   536→                  <span
+   537→   537→                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-[#1A1A24] ring-2 ring-[#D4A574]/20"
+   538→   538→                    style={{
+   539→   539→                      background:
+   540→   540→                        'linear-gradient(135deg, #D4A574 0%, #E8C9A0 60%, #D4A574 100%)',
+   541→   541→                    }}
+   542→   542→                  >
+   543→   543→                    {locale === 'ar' ? 'أم' : 'AM'}
+   544→   544→                  </span>
+   545→   545→                  <div className="flex flex-col gap-0.5">
+   546→   546→                    <span className="text-sm font-semibold text-[#E4E4EC]">
+   547→   547→                      {locale === 'ar' ? 'أحمد محمد' : 'Ahmed Mohamed'}
+   548→   548→                    </span>
+   549→   549→                    <span className="text-xs text-[#D4A574]/70 flex items-center gap-1">
+   550→   550→                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+   551→   551→                      {t('header.admin', locale)}
+   552→   552→                    </span>
+   553→   553→                  </div>
+   554→   554→                </div>
+   555→   555→              </DropdownMenuLabel>
+   556→   556→
+   557→   557→              <DropdownMenuSeparator className="bg-[#2A2A38] my-1" />
+   558→   558→
+   559→   559→              {/* Profile — disabled / coming soon */}
+   560→   560→              <DropdownMenuItem
+   561→   561→                disabled
+   562→   562→                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-[#C4C4D4] cursor-default data-[disabled]:opacity-40"
+   563→   563→              >
+   564→   564→                <User size={16} strokeWidth={1.8} className="text-[#8B8B9E]" />
+   565→   565→                <span>{t('header.profile', locale)}</span>
+   566→   566→                <span className="mr-auto text-[10px] text-[#5A5A6E]">{t('header.comingSoon', locale)}</span>
+   567→   567→              </DropdownMenuItem>
+   568→   568→
+   569→   569→              {/* Settings */}
+   570→   570→              <DropdownMenuItem
+   571→   571→                onSelect={() => setActiveSection('settings')}
+   572→   572→                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-[#C4C4D4] transition-colors duration-150 hover:bg-[#22222E] hover:text-[#D4A574] focus:bg-[#22222E] focus:text-[#D4A574] cursor-pointer"
+   573→   573→              >
+   574→   574→                <Settings size={16} strokeWidth={1.8} className="text-[#8B8B9E]" />
+   575→   575→                <span>{t('header.settings', locale)}</span>
+   576→   576→              </DropdownMenuItem>
+   577→   577→
+   578→   578→              {/* Notifications */}
+   579→   579→              <DropdownMenuItem
+   580→   580→                onSelect={() => setActiveSection('notifications')}
+   581→   581→                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-[#C4C4D4] transition-colors duration-150 hover:bg-[#22222E] hover:text-[#D4A574] focus:bg-[#22222E] focus:text-[#D4A574] cursor-pointer"
+   582→   582→              >
+   583→   583→                <Bell size={16} strokeWidth={1.8} className="text-[#8B8B9E]" />
+   584→   584→                <span>{t('header.notifications', locale)}</span>
+   585→   585→                {unreadCount > 0 && (
+   586→   586→                  <span className="mr-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500/90 text-[9px] font-bold text-white px-1">
+   587→   587→                    {unreadCount}
+   588→   588→                  </span>
+   589→   589→                )}
+   590→   590→              </DropdownMenuItem>
+   591→   591→
+   592→   592→              <DropdownMenuSeparator className="bg-[#2A2A38] my-1" />
+   593→   593→
+   594→   594→              {/* Logout */}
+   595→   595→              <DropdownMenuItem
+   596→   596→                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-red-400/80 transition-colors duration-150 hover:bg-red-500/10 hover:text-red-400 focus:bg-red-500/10 focus:text-red-400 cursor-pointer"
+   597→   597→              >
+   598→   598→                <LogOut size={16} strokeWidth={1.8} />
+   599→   599→                <span>{t('header.logout', locale)}</span>
+   600→   600→              </DropdownMenuItem>
+   601→   601→            </DropdownMenuContent>
+   602→   602→          </DropdownMenu>
+   603→   603→        </div>
+   604→   604→      </header>
+   605→   605→
+   606→   606→      {/* ----------------------------------------------------------------- */}
+   607→   607→      {/* Bottom gradient line (amber that fades out at edges) */}
+   608→   608→      {/* ----------------------------------------------------------------- */}
+   609→   609→      <div
+   610→   610→        dir="rtl"
+   611→   611→        className={`
+   612→   612→          fixed top-16 inset-x-0 z-30 pointer-events-none
+   613→   613→          transition-all duration-300 ease-in-out
+   614→   614→          ${sidebarOpen ? 'mr-60' : 'mr-[72px]'}
+   615→   615→        `}
+   616→   616→      >
+   617→   617→        <div
+   618→   618→          className="h-px"
+   619→   619→          style={{
+   620→   620→            background: 'linear-gradient(to left, transparent, #D4A574 25%, #E8C9A8 50%, #D4A574 75%, transparent)',
+   621→   621→            opacity: 0.35,
+   622→   622→          }}
+   623→   623→        />
+   624→   624→        <div
+   625→   625→          className="h-[2px]"
+   626→   626→          style={{
+   627→   627→            background: 'linear-gradient(to left, transparent, rgba(212,165,116,0.08) 30%, rgba(212,165,116,0.15) 50%, rgba(212,165,116,0.08) 70%, transparent)',
+   628→   628→          }}
+   629→   629→        />
+   630→   630→      </div>
+   631→   631→    </>
+   632→   632→  );
+   633→   633→}
+   634→   634→

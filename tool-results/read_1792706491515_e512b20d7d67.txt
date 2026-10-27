@@ -1,0 +1,669 @@
+     1→'use client';
+     2→
+     3→import { useState, useEffect, useCallback, useMemo } from 'react';
+     4→import {
+     5→  Camera,
+     6→  Video,
+     7→  Maximize2,
+     8→  Grid3X3,
+     9→  Grid2X2,
+    10→  Monitor,
+    11→  Minimize2,
+    12→  Users,
+    13→  UserCheck,
+    14→  Circle,
+    15→  Eye,
+    16→  Clock,
+    17→  Wifi,
+    18→  WifiOff,
+    19→  ChevronLeft,
+    20→  RefreshCw,
+    21→} from 'lucide-react';
+    22→import { useAppStore } from '@/lib/store';
+    23→import type { ClassRoom, Teacher } from '@/lib/types';
+    24→
+    25→// ---------------------------------------------------------------------------
+    26→// Types
+    27→// ---------------------------------------------------------------------------
+    28→
+    29→type ViewMode = 'grid-2x2' | 'grid-3x3' | 'single';
+    30→type CameraStatus = 'online' | 'offline' | 'recording';
+    31→
+    32→interface CameraFeed {
+    33→  id: string;
+    34→  classId: string;
+    35→  className: string;
+    36→  grade: string;
+    37→  room: string;
+    38→  teacherName: string;
+    39→  studentCount: number;
+    40→  status: CameraStatus;
+    41→  sessionActive: boolean;
+    42→  lastMotion: string;
+    43→}
+    44→
+    45→// ---------------------------------------------------------------------------
+    46→// Helpers
+    47→// ---------------------------------------------------------------------------
+    48→
+    49→function formatTime(date: Date): string {
+    50→  return date.toLocaleTimeString('ar-SA', {
+    51→    hour: '2-digit',
+    52→    minute: '2-digit',
+    53→    second: '2-digit',
+    54→    hour12: false,
+    55→  });
+    56→}
+    57→
+    58→function formatDate(date: Date): string {
+    59→  return date.toLocaleDateString('ar-SA', {
+    60→    weekday: 'long',
+    61→    year: 'numeric',
+    62→    month: 'long',
+    63→    day: 'numeric',
+    64→  });
+    65→}
+    66→
+    67→// ---------------------------------------------------------------------------
+    68→// Simulated Camera Feed Patterns (CSS-based)
+    69→// ---------------------------------------------------------------------------
+    70→
+    71→function CameraFeedArea({ className, patternIndex }: { className?: string; patternIndex: number }) {
+    72→  const patterns = [
+    73→    // Static noise pattern
+    74→    'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.015) 2px, rgba(255,255,255,0.015) 4px), repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,0.01) 2px, rgba(255,255,255,0.01) 4px)',
+    75→    // Grid lines pattern
+    76→    'repeating-linear-gradient(0deg, transparent, transparent 24px, rgba(212,165,116,0.04) 24px, rgba(212,165,116,0.04) 25px), repeating-linear-gradient(90deg, transparent, transparent 24px, rgba(212,165,116,0.04) 24px, rgba(212,165,116,0.04) 25px)',
+    77→    // Diagonal scan lines
+    78→    'repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,255,255,0.012) 3px, rgba(255,255,255,0.012) 6px)',
+    79→    // Horizontal scan lines
+    80→    'repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(212,165,116,0.02) 1px, rgba(212,165,116,0.02) 2px)',
+    81→    // Cross-hatch pattern
+    82→    'repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.01) 8px, rgba(255,255,255,0.01) 9px), repeating-linear-gradient(-45deg, transparent, transparent 8px, rgba(255,255,255,0.01) 8px, rgba(255,255,255,0.01) 9px)',
+    83→    // Fine grid
+    84→    'repeating-linear-gradient(0deg, transparent, transparent 16px, rgba(212,165,116,0.03) 16px, rgba(212,165,116,0.03) 17px), repeating-linear-gradient(90deg, transparent, transparent 16px, rgba(212,165,116,0.03) 16px, rgba(212,165,116,0.03) 17px)',
+    85→    // Dot matrix
+    86→    'radial-gradient(circle, rgba(255,255,255,0.02) 1px, transparent 1px)',
+    87→    // Vignette with scan
+    88→    'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.008) 2px, rgba(255,255,255,0.008) 3px)',
+    89→  ];
+    90→
+    91→  const baseColors = [
+    92→    'rgba(10, 10, 18, 1)',
+    93→    'rgba(12, 12, 22, 1)',
+    94→    'rgba(8, 10, 16, 1)',
+    95→    'rgba(14, 12, 20, 1)',
+    96→    'rgba(10, 14, 18, 1)',
+    97→    'rgba(12, 8, 16, 1)',
+    98→    'rgba(16, 12, 10, 1)',
+    99→    'rgba(10, 16, 14, 1)',
+   100→    'rgba(14, 10, 12, 1)',
+   101→  ];
+   102→
+   103→  return (
+   104→    <div
+   105→      className={className}
+   106→      style={{
+   107→        background: `${baseColors[patternIndex % baseColors.length]}, ${patterns[patternIndex % patterns.length]}`,
+   108→        backgroundSize: patternIndex === 6 ? '8px 8px' : undefined,
+   109→      }}
+   110→    />
+   111→  );
+   112→}
+   113→
+   114→// ---------------------------------------------------------------------------
+   115→// Single Camera View
+   116→// ---------------------------------------------------------------------------
+   117→
+   118→function CameraView({
+   119→  feed,
+   120→  isExpanded,
+   121→  onClick,
+   122→  currentTimestamp,
+   123→}: {
+   124→  feed: CameraFeed;
+   125→  isExpanded: boolean;
+   126→  onClick: () => void;
+   127→  currentTimestamp: Date;
+   128→}) {
+   129→  const isOnline = feed.status !== 'offline';
+   130→
+   131→  return (
+   132→    <div
+   133→      className={`
+   134→        group relative overflow-hidden rounded-xl cursor-pointer
+   135→        transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
+   136→        border border-white/[0.06]
+   137→        ${isExpanded ? 'col-span-full row-span-full' : ''}
+   138→        hover:border-[#D4A574]/20 hover:shadow-[0_0_20px_rgba(212,165,116,0.06)]
+   139→      `}
+   140→      onClick={onClick}
+   141→      role="button"
+   142→      tabIndex={0}
+   143→      aria-label={`كاميرا ${feed.className}`}
+   144→      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
+   145→    >
+   146→      {/* Simulated Video Feed Area */}
+   147→      <div className={`relative ${isExpanded ? 'aspect-video' : 'aspect-video'} w-full`}>
+   148→        <CameraFeedArea
+   149→          className="absolute inset-0"
+   150→          patternIndex={parseInt(feed.id.slice(-1), 16) % 8}
+   151→        />
+   152→
+   153→        {/* Scan line animation overlay */}
+   154→        {isOnline && (
+   155→          <div
+   156→            className="absolute inset-0 pointer-events-none animate-scan-line opacity-30"
+   157→            style={{
+   158→              background: 'linear-gradient(180deg, transparent 0%, rgba(212,165,116,0.03) 50%, transparent 100%)',
+   159→              backgroundSize: '100% 8px',
+   160→            }}
+   161→          />
+   162→        )}
+   163→
+   164→        {/* Vignette effect */}
+   165→        <div
+   166→          className="absolute inset-0 pointer-events-none"
+   167→          style={{
+   168→            background: 'radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.4) 100%)',
+   169→          }}
+   170→        />
+   171→
+   172→        {/* ── Top Overlay ── */}
+   173→        <div className="absolute top-0 right-0 left-0 p-2.5 flex items-start justify-between">
+   174→          {/* LIVE Badge */}
+   175→          <div className="flex items-center gap-2">
+   176→            {isOnline ? (
+   177→              <div className="flex items-center gap-1.5 bg-red-600/90 backdrop-blur-sm rounded-md px-2 py-0.5 shadow-[0_0_8px_rgba(239,68,68,0.4)]">
+   178→                <span className="relative flex h-2 w-2">
+   179→                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-300 opacity-75" />
+   180→                  <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
+   181→                </span>
+   182→                <span className="text-[10px] font-bold text-white tracking-wider">مباشر</span>
+   183→              </div>
+   184→            ) : (
+   185→              <div className="flex items-center gap-1.5 bg-slate-700/80 backdrop-blur-sm rounded-md px-2 py-0.5">
+   186→                <WifiOff size={10} className="text-slate-400" />
+   187→                <span className="text-[10px] font-bold text-slate-400 tracking-wider">غير متصل</span>
+   188→              </div>
+   189→            )}
+   190→
+   191→            {/* Recording indicator */}
+   192→            {feed.status === 'recording' && (
+   193→              <div className="flex items-center gap-1 bg-amber-600/80 backdrop-blur-sm rounded-md px-1.5 py-0.5">
+   194→                <Circle size={8} className="text-amber-200 fill-amber-200 animate-pulse" />
+   195→                <span className="text-[9px] font-bold text-amber-200">REC</span>
+   196→              </div>
+   197→            )}
+   198→          </div>
+   199→
+   200→          {/* Camera ID */}
+   201→          <div className="bg-black/50 backdrop-blur-sm rounded-md px-1.5 py-0.5">
+   202→            <span className="text-[9px] font-mono text-slate-400">CAM-{feed.room}</span>
+   203→          </div>
+   204→        </div>
+   205→
+   206→        {/* ── Bottom Overlay ── */}
+   207→        <div className="absolute bottom-0 right-0 left-0 p-2.5">
+   208→          {/* Gradient fade for readability */}
+   209→          <div
+   210→            className="absolute inset-0 pointer-events-none"
+   211→            style={{
+   212→              background: 'linear-gradient(0deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 60%, transparent 100%)',
+   213→            }}
+   214→          />
+   215→
+   216→          <div className="relative space-y-1">
+   217→            {/* Class Name */}
+   218→            <div className="flex items-center gap-2">
+   219→              <Camera size={12} className="text-[#D4A574]" />
+   220→              <span className="text-xs font-bold text-white">{feed.className}</span>
+   221→              <span className="text-[10px] text-slate-400">— {feed.room}</span>
+   222→            </div>
+   223→
+   224→            {/* Teacher & Students row */}
+   225→            <div className="flex items-center gap-3 text-[10px]">
+   226→              <div className="flex items-center gap-1">
+   227→                <UserCheck size={10} className="text-emerald-400" />
+   228→                <span className="text-slate-300">{feed.teacherName}</span>
+   229→              </div>
+   230→              <div className="flex items-center gap-1">
+   231→                <Users size={10} className="text-[#D4A574]" />
+   232→                <span className="text-slate-300">{feed.studentCount} طالب</span>
+   233→              </div>
+   234→            </div>
+   235→
+   236→            {/* Session Status */}
+   237→            <div className="flex items-center gap-2">
+   238→              {feed.sessionActive ? (
+   239→                <div className="flex items-center gap-1">
+   240→                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+   241→                  <span className="text-[10px] font-medium text-emerald-400">نشط</span>
+   242→                </div>
+   243→              ) : (
+   244→                <div className="flex items-center gap-1">
+   245→                  <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />
+   246→                  <span className="text-[10px] font-medium text-slate-500">غير نشط</span>
+   247→                </div>
+   248→              )}
+   249→            </div>
+   250→          </div>
+   251→        </div>
+   252→
+   253→        {/* ── Timestamp overlay (bottom-left in RTL = bottom-right visually) ── */}
+   254→        <div className="absolute bottom-2.5 left-2.5 bg-black/60 backdrop-blur-sm rounded-md px-1.5 py-0.5">
+   255→          <div className="flex items-center gap-1">
+   256→            <Clock size={9} className="text-[#D4A574]" />
+   257→            <span className="text-[9px] font-mono text-slate-300">{formatTime(currentTimestamp)}</span>
+   258→          </div>
+   259→        </div>
+   260→
+   261→        {/* ── Hover overlay with expand icon ── */}
+   262→        <div
+   263→          className="
+   264→            absolute inset-0 flex items-center justify-center
+   265→            bg-black/0 transition-all duration-300
+   266→            group-hover:bg-black/20
+   267→          "
+   268→        >
+   269→          <div
+   270→            className="
+   271→              flex items-center gap-2 rounded-lg bg-[#D4A574]/0 px-3 py-1.5
+   272→              text-[#D4A574]/0 transition-all duration-300
+   273→              group-hover:bg-[#D4A574]/15 group-hover:text-[#D4A574]
+   274→              backdrop-blur-sm
+   275→            "
+   276→          >
+   277→            {isExpanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+   278→            <span className="text-xs font-medium">{isExpanded ? 'تصغير' : 'توسيع'}</span>
+   279→          </div>
+   280→        </div>
+   281→      </div>
+   282→    </div>
+   283→  );
+   284→}
+   285→
+   286→// ---------------------------------------------------------------------------
+   287→// Main Classroom Camera Component
+   288→// ---------------------------------------------------------------------------
+   289→
+   290→export default function ClassroomCamera() {
+   291→  const { classes, teachers } = useAppStore();
+   292→
+   293→  // ── State ──
+   294→  const [viewMode, setViewMode] = useState<ViewMode>('grid-2x2');
+   295→  const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
+   296→  const [currentTimestamp, setCurrentTimestamp] = useState<Date>(new Date());
+   297→  const [isRefreshing, setIsRefreshing] = useState(false);
+   298→
+   299→  // ── Live timestamp update ──
+   300→  useEffect(() => {
+   301→    const interval = setInterval(() => {
+   302→      setCurrentTimestamp(new Date());
+   303→    }, 1000);
+   304→    return () => clearInterval(interval);
+   305→  }, []);
+   306→
+   307→  // ── Build camera feeds from store data ──
+   308→  const cameraFeeds: CameraFeed[] = useMemo(() => {
+   309→    // If store has classes, use them; otherwise use defaults
+   310→    const classList = classes.length > 0 ? classes : defaultClasses;
+   311→
+   312→    return classList.map((cls, index) => {
+   313→      // Find teacher for this class
+   314→      const classTeacher = teachers.find((t) =>
+   315→        t.status === 'active' && cls.teacherNames?.includes(t.name)
+   316→      );
+   317→      // Fallback teacher
+   318→      const teacherName = classTeacher?.name || cls.teacherNames?.[0] || defaultTeachers[index % defaultTeachers.length].name;
+   319→
+   320→      return {
+   321→        id: `cam-${cls.id}`,
+   322→        classId: cls.id,
+   323→        className: cls.name,
+   324→        grade: cls.grade,
+   325→        room: cls.room || `ف-${index + 1}`,
+   326→        teacherName,
+   327→        studentCount: cls.studentCount || Math.floor(Math.random() * 15) + 20,
+   328→        status: (index % 5 === 4 ? 'offline' : index % 7 === 0 ? 'recording' : 'online') as CameraStatus,
+   329→        sessionActive: index % 3 !== 2,
+   330→        lastMotion: `منذ ${Math.floor(Math.random() * 30) + 1} ثانية`,
+   331→      };
+   332→    });
+   333→  }, [classes, teachers]);
+   334→
+   335→  // ── Handlers ──
+   336→  const handleCameraClick = useCallback((feedId: string) => {
+   337→    if (selectedCameraId === feedId) {
+   338→      setSelectedCameraId(null);
+   339→    } else {
+   340→      setSelectedCameraId(feedId);
+   341→      setViewMode('single');
+   342→    }
+   343→  }, [selectedCameraId]);
+   344→
+   345→  const handleBackToGrid = useCallback(() => {
+   346→    setSelectedCameraId(null);
+   347→    setViewMode('grid-2x2');
+   348→  }, []);
+   349→
+   350→  const handleRefresh = useCallback(() => {
+   351→    setIsRefreshing(true);
+   352→    setTimeout(() => setIsRefreshing(false), 1000);
+   353→  }, []);
+   354→
+   355→  // ── Grid layout classes ──
+   356→  const gridClasses = useMemo(() => {
+   357→    switch (viewMode) {
+   358→      case 'grid-3x3':
+   359→        return 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3';
+   360→      case 'grid-2x2':
+   361→        return 'grid-cols-1 sm:grid-cols-2';
+   362→      case 'single':
+   363→        return 'grid-cols-1';
+   364→      default:
+   365→        return 'grid-cols-1 sm:grid-cols-2';
+   366→    }
+   367→  }, [viewMode]);
+   368→
+   369→  // ── Visible feeds ──
+   370→  const visibleFeeds = useMemo(() => {
+   371→    if (viewMode === 'single' && selectedCameraId) {
+   372→      return cameraFeeds.filter((f) => f.id === selectedCameraId);
+   373→    }
+   374→    if (viewMode === 'grid-3x3') {
+   375→      return cameraFeeds.slice(0, 9);
+   376→    }
+   377→    return cameraFeeds.slice(0, 4);
+   378→  }, [viewMode, selectedCameraId, cameraFeeds]);
+   379→
+   380→  // ── Stats ──
+   381→  const onlineCount = cameraFeeds.filter((f) => f.status !== 'offline').length;
+   382→  const activeSessionCount = cameraFeeds.filter((f) => f.sessionActive).length;
+   383→  const totalStudents = cameraFeeds.reduce((sum, f) => sum + f.studentCount, 0);
+   384→
+   385→  return (
+   386→    <div dir="rtl" className="space-y-6">
+   387→      {/* ── Header ── */}
+   388→      <div className="glass-card-elevated rounded-2xl p-6">
+   389→        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+   390→          {/* Title section */}
+   391→          <div className="flex items-center gap-4">
+   392→            <div
+   393→              className="flex items-center justify-center h-12 w-12 rounded-xl shadow-lg"
+   394→              style={{
+   395→                background: 'linear-gradient(135deg, #D4A574 0%, #B07D4F 100%)',
+   396→                boxShadow: '0 4px 20px rgba(212,165,116,0.25)',
+   397→              }}
+   398→            >
+   399→              <Video size={24} className="text-white" />
+   400→            </div>
+   401→            <div>
+   402→              <h2 className="text-xl font-bold text-slate-100">مراقبة الفصول</h2>
+   403→              <p className="text-sm text-slate-400 mt-0.5">
+   404→                {formatDate(currentTimestamp)} — {formatTime(currentTimestamp)}
+   405→              </p>
+   406→            </div>
+   407→          </div>
+   408→
+   409→          {/* View Mode Toggle + Actions */}
+   410→          <div className="flex items-center gap-2 flex-wrap">
+   411→            {/* View mode buttons */}
+   412→            <div className="flex items-center gap-1 bg-white/[0.04] rounded-lg p-1 border border-white/[0.06]">
+   413→              <button
+   414→                onClick={() => { setViewMode('grid-2x2'); setSelectedCameraId(null); }}
+   415→                className={`
+   416→                  flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium
+   417→                  transition-all duration-200
+   418→                  ${viewMode === 'grid-2x2'
+   419→                    ? 'bg-[#D4A574]/15 text-[#D4A574] shadow-sm'
+   420→                    : 'text-slate-400 hover:text-slate-300 hover:bg-white/[0.04]'
+   421→                  }
+   422→                `}
+   423→                aria-label="عرض شبكة 2×2"
+   424→              >
+   425→                <Grid2X2 size={14} />
+   426→                <span>شبكة</span>
+   427→              </button>
+   428→              <button
+   429→                onClick={() => { setViewMode('grid-3x3'); setSelectedCameraId(null); }}
+   430→                className={`
+   431→                  flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium
+   432→                  transition-all duration-200
+   433→                  ${viewMode === 'grid-3x3'
+   434→                    ? 'bg-[#D4A574]/15 text-[#D4A574] shadow-sm'
+   435→                    : 'text-slate-400 hover:text-slate-300 hover:bg-white/[0.04]'
+   436→                  }
+   437→                `}
+   438→                aria-label="عرض شبكة 3×3"
+   439→              >
+   440→                <Grid3X3 size={14} />
+   441→                <span>موسع</span>
+   442→              </button>
+   443→              <button
+   444→                onClick={() => { setViewMode('single'); if (!selectedCameraId && cameraFeeds.length > 0) setSelectedCameraId(cameraFeeds[0].id); }}
+   445→                className={`
+   446→                  flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium
+   447→                  transition-all duration-200
+   448→                  ${viewMode === 'single'
+   449→                    ? 'bg-[#D4A574]/15 text-[#D4A574] shadow-sm'
+   450→                    : 'text-slate-400 hover:text-slate-300 hover:bg-white/[0.04]'
+   451→                  }
+   452→                `}
+   453→                aria-label="عرض مفرد"
+   454→              >
+   455→                <Monitor size={14} />
+   456→                <span>مفرد</span>
+   457→              </button>
+   458→            </div>
+   459→
+   460→            {/* Refresh button */}
+   461→            <button
+   462→              onClick={handleRefresh}
+   463→              disabled={isRefreshing}
+   464→              className="flex items-center justify-center h-9 w-9 rounded-lg border border-white/[0.06]
+   465→                bg-white/[0.04] text-slate-400 transition-all duration-200
+   466→                hover:text-[#D4A574] hover:bg-[#D4A574]/10 hover:border-[#D4A574]/20
+   467→                disabled:opacity-50"
+   468→              aria-label="تحديث"
+   469→            >
+   470→              <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
+   471→            </button>
+   472→          </div>
+   473→        </div>
+   474→
+   475→        {/* ── Stats Bar ── */}
+   476→        <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
+   477→          <div className="flex items-center gap-2.5 bg-white/[0.03] rounded-lg px-3 py-2.5 border border-white/[0.04]">
+   478→            <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#D4A574]/10">
+   479→              <Camera size={16} className="text-[#D4A574]" />
+   480→            </div>
+   481→            <div>
+   482→              <p className="text-lg font-bold text-slate-100 tabular-nums">{cameraFeeds.length}</p>
+   483→              <p className="text-[10px] text-slate-500">إجمالي الكاميرات</p>
+   484→            </div>
+   485→          </div>
+   486→
+   487→          <div className="flex items-center gap-2.5 bg-white/[0.03] rounded-lg px-3 py-2.5 border border-white/[0.04]">
+   488→            <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-emerald-500/10">
+   489→              <Wifi size={16} className="text-emerald-400" />
+   490→            </div>
+   491→            <div>
+   492→              <p className="text-lg font-bold text-emerald-400 tabular-nums">{onlineCount}</p>
+   493→              <p className="text-[10px] text-slate-500">متصل</p>
+   494→            </div>
+   495→          </div>
+   496→
+   497→          <div className="flex items-center gap-2.5 bg-white/[0.03] rounded-lg px-3 py-2.5 border border-white/[0.04]">
+   498→            <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-blue-500/10">
+   499→              <Eye size={16} className="text-blue-400" />
+   500→            </div>
+   501→            <div>
+   502→              <p className="text-lg font-bold text-blue-400 tabular-nums">{activeSessionCount}</p>
+   503→              <p className="text-[10px] text-slate-500">جلسة نشطة</p>
+   504→            </div>
+   505→          </div>
+   506→
+   507→          <div className="flex items-center gap-2.5 bg-white/[0.03] rounded-lg px-3 py-2.5 border border-white/[0.04]">
+   508→            <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-amber-500/10">
+   509→              <Users size={16} className="text-amber-400" />
+   510→            </div>
+   511→            <div>
+   512→              <p className="text-lg font-bold text-amber-400 tabular-nums">{totalStudents}</p>
+   513→              <p className="text-[10px] text-slate-500">طالب مراقب</p>
+   514→            </div>
+   515→          </div>
+   516→        </div>
+   517→      </div>
+   518→
+   519→      {/* ── Single View: Back button + Classroom selector ── */}
+   520→      {viewMode === 'single' && (
+   521→        <div className="flex items-center gap-3 flex-wrap">
+   522→          <button
+   523→            onClick={handleBackToGrid}
+   524→            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/[0.04] border border-white/[0.06]
+   525→              text-sm text-slate-300 transition-all duration-200
+   526→              hover:bg-[#D4A574]/10 hover:text-[#D4A574] hover:border-[#D4A574]/20"
+   527→          >
+   528→            <ChevronLeft size={16} />
+   529→            <span>العودة للشبكة</span>
+   530→          </button>
+   531→
+   532→          {/* Classroom quick-select dropdown */}
+   533→          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+   534→            {cameraFeeds.map((feed) => (
+   535→              <button
+   536→                key={feed.id}
+   537→                onClick={() => setSelectedCameraId(feed.id)}
+   538→                className={`
+   539→                  shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium
+   540→                  transition-all duration-200 border
+   541→                  ${selectedCameraId === feed.id
+   542→                    ? 'bg-[#D4A574]/15 text-[#D4A574] border-[#D4A574]/30'
+   543→                    : 'bg-white/[0.03] text-slate-400 border-white/[0.06] hover:text-slate-300 hover:bg-white/[0.06]'
+   544→                  }
+   545→                `}
+   546→              >
+   547→                {feed.className}
+   548→              </button>
+   549→            ))}
+   550→          </div>
+   551→        </div>
+   552→      )}
+   553→
+   554→      {/* ── Camera Grid ── */}
+   555→      <div className={`grid gap-4 ${gridClasses}`}>
+   556→        {visibleFeeds.map((feed) => (
+   557→          <CameraView
+   558→            key={feed.id}
+   559→            feed={feed}
+   560→            isExpanded={viewMode === 'single' && selectedCameraId === feed.id}
+   561→            onClick={() => handleCameraClick(feed.id)}
+   562→            currentTimestamp={currentTimestamp}
+   563→          />
+   564→        ))}
+   565→      </div>
+   566→
+   567→      {/* ── Expanded Camera Details (shown in single view) ── */}
+   568→      {viewMode === 'single' && selectedCameraId && (
+   569→        <div className="glass-card rounded-2xl p-6 space-y-4">
+   570→          {(() => {
+   571→            const feed = cameraFeeds.find((f) => f.id === selectedCameraId);
+   572→            if (!feed) return null;
+   573→            return (
+   574→              <>
+   575→                <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
+   576→                  <Camera size={18} className="text-[#D4A574]" />
+   577→                  تفاصيل الكاميرا — {feed.className}
+   578→                </h3>
+   579→                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+   580→                  <DetailItem label="الفصل" value={feed.className} />
+   581→                  <DetailItem label="المرحلة" value={feed.grade} />
+   582→                  <DetailItem label="القاعة" value={feed.room} />
+   583→                  <DetailItem label="المعلم" value={feed.teacherName} />
+   584→                  <DetailItem label="عدد الطلاب" value={`${feed.studentCount} طالب`} />
+   585→                  <DetailItem label="الحالة" value={feed.status === 'online' ? 'متصل' : feed.status === 'recording' ? 'يسجّل' : 'غير متصل'} statusColor={feed.status === 'online' ? 'emerald' : feed.status === 'recording' ? 'amber' : 'slate'} />
+   586→                  <DetailItem label="الجلسة" value={feed.sessionActive ? 'نشطة' : 'غير نشطة'} statusColor={feed.sessionActive ? 'emerald' : 'slate'} />
+   587→                  <DetailItem label="آخر حركة" value={feed.lastMotion} />
+   588→                </div>
+   589→              </>
+   590→            );
+   591→          })()}
+   592→        </div>
+   593→      )}
+   594→
+   595→      {/* ── Offline Cameras Warning ── */}
+   596→      {cameraFeeds.some((f) => f.status === 'offline') && (
+   597→        <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
+   598→          <WifiOff size={18} className="text-amber-400 shrink-0" />
+   599→          <div>
+   600→            <p className="text-sm font-medium text-amber-300">
+   601→              {cameraFeeds.filter((f) => f.status === 'offline').length} كاميرا غير متصلة
+   602→            </p>
+   603→            <p className="text-xs text-amber-400/70 mt-0.5">
+   604→              يرجى التحقق من اتصال الكاميرات في الفصول المتأثرة
+   605→            </p>
+   606→          </div>
+   607→        </div>
+   608→      )}
+   609→    </div>
+   610→  );
+   611→}
+   612→
+   613→// ---------------------------------------------------------------------------
+   614→// Detail Item Sub-component
+   615→// ---------------------------------------------------------------------------
+   616→
+   617→function DetailItem({
+   618→  label,
+   619→  value,
+   620→  statusColor,
+   621→}: {
+   622→  label: string;
+   623→  value: string;
+   624→  statusColor?: 'emerald' | 'amber' | 'slate';
+   625→}) {
+   626→  const colorMap = {
+   627→    emerald: 'text-emerald-400',
+   628→    amber: 'text-amber-400',
+   629→    slate: 'text-slate-400',
+   630→  };
+   631→
+   632→  return (
+   633→    <div className="space-y-1">
+   634→      <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">{label}</p>
+   635→      <p className={`text-sm font-semibold ${statusColor ? colorMap[statusColor] : 'text-slate-200'}`}>
+   636→        {value}
+   637→      </p>
+   638→    </div>
+   639→  );
+   640→}
+   641→
+   642→// ---------------------------------------------------------------------------
+   643→// Default Data (used when store is empty)
+   644→// ---------------------------------------------------------------------------
+   645→
+   646→const defaultClasses: ClassRoom[] = [
+   647→  { id: 'c1', name: 'الصف الأول - أ', grade: 'الأول', room: '101', notes: '', createdAt: '', updatedAt: '', studentCount: 28, teacherNames: ['أحمد السعيد'] },
+   648→  { id: 'c2', name: 'الصف الثاني - ب', grade: 'الثاني', room: '102', notes: '', createdAt: '', updatedAt: '', studentCount: 32, teacherNames: ['فاطمة العلي'] },
+   649→  { id: 'c3', name: 'الصف الثالث - أ', grade: 'الثالث', room: '103', notes: '', createdAt: '', updatedAt: '', studentCount: 25, teacherNames: ['خالد المنصور'] },
+   650→  { id: 'c4', name: 'الصف الرابع - ب', grade: 'الرابع', room: '201', notes: '', createdAt: '', updatedAt: '', studentCount: 30, teacherNames: ['نورة الحسن'] },
+   651→  { id: 'c5', name: 'الصف الخامس - أ', grade: 'الخامس', room: '202', notes: '', createdAt: '', updatedAt: '', studentCount: 27, teacherNames: ['عمر الخالد'] },
+   652→  { id: 'c6', name: 'الصف السادس - أ', grade: 'السادس', room: '203', notes: '', createdAt: '', updatedAt: '', studentCount: 29, teacherNames: ['سارة الوالي'] },
+   653→  { id: 'c7', name: 'الصف الأول - ب', grade: 'الأول', room: '104', notes: '', createdAt: '', updatedAt: '', studentCount: 26, teacherNames: ['يوسف الراشد'] },
+   654→  { id: 'c8', name: 'الصف الثاني - أ', grade: 'الثاني', room: '105', notes: '', createdAt: '', updatedAt: '', studentCount: 31, teacherNames: ['ليلى القاسم'] },
+   655→  { id: 'c9', name: 'الصف الثالث - ب', grade: 'الثالث', room: '204', notes: '', createdAt: '', updatedAt: '', studentCount: 24, teacherNames: ['ماجد الطارق'] },
+   656→];
+   657→
+   658→const defaultTeachers: Teacher[] = [
+   659→  { id: 't1', name: 'أحمد السعيد', subject: 'الرياضيات', status: 'active', permissions: 'teacher', avatar: '', email: '', phone: '', createdAt: '', updatedAt: '' },
+   660→  { id: 't2', name: 'فاطمة العلي', subject: 'اللغة العربية', status: 'active', permissions: 'teacher', avatar: '', email: '', phone: '', createdAt: '', updatedAt: '' },
+   661→  { id: 't3', name: 'خالد المنصور', subject: 'العلوم', status: 'active', permissions: 'teacher', avatar: '', email: '', phone: '', createdAt: '', updatedAt: '' },
+   662→  { id: 't4', name: 'نورة الحسن', subject: 'اللغة الإنجليزية', status: 'active', permissions: 'teacher', avatar: '', email: '', phone: '', createdAt: '', updatedAt: '' },
+   663→  { id: 't5', name: 'عمر الخالد', subject: 'التربية الإسلامية', status: 'active', permissions: 'teacher', avatar: '', email: '', phone: '', createdAt: '', updatedAt: '' },
+   664→  { id: 't6', name: 'سارة الوالي', subject: 'التاريخ', status: 'active', permissions: 'teacher', avatar: '', email: '', phone: '', createdAt: '', updatedAt: '' },
+   665→  { id: 't7', name: 'يوسف الراشد', subject: 'الجغرافيا', status: 'active', permissions: 'teacher', avatar: '', email: '', phone: '', createdAt: '', updatedAt: '' },
+   666→  { id: 't8', name: 'ليلى القاسم', subject: 'الفنون', status: 'active', permissions: 'teacher', avatar: '', email: '', phone: '', createdAt: '', updatedAt: '' },
+   667→  { id: 't9', name: 'ماجد الطارق', subject: 'الحاسب الآلي', status: 'active', permissions: 'teacher', avatar: '', email: '', phone: '', createdAt: '', updatedAt: '' },
+   668→];
+   669→
