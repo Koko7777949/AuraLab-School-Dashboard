@@ -110,16 +110,16 @@ const TYPE_CONFIG = {
 
 function generateMockBehaviors(): BehaviorRecord[] {
   const students = [
-    { id: 'std-001', name: 'أحمد محمد علي', classId: 'class-1', className: 'الصف الأول - أ' },
-    { id: 'std-002', name: 'فاطمة أحمد حسن', classId: 'class-2', className: 'الصف الأول - ب' },
-    { id: 'std-003', name: 'عبدالله خالد العتيبي', classId: 'class-3', className: 'الصف الثاني - أ' },
-    { id: 'std-004', name: 'نورة سعيد القحطاني', classId: 'class-1', className: 'الصف الأول - أ' },
-    { id: 'std-005', name: 'محمد عبدالرحمن الدوسري', classId: 'class-5', className: 'الصف الثالث - أ' },
-    { id: 'std-006', name: 'ريم فهد المطيري', classId: 'class-4', className: 'الصف الثاني - ب' },
-    { id: 'std-007', name: 'سلطان فيصل الشمري', classId: 'class-3', className: 'الصف الثاني - أ' },
-    { id: 'std-008', name: 'لطيفة عايض الحربي', classId: 'class-6', className: 'الصف الثالث - ب' },
-    { id: 'std-009', name: 'يزيد ناصر البقمي', classId: 'class-2', className: 'الصف الأول - ب' },
-    { id: 'std-010', name: 'سارة ماجد العنزي', classId: 'class-5', className: 'الصف الثالث - أ' },
+    { id: 'std-001', name: 'أحمد محمد علي', classId: 'cls-1', className: 'الصف الأول أ' },
+    { id: 'std-002', name: 'فاطمة أحمد حسن', classId: 'cls-2', className: 'الصف الأول ب' },
+    { id: 'std-003', name: 'عبدالله خالد العتيبي', classId: 'cls-3', className: 'الصف الثاني أ' },
+    { id: 'std-004', name: 'نورة سعيد القحطاني', classId: 'cls-1', className: 'الصف الأول أ' },
+    { id: 'std-005', name: 'محمد عبدالرحمن الدوسري', classId: 'cls-5', className: 'الصف الثالث أ' },
+    { id: 'std-006', name: 'ريم فهد المطيري', classId: 'cls-4', className: 'الصف الثاني ب' },
+    { id: 'std-007', name: 'سلطان فيصل الشمري', classId: 'cls-3', className: 'الصف الثاني أ' },
+    { id: 'std-008', name: 'لطيفة عايض الحربي', classId: 'cls-6', className: 'الصف الثالث ب' },
+    { id: 'std-009', name: 'يزيد ناصر البقمي', classId: 'cls-2', className: 'الصف الأول ب' },
+    { id: 'std-010', name: 'سارة ماجد العنزي', classId: 'cls-5', className: 'الصف الثالث أ' },
   ];
 
   const templates: {

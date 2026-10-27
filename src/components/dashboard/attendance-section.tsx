@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { create } from 'zustand';
 import { useAppStore } from '@/lib/store';
+import { useClassOptions } from '@/components/dashboard/use-class-options';
 import type { AttendanceRecord as AttendanceRecordType } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -83,11 +84,6 @@ export interface AttendanceRecord {
   createdAt: string;
 }
 
-interface ClassOption {
-  value: string;
-  label: string;
-}
-
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -137,14 +133,8 @@ const FILTER_STATUS_OPTIONS = [
   ...STATUS_OPTIONS,
 ];
 
-const CLASS_OPTIONS: ClassOption[] = [
-  { value: 'class-1', label: 'الصف الأول - أ' },
-  { value: 'class-2', label: 'الصف الأول - ب' },
-  { value: 'class-3', label: 'الصف الثاني - أ' },
-  { value: 'class-4', label: 'الصف الثاني - ب' },
-  { value: 'class-5', label: 'الصف الثالث - أ' },
-  { value: 'class-6', label: 'الصف الثالث - ب' },
-];
+// Class options are derived from the store's classes via useClassOptions()
+// so filters and the mark-attendance dialog always match real classes.
 
 const ARABIC_MONTHS = [
   'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
@@ -159,18 +149,18 @@ const ARABIC_DAYS = ['أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خ
 
 function generateMockAttendance(): AttendanceRecord[] {
   const students = [
-    { id: 'std-001', name: 'أحمد محمد علي', classId: 'class-1' },
-    { id: 'std-002', name: 'فاطمة أحمد حسن', classId: 'class-2' },
-    { id: 'std-003', name: 'عبدالله خالد العتيبي', classId: 'class-3' },
-    { id: 'std-004', name: 'نورة سعيد القحطاني', classId: 'class-1' },
-    { id: 'std-005', name: 'محمد عبدالرحمن الدوسري', classId: 'class-5' },
-    { id: 'std-006', name: 'ريم فهد المطيري', classId: 'class-4' },
-    { id: 'std-007', name: 'سلطان فيصل الشمري', classId: 'class-3' },
-    { id: 'std-008', name: 'لطيفة عايض الحربي', classId: 'class-6' },
-    { id: 'std-009', name: 'يزيد ناصر البقمي', classId: 'class-2' },
-    { id: 'std-010', name: 'سارة ماجد العنزي', classId: 'class-5' },
-    { id: 'std-011', name: 'عمر إبراهيم الزهراني', classId: 'class-4' },
-    { id: 'std-012', name: 'هند تركي السبيعي', classId: 'class-6' },
+    { id: 'std-001', name: 'أحمد محمد علي', classId: 'cls-1' },
+    { id: 'std-002', name: 'فاطمة أحمد حسن', classId: 'cls-2' },
+    { id: 'std-003', name: 'عبدالله خالد العتيبي', classId: 'cls-3' },
+    { id: 'std-004', name: 'نورة سعيد القحطاني', classId: 'cls-1' },
+    { id: 'std-005', name: 'محمد عبدالرحمن الدوسري', classId: 'cls-5' },
+    { id: 'std-006', name: 'ريم فهد المطيري', classId: 'cls-4' },
+    { id: 'std-007', name: 'سلطان فيصل الشمري', classId: 'cls-3' },
+    { id: 'std-008', name: 'لطيفة عايض الحربي', classId: 'cls-6' },
+    { id: 'std-009', name: 'يزيد ناصر البقمي', classId: 'cls-2' },
+    { id: 'std-010', name: 'سارة ماجد العنزي', classId: 'cls-5' },
+    { id: 'std-011', name: 'عمر إبراهيم الزهراني', classId: 'cls-4' },
+    { id: 'std-012', name: 'هند تركي السبيعي', classId: 'cls-6' },
   ];
 
   const statuses: AttendanceStatus[] = ['present', 'present', 'present', 'present', 'present', 'absent', 'late', 'excused', 'present', 'present'];
@@ -221,10 +211,9 @@ function generateMockAttendance(): AttendanceRecord[] {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function getClassName(classId: string | null): string {
+function getClassName(classId: string | null, classes: { id: string; name: string }[]): string {
   if (!classId) return '—';
-  const found = CLASS_OPTIONS.find((c) => c.value === classId);
-  return found ? found.label : '—';
+  return classes.find((c) => c.id === classId)?.name ?? '—';
 }
 
 function formatDate(dateStr: string): string {
@@ -349,6 +338,7 @@ function ViewAttendanceDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { getClassName: clsName } = useClassOptions();
   if (!record) return null;
 
   const config = STATUS_CONFIG[record.status];
@@ -410,7 +400,7 @@ function ViewAttendanceDialog({
                   </div>
                   <span className="text-sm text-muted-foreground">الفصل</span>
                 </div>
-                <span className="text-sm font-medium text-slate-200">{getClassName(record.classId)}</span>
+                <span className="text-sm font-medium text-slate-200">{clsName(record.classId)}</span>
               </div>
 
               {/* Status */}
@@ -648,6 +638,7 @@ function MarkAttendanceDialog({
   selectedClass: string;
 }) {
   const { addAttendanceRecords } = useAttendanceStore();
+  const { getClassName: clsName } = useClassOptions();
   const [attendanceMap, setAttendanceMap] = useState<Record<string, AttendanceStatus>>({});
   const [noteMap, setNoteMap] = useState<Record<string, string>>({});
 
@@ -709,7 +700,7 @@ function MarkAttendanceDialog({
         <DialogHeader>
           <DialogTitle className="text-white text-xl flex items-center gap-2">
             <ClipboardCheck className="h-5 w-5 text-[#D4A574]" />
-            تسجيل حضور — {getClassName(selectedClass)}
+            تسجيل حضور — {clsName(selectedClass)}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
             {new Date().toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
@@ -1033,7 +1024,8 @@ const useAttendanceStore = create<AttendanceState>((set) => ({
 // ---------------------------------------------------------------------------
 
 export default function AttendanceSection() {
-  const { students } = useAppStore();
+  const { students, classes } = useAppStore();
+  const { classOptions } = useClassOptions();
   const { records, setRecords } = useAttendanceStore();
 
   // Local UI state
@@ -1125,9 +1117,9 @@ export default function AttendanceSection() {
   // Get students for the selected class (for marking mode)
   const classStudents = useMemo(() => {
     if (classFilter === 'all') {
-      // If no class filter, use first class with students
-      const activeClass = CLASS_OPTIONS.find((c) =>
-        students.some((s) => s.classId === c.value)
+      // If no class filter, use first class (from the store) that has active students
+      const activeClass = classOptions.find((c) =>
+        students.some((s) => s.classId === c.value && s.status === 'active')
       );
       if (!activeClass) return [];
       return students
@@ -1137,7 +1129,7 @@ export default function AttendanceSection() {
     return students
       .filter((s) => s.classId === classFilter && s.status === 'active')
       .map((s) => ({ id: s.id, name: s.name, classId: s.classId! }));
-  }, [students, classFilter]);
+  }, [students, classFilter, classOptions]);
 
   // Handlers
   const handleMarkAttendance = () => {
@@ -1324,7 +1316,7 @@ export default function AttendanceSection() {
               <SelectItem value="all" className="text-slate-200 focus:bg-white/[0.05] focus:text-white">
                 جميع الصفوف
               </SelectItem>
-              {CLASS_OPTIONS.map((cls) => (
+              {classOptions.map((cls) => (
                 <SelectItem
                   key={cls.value}
                   value={cls.value}
@@ -1444,7 +1436,7 @@ export default function AttendanceSection() {
                         {/* Class */}
                         <TableCell className="py-3.5 px-4 hidden md:table-cell">
                           <span className="text-sm text-slate-300">
-                            {getClassName(record.classId)}
+                            {getClassName(record.classId, classes)}
                           </span>
                         </TableCell>
 
@@ -1610,7 +1602,7 @@ export default function AttendanceSection() {
         open={markOpen}
         onOpenChange={setMarkOpen}
         students={classStudents}
-        selectedClass={classFilter !== 'all' ? classFilter : CLASS_OPTIONS.find((c) => students.some((s) => s.classId === c.value))?.value || 'class-1'}
+        selectedClass={classFilter !== 'all' ? classFilter : classOptions.find((c) => students.some((s) => s.classId === c.value && s.status === 'active'))?.value || classes[0]?.id || ''}
       />
     </div>
   );

@@ -20,6 +20,7 @@ import {
 import type { Session } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
+import { useClassOptions } from '@/components/dashboard/use-class-options';
 import { t } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -71,19 +72,12 @@ interface SessionCardData extends Session {
 // Mock Data
 // ---------------------------------------------------------------------------
 
-const CLASS_FILTER_MAP: Record<string, string> = {
-  'class-1': 'الصف الأول - أ',
-  'class-2': 'الصف الأول - ب',
-  'class-3': 'الصف الثاني - أ',
-  'class-4': 'الصف الثاني - ب',
-  'class-5': 'الصف الثالث - أ',
-  'class-6': 'الصف الثالث - ب',
-};
+// Class options are derived from the store's classes via useClassOptions().
 
 const MOCK_SESSIONS: SessionCardData[] = [
   {
     id: 'session-001',
-    classId: 'class-1',
+    classId: 'cls-1',
     teacherId: 'teacher-001',
     date: new Date().toISOString().split('T')[0],
     startTime: '08:00',
@@ -93,7 +87,7 @@ const MOCK_SESSIONS: SessionCardData[] = [
     notes: 'شرح تفاعلي مع تمارين تطبيقية',
     createdAt: '2025-01-14T08:00:00.000Z',
     updatedAt: '2025-01-15T10:00:00.000Z',
-    className: 'الصف الأول - أ',
+    className: 'الصف الأول أ',
     teacherName: 'أ. عبدالله السالم',
     status: 'completed',
     engagementScore: 88,
@@ -103,7 +97,7 @@ const MOCK_SESSIONS: SessionCardData[] = [
   },
   {
     id: 'session-002',
-    classId: 'class-3',
+    classId: 'cls-3',
     teacherId: 'teacher-002',
     date: new Date().toISOString().split('T')[0],
     startTime: '10:00',
@@ -113,7 +107,7 @@ const MOCK_SESSIONS: SessionCardData[] = [
     notes: 'تجارب معملية عملية',
     createdAt: '2025-01-14T08:00:00.000Z',
     updatedAt: '2025-01-15T12:00:00.000Z',
-    className: 'الصف الثاني - أ',
+    className: 'الصف الثاني أ',
     teacherName: 'أ. سارة المنصور',
     status: 'completed',
     engagementScore: 92,
@@ -123,7 +117,7 @@ const MOCK_SESSIONS: SessionCardData[] = [
   },
   {
     id: 'session-003',
-    classId: 'class-5',
+    classId: 'cls-5',
     teacherId: 'teacher-001',
     date: new Date().toISOString().split('T')[0],
     startTime: '12:00',
@@ -133,7 +127,7 @@ const MOCK_SESSIONS: SessionCardData[] = [
     notes: 'مراجعة عامة للفصل السابق',
     createdAt: '2025-01-15T08:00:00.000Z',
     updatedAt: '2025-01-16T10:00:00.000Z',
-    className: 'الصف الثالث - أ',
+    className: 'الصف الثالث أ',
     teacherName: 'أ. عبدالله السالم',
     status: 'in-progress',
     engagementScore: 76,
@@ -143,7 +137,7 @@ const MOCK_SESSIONS: SessionCardData[] = [
   },
   {
     id: 'session-004',
-    classId: 'class-2',
+    classId: 'cls-2',
     teacherId: 'teacher-003',
     date: new Date().toISOString().split('T')[0],
     startTime: '14:00',
@@ -153,7 +147,7 @@ const MOCK_SESSIONS: SessionCardData[] = [
     notes: '',
     createdAt: '2025-01-15T08:00:00.000Z',
     updatedAt: '2025-01-15T08:00:00.000Z',
-    className: 'الصف الأول - ب',
+    className: 'الصف الأول ب',
     teacherName: 'أ. فهد العتيبي',
     status: 'upcoming',
     engagementScore: 0,
@@ -163,7 +157,7 @@ const MOCK_SESSIONS: SessionCardData[] = [
   },
   {
     id: 'session-005',
-    classId: 'class-4',
+    classId: 'cls-4',
     teacherId: 'teacher-002',
     date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
     startTime: '08:00',
@@ -173,7 +167,7 @@ const MOCK_SESSIONS: SessionCardData[] = [
     notes: 'شرح جديد مع عروض تقديمية',
     createdAt: '2025-01-16T08:00:00.000Z',
     updatedAt: '2025-01-16T08:00:00.000Z',
-    className: 'الصف الثاني - ب',
+    className: 'الصف الثاني ب',
     teacherName: 'أ. سارة المنصور',
     status: 'upcoming',
     engagementScore: 0,
@@ -183,7 +177,7 @@ const MOCK_SESSIONS: SessionCardData[] = [
   },
   {
     id: 'session-006',
-    classId: 'class-6',
+    classId: 'cls-6',
     teacherId: 'teacher-003',
     date: new Date(Date.now() - 86400000).toISOString().split('T')[0],
     startTime: '10:00',
@@ -193,7 +187,7 @@ const MOCK_SESSIONS: SessionCardData[] = [
     notes: 'نقاش جماعي ومشاريع فردية',
     createdAt: '2025-01-13T08:00:00.000Z',
     updatedAt: '2025-01-14T12:00:00.000Z',
-    className: 'الصف الثالث - ب',
+    className: 'الصف الثالث ب',
     teacherName: 'أ. فهد العتيبي',
     status: 'completed',
     engagementScore: 65,
@@ -203,7 +197,7 @@ const MOCK_SESSIONS: SessionCardData[] = [
   },
   {
     id: 'session-007',
-    classId: 'class-1',
+    classId: 'cls-1',
     teacherId: 'teacher-002',
     date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
     startTime: '12:00',
@@ -213,7 +207,7 @@ const MOCK_SESSIONS: SessionCardData[] = [
     notes: 'حصة تطبيقية مع أنشطة تفاعلية',
     createdAt: '2025-01-16T08:00:00.000Z',
     updatedAt: '2025-01-16T08:00:00.000Z',
-    className: 'الصف الأول - أ',
+    className: 'الصف الأول أ',
     teacherName: 'أ. سارة المنصور',
     status: 'upcoming',
     engagementScore: 0,
@@ -223,7 +217,7 @@ const MOCK_SESSIONS: SessionCardData[] = [
   },
   {
     id: 'session-008',
-    classId: 'class-3',
+    classId: 'cls-3',
     teacherId: 'teacher-001',
     date: new Date(Date.now() - 86400000).toISOString().split('T')[0],
     startTime: '14:00',
@@ -233,7 +227,7 @@ const MOCK_SESSIONS: SessionCardData[] = [
     notes: 'أنشطة مجموعات وتطبيقات عملية',
     createdAt: '2025-01-15T08:00:00.000Z',
     updatedAt: '2025-01-16T16:00:00.000Z',
-    className: 'الصف الثاني - أ',
+    className: 'الصف الثاني أ',
     teacherName: 'أ. عبدالله السالم',
     status: 'completed',
     engagementScore: 81,
@@ -699,9 +693,10 @@ function StartSessionDialog({
   editSession?: SessionCardData | null;
 }) {
   const { addSession, updateSession, classes, teachers, locale } = useAppStore();
+  const { classOptions, getClassName: clsName } = useClassOptions();
   const isEdit = !!editSession;
   const [topic, setTopic] = useState(isEdit ? (editSession?.topic || '') : '');
-  const [classId, setClassId] = useState(isEdit ? (editSession?.classId || 'class-1') : 'class-1');
+  const [classId, setClassId] = useState(isEdit ? (editSession?.classId || classes[0]?.id || 'cls-1') : (classes[0]?.id || 'cls-1'));
   const [teacherId, setTeacherId] = useState(isEdit ? (editSession?.teacherId || 'teacher-001') : 'teacher-001');
   const [date, setDate] = useState(isEdit ? (editSession?.date || new Date().toISOString().split('T')[0]) : new Date().toISOString().split('T')[0]);
   const [startTime, setStartTime] = useState(isEdit ? (editSession?.startTime || '08:00') : '08:00');
@@ -711,7 +706,7 @@ function StartSessionDialog({
 
   const handleSave = () => {
     if (!topic.trim()) return;
-    const className = CLASS_FILTER_MAP[classId] || '';
+    const className = clsName(classId) === '—' ? '' : clsName(classId);
     const teacherMap: Record<string, string> = {
       'teacher-001': 'أ. عبدالله السالم',
       'teacher-002': 'أ. سارة المنصور',
@@ -796,13 +791,13 @@ function StartSessionDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-[#1A1A24] border-white/[0.08]">
-                  {Object.entries(CLASS_FILTER_MAP).map(([id, name]) => (
+                  {classOptions.map((cls) => (
                     <SelectItem
-                      key={id}
-                      value={id}
+                      key={cls.value}
+                      value={cls.value}
                       className="text-slate-200 focus:bg-white/[0.05] focus:text-white"
                     >
-                      {name}
+                      {cls.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -957,6 +952,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
 
 export default function SessionsSection() {
   const { sessions, setSessions, addSession, updateSession, deleteSession, classes, teachers, locale } = useAppStore();
+  const { classOptions } = useClassOptions();
   // Local state
   const [classFilter, setClassFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -1175,13 +1171,13 @@ export default function SessionsSection() {
               <SelectItem value="all" className="text-slate-200 focus:bg-white/[0.05] focus:text-white">
                 كل الفصول
               </SelectItem>
-              {Object.entries(CLASS_FILTER_MAP).map(([id, name]) => (
+              {classOptions.map((cls) => (
                 <SelectItem
-                  key={id}
-                  value={id}
+                  key={cls.value}
+                  value={cls.value}
                   className="text-slate-200 focus:bg-white/[0.05] focus:text-white"
                 >
-                  {name}
+                  {cls.label}
                 </SelectItem>
               ))}
             </SelectContent>

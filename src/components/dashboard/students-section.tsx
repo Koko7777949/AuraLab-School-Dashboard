@@ -22,7 +22,8 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { t } from '@/lib/i18n';
-import type { Student } from '@/lib/types';
+import type { Student, ClassRoom } from '@/lib/types';
+import { useClassOptions } from '@/components/dashboard/use-class-options';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { exportToCSV, formatCsvDate } from '@/lib/csv-export';
@@ -108,14 +109,8 @@ const FILTER_OPTIONS: { value: string; label: string }[] = [
   { value: 'graduated', label: 'متخرج' },
 ];
 
-const CLASS_OPTIONS = [
-  { value: 'class-1', label: 'الصف الأول - أ' },
-  { value: 'class-2', label: 'الصف الأول - ب' },
-  { value: 'class-3', label: 'الصف الثاني - أ' },
-  { value: 'class-4', label: 'الصف الثاني - ب' },
-  { value: 'class-5', label: 'الصف الثالث - أ' },
-  { value: 'class-6', label: 'الصف الثالث - ب' },
-];
+// Class options are derived from the store via useClassOptions() so that
+// dropdowns always match the classes that actually exist.
 
 // ---------------------------------------------------------------------------
 // Mock Data
@@ -126,7 +121,7 @@ const INITIAL_STUDENTS: Student[] = [
     id: 'std-001',
     name: 'أحمد محمد علي',
     studentId: 'STU-2401',
-    classId: 'class-1',
+    classId: 'cls-1',
     status: 'active',
     notes: 'طالب متفوق في الرياضيات',
     psychBackground: 'متوازن نفسياً، يتمتع بذكاء اجتماعي عالي',
@@ -138,7 +133,7 @@ const INITIAL_STUDENTS: Student[] = [
     id: 'std-002',
     name: 'فاطمة أحمد حسن',
     studentId: 'STU-2402',
-    classId: 'class-2',
+    classId: 'cls-2',
     status: 'active',
     notes: 'مشاركة نشطة في الأنشطة المدرسية',
     psychBackground: 'هادئة ومركزة، تحتاج تشجيع إضافي في العروض',
@@ -150,7 +145,7 @@ const INITIAL_STUDENTS: Student[] = [
     id: 'std-003',
     name: 'عبدالله خالد العتيبي',
     studentId: 'STU-2403',
-    classId: 'class-3',
+    classId: 'cls-3',
     status: 'active',
     notes: 'قائد فريق المنافسات العلمية',
     psychBackground: 'مبادر وقيادي، يحتاج تنمية مهارات الاستماع',
@@ -162,7 +157,7 @@ const INITIAL_STUDENTS: Student[] = [
     id: 'std-004',
     name: 'نورة سعيد القحطاني',
     studentId: 'STU-2404',
-    classId: 'class-1',
+    classId: 'cls-1',
     status: 'inactive',
     notes: 'متغيب بسبب ظروف عائلية',
     psychBackground: 'حساسة، تحتاج دعم نفسي مستمر',
@@ -174,7 +169,7 @@ const INITIAL_STUDENTS: Student[] = [
     id: 'std-005',
     name: 'محمد عبدالرحمن الدوسري',
     studentId: 'STU-2405',
-    classId: 'class-5',
+    classId: 'cls-5',
     status: 'active',
     notes: 'موهوب في الرسم والتصميم',
     psychBackground: 'إبداعي، يميل للعزلة أحياناً',
@@ -269,13 +264,12 @@ const INITIAL_STUDENTS: Student[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Helper: get class name
+// Helper: get class name (pure – takes the classes list)
 // ---------------------------------------------------------------------------
 
-function getClassName(classId: string | null): string {
+function getClassName(classId: string | null, classes: ClassRoom[]): string {
   if (!classId) return '—';
-  const found = CLASS_OPTIONS.find((c) => c.value === classId);
-  return found ? found.label : '—';
+  return classes.find((c) => c.id === classId)?.name ?? '—';
 }
 
 // ---------------------------------------------------------------------------
@@ -337,12 +331,13 @@ function ViewStudentDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { getClassName: clsName } = useClassOptions();
   if (!student) return null;
 
   const fields = [
     { label: 'الاسم الكامل', value: student.name, icon: Users },
     { label: 'الرقم التعريفي', value: student.studentId, icon: BookOpen },
-    { label: 'الفصل', value: getClassName(student.classId), icon: GraduationCap },
+    { label: 'الفصل', value: clsName(student.classId), icon: GraduationCap },
     {
       label: 'الحالة',
       value: STATUS_MAP[student.status].label,
@@ -432,12 +427,13 @@ function StudentFormContent({
   onClose: () => void;
 }) {
   const { addStudent, updateStudent, locale } = useAppStore();
+  const { classOptions, firstClassId } = useClassOptions();
   const isEditing = !!editingStudent;
 
   // Form state – initialised from props on mount
   const [name, setName] = useState(editingStudent?.name ?? '');
   const [studentId, setStudentId] = useState(editingStudent?.studentId ?? '');
-  const [classId, setClassId] = useState<string>(editingStudent?.classId ?? 'class-1');
+  const [classId, setClassId] = useState<string>(editingStudent?.classId ?? firstClassId);
   const [status, setStatus] = useState<Student['status']>(editingStudent?.status ?? 'active');
   const [notes, setNotes] = useState(editingStudent?.notes ?? '');
   const [psychBackground, setPsychBackground] = useState(editingStudent?.psychBackground ?? '');
@@ -517,7 +513,7 @@ function StudentFormContent({
               <SelectValue placeholder="اختر الفصل" />
             </SelectTrigger>
             <SelectContent className="bg-[#1A1A24] border-white/[0.08]">
-              {CLASS_OPTIONS.map((cls) => (
+              {classOptions.map((cls) => (
                 <SelectItem key={cls.value} value={cls.value} className="text-slate-200 focus:bg-white/[0.05] focus:text-white">
                   {cls.label}
                 </SelectItem>
@@ -747,7 +743,7 @@ function SortableHeader({ label, field, sortField, sortDir, onSort }: { label: s
 }
 
 export default function StudentsSection() {
-  const { students, setStudents, addStudent, locale } = useAppStore();
+  const { students, setStudents, addStudent, locale, classes } = useAppStore();
 
   // Local UI state
   const [localSearch, setLocalSearch] = useState('');
@@ -807,7 +803,7 @@ export default function StudentsSection() {
       switch (sortField) {
         case 'name': cmp = a.name.localeCompare(b.name, 'ar'); break;
         case 'studentId': cmp = a.studentId.localeCompare(b.studentId); break;
-        case 'className': cmp = getClassName(a.classId).localeCompare(getClassName(b.classId), 'ar'); break;
+        case 'className': cmp = getClassName(a.classId, classes).localeCompare(getClassName(b.classId, classes), 'ar'); break;
         case 'status': cmp = a.status.localeCompare(b.status); break;
         case 'notes': cmp = (a.notes || '').localeCompare(b.notes || '', 'ar'); break;
       }
@@ -815,7 +811,7 @@ export default function StudentsSection() {
     });
 
     return result;
-  }, [students, statusFilter, localSearch, sortField, sortDir]);
+  }, [students, statusFilter, localSearch, sortField, sortDir, classes]);
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(filteredStudents.length / ITEMS_PER_PAGE));
@@ -878,7 +874,7 @@ export default function StudentsSection() {
     const exportData = students.map((s) => ({
       name: s.name,
       studentId: s.studentId,
-      classId: getClassName(s.classId),
+      classId: getClassName(s.classId, classes),
       status: STATUS_MAP[s.status].label,
       notes: s.notes || '',
       createdAt: formatCsvDate(s.createdAt),
@@ -1065,7 +1061,7 @@ export default function StudentsSection() {
                   {/* Class */}
                   <TableCell className="py-3.5 px-4 hidden md:table-cell">
                     <span className="text-sm text-slate-300">
-                      {getClassName(student.classId)}
+                      {getClassName(student.classId, classes)}
                     </span>
                   </TableCell>
 
@@ -1221,7 +1217,7 @@ export default function StudentsSection() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-lg p-3" style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
                   <p className="text-[10px] text-muted-foreground mb-1">الفصل</p>
-                  <p className="text-sm font-semibold text-slate-200">{getClassName(sheetStudent.classId)}</p>
+                  <p className="text-sm font-semibold text-slate-200">{getClassName(sheetStudent.classId, classes)}</p>
                 </div>
                 <div className="rounded-lg p-3" style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
                   <p className="text-[10px] text-muted-foreground mb-1">الحالة</p>

@@ -132,14 +132,7 @@ const STUDENT_DROPDOWN = Object.entries(STUDENT_NAMES).map(([id, name]) => ({
   label: name,
 }));
 
-const CLASS_MAP: Record<string, string> = {
-  'class-1': 'الصف الأول - أ',
-  'class-2': 'الصف الأول - ب',
-  'class-3': 'الصف الثاني - أ',
-  'class-4': 'الصف الثاني - ب',
-  'class-5': 'الصف الثالث - أ',
-  'class-6': 'الصف الثالث - ب',
-};
+// Class display names are resolved from the store's classes via useClassOptions().
 
 const BEHAVIOR_GRADES = ['ممتاز', 'جيد جداً', 'جيد', 'مقبول', 'يحتاج تحسين'];
 
@@ -206,102 +199,102 @@ function calculateGpa(score: number, maxScore: number): number {
 
 const INITIAL_GRADES: GradeRecord[] = [
   {
-    id: 'gr-001', studentId: 'std-001', studentName: 'أحمد محمد علي', classId: 'class-1', className: 'الصف الأول - أ',
+    id: 'gr-001', studentId: 'std-001', studentName: 'أحمد محمد علي', classId: 'cls-1', className: 'الصف الأول أ',
     subject: 'الرياضيات', term: 'الفصل الأول', examType: 'اختبار نهائي', score: 95, maxScore: 100, weight: 30,
     date: '2024-12-15', notes: 'أداء ممتاز في الجبر والهندسة', createdAt: '2024-12-15T08:00:00.000Z',
   },
   {
-    id: 'gr-002', studentId: 'std-001', studentName: 'أحمد محمد علي', classId: 'class-1', className: 'الصف الأول - أ',
+    id: 'gr-002', studentId: 'std-001', studentName: 'أحمد محمد علي', classId: 'cls-1', className: 'الصف الأول أ',
     subject: 'الرياضيات', term: 'الفصل الأول', examType: 'اختبار نصفي', score: 88, maxScore: 100, weight: 20,
     date: '2024-11-10', notes: 'حل معظم المسائل بشكل صحيح', createdAt: '2024-11-10T08:00:00.000Z',
   },
   {
-    id: 'gr-003', studentId: 'std-001', studentName: 'أحمد محمد علي', classId: 'class-1', className: 'الصف الأول - أ',
+    id: 'gr-003', studentId: 'std-001', studentName: 'أحمد محمد علي', classId: 'cls-1', className: 'الصف الأول أ',
     subject: 'اللغة العربية', term: 'الفصل الأول', examType: 'اختبار نهائي', score: 82, maxScore: 100, weight: 30,
     date: '2024-12-14', notes: 'إعراب جيد مع بعض الأخطاء في النحو', createdAt: '2024-12-14T08:00:00.000Z',
   },
   {
-    id: 'gr-004', studentId: 'std-002', studentName: 'فاطمة أحمد حسن', classId: 'class-2', className: 'الصف الأول - ب',
+    id: 'gr-004', studentId: 'std-002', studentName: 'فاطمة أحمد حسن', classId: 'cls-2', className: 'الصف الأول ب',
     subject: 'العلوم', term: 'الفصل الأول', examType: 'اختبار نهائي', score: 91, maxScore: 100, weight: 30,
     date: '2024-12-13', notes: 'فهم ممتاز للتجارب العملية', createdAt: '2024-12-13T08:00:00.000Z',
   },
   {
-    id: 'gr-005', studentId: 'std-002', studentName: 'فاطمة أحمد حسن', classId: 'class-2', className: 'الصف الأول - ب',
+    id: 'gr-005', studentId: 'std-002', studentName: 'فاطمة أحمد حسن', classId: 'cls-2', className: 'الصف الأول ب',
     subject: 'اللغة الإنجليزية', term: 'الفصل الأول', examType: 'اختبار نصفي', score: 76, maxScore: 100, weight: 20,
     date: '2024-11-08', notes: 'تحسن واضح في الكتابة', createdAt: '2024-11-08T08:00:00.000Z',
   },
   {
-    id: 'gr-006', studentId: 'std-003', studentName: 'عبدالله خالد العتيبي', classId: 'class-3', className: 'الصف الثاني - أ',
+    id: 'gr-006', studentId: 'std-003', studentName: 'عبدالله خالد العتيبي', classId: 'cls-3', className: 'الصف الثاني أ',
     subject: 'الفيزياء', term: 'الفصل الأول', examType: 'اختبار شهري', score: 65, maxScore: 100, weight: 10,
     date: '2024-10-20', notes: 'يحتاج تحسين في حل المسائل', createdAt: '2024-10-20T08:00:00.000Z',
   },
   {
-    id: 'gr-007', studentId: 'std-003', studentName: 'عبدالله خالد العتيبي', classId: 'class-3', className: 'الصف الثاني - أ',
+    id: 'gr-007', studentId: 'std-003', studentName: 'عبدالله خالد العتيبي', classId: 'cls-3', className: 'الصف الثاني أ',
     subject: 'التربية الإسلامية', term: 'الفصل الأول', examType: 'واجب', score: 92, maxScore: 100, weight: 10,
     date: '2024-11-05', notes: 'حفظ ممتاز للآيات', createdAt: '2024-11-05T08:00:00.000Z',
   },
   {
-    id: 'gr-008', studentId: 'std-004', studentName: 'نورة سعيد القحطاني', classId: 'class-1', className: 'الصف الأول - أ',
+    id: 'gr-008', studentId: 'std-004', studentName: 'نورة سعيد القحطاني', classId: 'cls-1', className: 'الصف الأول أ',
     subject: 'الرياضيات', term: 'الفصل الأول', examType: 'اختبار نهائي', score: 58, maxScore: 100, weight: 30,
     date: '2024-12-15', notes: 'تحتاج دعم إضافي في التفاضل', createdAt: '2024-12-15T08:00:00.000Z',
   },
   {
-    id: 'gr-009', studentId: 'std-004', studentName: 'نورة سعيد القحطاني', classId: 'class-1', className: 'الصف الأول - أ',
+    id: 'gr-009', studentId: 'std-004', studentName: 'نورة سعيد القحطاني', classId: 'cls-1', className: 'الصف الأول أ',
     subject: 'الأحياء', term: 'الفصل الأول', examType: 'مشاركة', score: 85, maxScore: 100, weight: 10,
     date: '2024-11-25', notes: 'مشاركة فعّالة في المناقشات', createdAt: '2024-11-25T08:00:00.000Z',
   },
   {
-    id: 'gr-010', studentId: 'std-005', studentName: 'محمد عبدالرحمن الدوسري', classId: 'class-5', className: 'الصف الثالث - أ',
+    id: 'gr-010', studentId: 'std-005', studentName: 'محمد عبدالرحمن الدوسري', classId: 'cls-5', className: 'الصف الثالث أ',
     subject: 'الكيمياء', term: 'الفصل الأول', examType: 'اختبار نصفي', score: 73, maxScore: 100, weight: 20,
     date: '2024-11-12', notes: 'أداء جيد مع تحسن ملموس', createdAt: '2024-11-12T08:00:00.000Z',
   },
   {
-    id: 'gr-011', studentId: 'std-005', studentName: 'محمد عبدالرحمن الدوسري', classId: 'class-5', className: 'الصف الثالث - أ',
+    id: 'gr-011', studentId: 'std-005', studentName: 'محمد عبدالرحمن الدوسري', classId: 'cls-5', className: 'الصف الثالث أ',
     subject: 'الحاسب الآلي', term: 'الفصل الأول', examType: 'واجب', score: 97, maxScore: 100, weight: 10,
     date: '2024-11-20', notes: 'مبدع في البرمجة', createdAt: '2024-11-20T08:00:00.000Z',
   },
   {
-    id: 'gr-012', studentId: 'std-006', studentName: 'ريم فهد المطيري', classId: 'class-4', className: 'الصف الثاني - ب',
+    id: 'gr-012', studentId: 'std-006', studentName: 'ريم فهد المطيري', classId: 'cls-4', className: 'الصف الثاني ب',
     subject: 'التاريخ', term: 'الفصل الثاني', examType: 'اختبار شهري', score: 88, maxScore: 100, weight: 10,
     date: '2025-01-18', notes: 'استيعاب ممتاز للأحداث التاريخية', createdAt: '2025-01-18T08:00:00.000Z',
   },
   {
-    id: 'gr-013', studentId: 'std-006', studentName: 'ريم فهد المطيري', classId: 'class-4', className: 'الصف الثاني - ب',
+    id: 'gr-013', studentId: 'std-006', studentName: 'ريم فهد المطيري', classId: 'cls-4', className: 'الصف الثاني ب',
     subject: 'الجغرافيا', term: 'الفصل الثاني', examType: 'مشاركة', score: 80, maxScore: 100, weight: 10,
     date: '2025-01-25', notes: 'تحليل جيد للخرائط', createdAt: '2025-01-25T08:00:00.000Z',
   },
   {
-    id: 'gr-014', studentId: 'std-007', studentName: 'سلطان فيصل الشمري', classId: 'class-3', className: 'الصف الثاني - أ',
+    id: 'gr-014', studentId: 'std-007', studentName: 'سلطان فيصل الشمري', classId: 'cls-3', className: 'الصف الثاني أ',
     subject: 'اللغة العربية', term: 'الفصل الأول', examType: 'اختبار نهائي', score: 42, maxScore: 100, weight: 30,
     date: '2024-12-14', notes: 'يحتاج متابعة مكثفة في النحو والصرف', createdAt: '2024-12-14T08:00:00.000Z',
   },
   {
-    id: 'gr-015', studentId: 'std-007', studentName: 'سلطان فيصل الشمري', classId: 'class-3', className: 'الصف الثاني - أ',
+    id: 'gr-015', studentId: 'std-007', studentName: 'سلطان فيصل الشمري', classId: 'cls-3', className: 'الصف الثاني أ',
     subject: 'التربية الفنية', term: 'الفصل الأول', examType: 'واجب', score: 90, maxScore: 100, weight: 10,
     date: '2024-11-15', notes: 'إنتاج فني متميز', createdAt: '2024-11-15T08:00:00.000Z',
   },
   {
-    id: 'gr-016', studentId: 'std-008', studentName: 'لطيفة عايض الحربي', classId: 'class-6', className: 'الصف الثالث - ب',
+    id: 'gr-016', studentId: 'std-008', studentName: 'لطيفة عايض الحربي', classId: 'cls-6', className: 'الصف الثالث ب',
     subject: 'الرياضيات', term: 'الفصل الثاني', examType: 'اختبار شهري', score: 78, maxScore: 100, weight: 10,
     date: '2025-02-10', notes: 'تحسن واضح منذ الفصل الماضي', createdAt: '2025-02-10T08:00:00.000Z',
   },
   {
-    id: 'gr-017', studentId: 'std-009', studentName: 'يزيد ناصر البقمي', classId: 'class-2', className: 'الصف الأول - ب',
+    id: 'gr-017', studentId: 'std-009', studentName: 'يزيد ناصر البقمي', classId: 'cls-2', className: 'الصف الأول ب',
     subject: 'الفيزياء', term: 'الفصل الأول', examType: 'اختبار نهائي', score: 87, maxScore: 100, weight: 30,
     date: '2024-12-16', notes: 'فهم قوي لقوانين نيوتن', createdAt: '2024-12-16T08:00:00.000Z',
   },
   {
-    id: 'gr-018', studentId: 'std-010', studentName: 'سارة ماجد العنزي', classId: 'class-5', className: 'الصف الثالث - أ',
+    id: 'gr-018', studentId: 'std-010', studentName: 'سارة ماجد العنزي', classId: 'cls-5', className: 'الصف الثالث أ',
     subject: 'اللغة الإنجليزية', term: 'الفصل الأول', examType: 'اختبار نهائي', score: 93, maxScore: 100, weight: 30,
     date: '2024-12-17', notes: 'مستوى ممتاز في المحادثة والكتابة', createdAt: '2024-12-17T08:00:00.000Z',
   },
   {
-    id: 'gr-019', studentId: 'std-011', studentName: 'عمر إبراهيم الزهراني', classId: 'class-4', className: 'الصف الثاني - ب',
+    id: 'gr-019', studentId: 'std-011', studentName: 'عمر إبراهيم الزهراني', classId: 'cls-4', className: 'الصف الثاني ب',
     subject: 'العلوم', term: 'الفصل الثاني', examType: 'اختبار نصفي', score: 69, maxScore: 100, weight: 20,
     date: '2025-01-22', notes: 'أداء مقبول يحتاج مراجعة', createdAt: '2025-01-22T08:00:00.000Z',
   },
   {
-    id: 'gr-020', studentId: 'std-012', studentName: 'هند تركي السبيعي', classId: 'class-6', className: 'الصف الثالث - ب',
+    id: 'gr-020', studentId: 'std-012', studentName: 'هند تركي السبيعي', classId: 'cls-6', className: 'الصف الثالث ب',
     subject: 'التربية الإسلامية', term: 'الفصل الأول', examType: 'اختبار شهري', score: 96, maxScore: 100, weight: 10,
     date: '2024-10-25', notes: 'حفظ وإتقان ممتاز', createdAt: '2024-10-25T08:00:00.000Z',
   },

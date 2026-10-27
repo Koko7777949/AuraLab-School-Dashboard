@@ -73,14 +73,7 @@ const STATUS_MAP: Record<Student['status'], { label: string; className: string; 
   },
 };
 
-const CLASS_OPTIONS = [
-  { value: 'class-1', label: 'الصف الأول - أ' },
-  { value: 'class-2', label: 'الصف الأول - ب' },
-  { value: 'class-3', label: 'الصف الثاني - أ' },
-  { value: 'class-4', label: 'الصف الثاني - ب' },
-  { value: 'class-5', label: 'الصف الثالث - أ' },
-  { value: 'class-6', label: 'الصف الثالث - ب' },
-];
+// Class display names are resolved from the store's classes via useClassOptions().
 
 const ATTENDANCE_STATUS_MAP: Record<string, { label: string; className: string; color: string }> = {
   present: { label: 'حاضر', className: 'bg-emerald-500/15 text-emerald-400', color: '#34d399' },
@@ -123,10 +116,9 @@ function generateMockPsychNotes(studentId: string) {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function getClassName(classId: string | null): string {
+function getClassName(classId: string | null, classes: { id: string; name: string }[]): string {
   if (!classId) return '—';
-  const found = CLASS_OPTIONS.find((c) => c.value === classId);
-  return found ? found.label : '—';
+  return classes.find((c) => c.id === classId)?.name ?? '—';
 }
 
 function getGradeColor(percentage: number): string {
@@ -354,7 +346,7 @@ function AttendanceHeatmap({ records }: { records: Array<{ date: string; status:
 // ---------------------------------------------------------------------------
 
 export default function StudentProfile({ student, onClose }: { student: Student; onClose: () => void }) {
-  const { grades, updateStudent } = useAppStore();
+  const { grades, updateStudent, classes } = useAppStore();
 
   // Local state
   const [activeTab, setActiveTab] = useState('personal');
@@ -541,7 +533,7 @@ export default function StudentProfile({ student, onClose }: { student: Student;
                 <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                   <span className="flex items-center gap-1.5">
                     <GraduationCap className="h-3.5 w-3.5 text-[#D4A574]" />
-                    {getClassName(student.classId)}
+                    {getClassName(student.classId, classes)}
                   </span>
                   <span className="flex items-center gap-1.5">
                     <Calendar className="h-3.5 w-3.5 text-[#D4A574]" />
@@ -665,7 +657,7 @@ export default function StudentProfile({ student, onClose }: { student: Student;
                   {[
                     { label: 'الاسم الكامل', value: student.name, icon: User },
                     { label: 'الرقم التعريفي', value: student.studentId, icon: BookOpen },
-                    { label: 'الفصل', value: getClassName(student.classId), icon: GraduationCap },
+                    { label: 'الفصل', value: getClassName(student.classId, classes), icon: GraduationCap },
                     { label: 'الحالة', value: statusConfig.label, icon: ShieldCheck },
                     { label: 'تاريخ التسجيل', value: new Date(student.createdAt).toLocaleDateString('ar-SA'), icon: Calendar },
                     { label: 'آخر تحديث', value: new Date(student.updatedAt).toLocaleDateString('ar-SA'), icon: Clock },

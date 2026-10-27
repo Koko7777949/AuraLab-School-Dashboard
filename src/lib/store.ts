@@ -630,6 +630,37 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'auralab-store',
+      version: 1,
+      // Repair legacy persisted data whose class ids used conventions
+      // ('c1', 'class-1', ...) that don't match the canonical 'cls-N'
+      // ids used by the classes seed. Remaps every entity that stores a
+      // classId so relations resolve correctly after upgrade.
+      migrate: (persisted) => {
+        const LEGACY_CLASS_ID_MAP: Record<string, string> = {
+          c1: 'cls-1', c2: 'cls-2', c3: 'cls-3', c4: 'cls-4', c5: 'cls-5', c6: 'cls-6',
+          'class-1': 'cls-1', 'class-2': 'cls-2', 'class-3': 'cls-3',
+          'class-4': 'cls-4', 'class-5': 'cls-5', 'class-6': 'cls-6',
+        };
+        const remap = (classId: unknown): unknown =>
+          typeof classId === 'string' ? (LEGACY_CLASS_ID_MAP[classId] ?? classId) : classId;
+        const p = (persisted ?? {}) as Record<string, unknown>;
+        const remapList = (key: string) =>
+          Array.isArray(p[key])
+            ? (p[key] as Record<string, unknown>[]).map((item) => ({
+                ...item,
+                classId: remap(item.classId),
+              }))
+            : p[key];
+        return {
+          ...p,
+          students: remapList('students'),
+          exams: remapList('exams'),
+          grades: remapList('grades'),
+          behaviors: remapList('behaviors'),
+          sessions: remapList('sessions'),
+          scheduleBlocks: remapList('scheduleBlocks'),
+        } as unknown as AppState;
+      },
       partialize: (state) => ({
         locale: state.locale,
         cameraAutoRotate: state.cameraAutoRotate,

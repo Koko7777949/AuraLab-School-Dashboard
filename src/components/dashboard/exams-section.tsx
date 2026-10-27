@@ -18,6 +18,7 @@ import {
 import { useAppStore } from '@/lib/store';
 import { t } from '@/lib/i18n';
 import type { Exam } from '@/lib/types';
+import { useClassOptions } from '@/components/dashboard/use-class-options';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { exportToCSV, formatCsvDate } from '@/lib/csv-export';
@@ -79,24 +80,7 @@ const SUBJECT_OPTIONS = [
   { value: 'جغرافيا', label: 'جغرافيا' },
 ];
 
-const CLASS_OPTIONS = [
-  { value: 'all', label: 'كل الفصول' },
-  { value: 'class-1', label: 'الصف الأول - أ' },
-  { value: 'class-2', label: 'الصف الأول - ب' },
-  { value: 'class-3', label: 'الصف الثاني - أ' },
-  { value: 'class-4', label: 'الصف الثاني - ب' },
-  { value: 'class-5', label: 'الصف الثالث - أ' },
-  { value: 'class-6', label: 'الصف الثالث - ب' },
-];
-
-const CLASS_FILTER_MAP: Record<string, string> = {
-  'class-1': 'الصف الأول - أ',
-  'class-2': 'الصف الأول - ب',
-  'class-3': 'الصف الثاني - أ',
-  'class-4': 'الصف الثاني - ب',
-  'class-5': 'الصف الثالث - أ',
-  'class-6': 'الصف الثالث - ب',
-};
+// Class options are derived from the store's classes via useClassOptions().
 
 const STUDENT_NAMES: Record<string, string> = {
   'std-001': 'أحمد محمد علي',
@@ -112,11 +96,6 @@ const STUDENT_NAMES: Record<string, string> = {
 };
 
 const STUDENT_DROPDOWN = Object.entries(STUDENT_NAMES).map(([id, name]) => ({
-  value: id,
-  label: name,
-}));
-
-const CLASS_DROPDOWN = Object.entries(CLASS_FILTER_MAP).map(([id, name]) => ({
   value: id,
   label: name,
 }));
@@ -240,7 +219,7 @@ const INITIAL_EXAMS: Exam[] = [
     title: 'اختبار نهاية الفصل الأول',
     subject: 'رياضيات',
     studentId: 'std-001',
-    classId: 'class-1',
+    classId: 'cls-1',
     teacherId: null,
     score: 92,
     maxScore: 100,
@@ -249,14 +228,14 @@ const INITIAL_EXAMS: Exam[] = [
     createdAt: '2024-12-15T08:00:00.000Z',
     updatedAt: '2024-12-15T10:00:00.000Z',
     studentName: 'أحمد محمد علي',
-    className: 'الصف الأول - أ',
+    className: 'الصف الأول أ',
   },
   {
     id: 'exam-002',
     title: 'اختبار نصفي في العلوم',
     subject: 'علوم',
     studentId: 'std-002',
-    classId: 'class-2',
+    classId: 'cls-2',
     teacherId: null,
     score: 78,
     maxScore: 100,
@@ -265,14 +244,14 @@ const INITIAL_EXAMS: Exam[] = [
     createdAt: '2024-12-10T08:00:00.000Z',
     updatedAt: '2024-12-10T12:00:00.000Z',
     studentName: 'فاطمة أحمد حسن',
-    className: 'الصف الأول - ب',
+    className: 'الصف الأول ب',
   },
   {
     id: 'exam-003',
     title: 'اختبار قواعد اللغة العربية',
     subject: 'لغة عربية',
     studentId: 'std-003',
-    classId: 'class-3',
+    classId: 'cls-3',
     teacherId: null,
     score: 65,
     maxScore: 100,
@@ -281,14 +260,14 @@ const INITIAL_EXAMS: Exam[] = [
     createdAt: '2024-12-08T08:00:00.000Z',
     updatedAt: '2024-12-08T11:00:00.000Z',
     studentName: 'عبدالله خالد العتيبي',
-    className: 'الصف الثاني - أ',
+    className: 'الصف الثاني أ',
   },
   {
     id: 'exam-004',
     title: 'اختبار مفردات اللغة الإنجليزية',
     subject: 'لغة إنجليزية',
     studentId: 'std-004',
-    classId: 'class-1',
+    classId: 'cls-1',
     teacherId: null,
     score: 45,
     maxScore: 100,
@@ -297,14 +276,14 @@ const INITIAL_EXAMS: Exam[] = [
     createdAt: '2024-12-05T08:00:00.000Z',
     updatedAt: '2024-12-05T09:00:00.000Z',
     studentName: 'نورة سعيد القحطاني',
-    className: 'الصف الأول - أ',
+    className: 'الصف الأول أ',
   },
   {
     id: 'exam-005',
     title: 'اختبار الفيزياء - القوى والحركة',
     subject: 'فيزياء',
     studentId: 'std-005',
-    classId: 'class-5',
+    classId: 'cls-5',
     teacherId: null,
     score: 88,
     maxScore: 100,
@@ -313,14 +292,14 @@ const INITIAL_EXAMS: Exam[] = [
     createdAt: '2024-12-01T08:00:00.000Z',
     updatedAt: '2024-12-01T14:00:00.000Z',
     studentName: 'محمد عبدالرحمن الدوسري',
-    className: 'الصف الثالث - أ',
+    className: 'الصف الثالث أ',
   },
   {
     id: 'exam-006',
     title: 'اختبار الكيمياء العضوية',
     subject: 'كيمياء',
     studentId: 'std-006',
-    classId: 'class-4',
+    classId: 'cls-4',
     teacherId: null,
     score: 72,
     maxScore: 100,
@@ -329,14 +308,14 @@ const INITIAL_EXAMS: Exam[] = [
     createdAt: '2024-11-28T08:00:00.000Z',
     updatedAt: '2024-11-28T10:00:00.000Z',
     studentName: 'ريم فهد المطيري',
-    className: 'الصف الثاني - ب',
+    className: 'الصف الثاني ب',
   },
   {
     id: 'exam-007',
     title: 'اختبار تاريخ الحضارات القديمة',
     subject: 'تاريخ',
     studentId: 'std-007',
-    classId: 'class-3',
+    classId: 'cls-3',
     teacherId: null,
     score: 95,
     maxScore: 100,
@@ -345,14 +324,14 @@ const INITIAL_EXAMS: Exam[] = [
     createdAt: '2024-11-25T08:00:00.000Z',
     updatedAt: '2024-11-25T12:00:00.000Z',
     studentName: 'سلطان فيصل الشمري',
-    className: 'الصف الثاني - أ',
+    className: 'الصف الثاني أ',
   },
   {
     id: 'exam-008',
     title: 'اختبار جغرافيا - المناخ والبيئة',
     subject: 'جغرافيا',
     studentId: 'std-008',
-    classId: 'class-6',
+    classId: 'cls-6',
     teacherId: null,
     score: 83,
     maxScore: 100,
@@ -361,14 +340,14 @@ const INITIAL_EXAMS: Exam[] = [
     createdAt: '2024-11-20T08:00:00.000Z',
     updatedAt: '2024-11-20T13:00:00.000Z',
     studentName: 'لطيفة عايض الحربي',
-    className: 'الصف الثالث - ب',
+    className: 'الصف الثالث ب',
   },
   {
     id: 'exam-009',
     title: 'اختبار رياضيات - التفاضل والتكامل',
     subject: 'رياضيات',
     studentId: 'std-009',
-    classId: 'class-2',
+    classId: 'cls-2',
     teacherId: null,
     score: 38,
     maxScore: 100,
@@ -377,14 +356,14 @@ const INITIAL_EXAMS: Exam[] = [
     createdAt: '2024-11-18T08:00:00.000Z',
     updatedAt: '2024-11-18T10:00:00.000Z',
     studentName: 'يزيد ناصر البقمي',
-    className: 'الصف الأول - ب',
+    className: 'الصف الأول ب',
   },
   {
     id: 'exam-010',
     title: 'اختبار علوم - الأحياء الخلوية',
     subject: 'علوم',
     studentId: 'std-010',
-    classId: 'class-5',
+    classId: 'cls-5',
     teacherId: null,
     score: 71,
     maxScore: 100,
@@ -393,7 +372,7 @@ const INITIAL_EXAMS: Exam[] = [
     createdAt: '2024-11-15T08:00:00.000Z',
     updatedAt: '2024-11-15T11:00:00.000Z',
     studentName: 'سارة ماجد العنزي',
-    className: 'الصف الثالث - أ',
+    className: 'الصف الثالث أ',
   },
 ];
 
@@ -406,9 +385,9 @@ function getStudentName(studentId: string | null): string {
   return STUDENT_NAMES[studentId] ?? '—';
 }
 
-function getClassName(classId: string | null): string {
+function getClassName(classId: string | null, classes: { id: string; name: string }[]): string {
   if (!classId) return '—';
-  return CLASS_FILTER_MAP[classId] ?? '—';
+  return classes.find((c) => c.id === classId)?.name ?? '—';
 }
 
 // ---------------------------------------------------------------------------
@@ -679,6 +658,7 @@ function ViewExamDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { getClassName: clsName } = useClassOptions();
   if (!exam) return null;
 
   const colors = getScoreColor(exam.score, exam.maxScore);
@@ -748,7 +728,7 @@ function ViewExamDialog({
                 { label: 'عنوان الامتحان', value: exam.title, icon: FileText },
                 { label: 'المادة', value: exam.subject, icon: Award },
                 { label: 'الطالب', value: getStudentName(exam.studentId), icon: Eye },
-                { label: 'الفصل', value: getClassName(exam.classId), icon: Search },
+                { label: 'الفصل', value: clsName(exam.classId), icon: Search },
                 { label: 'التاريخ', value: exam.date ? new Date(exam.date).toLocaleDateString('ar-SA') : '—', icon: TrendingUp },
               ].map((field) => (
                 <div key={field.label} className="flex items-center justify-between gap-3 py-2 border-b border-white/[0.04] last:border-0">
@@ -791,13 +771,14 @@ function ExamFormContent({
   editingExam: Exam | null;
   onClose: () => void;
 }) {
-  const { addExam, updateExam, locale } = useAppStore();
+  const { addExam, updateExam, locale, classes } = useAppStore();
+  const { classOptions } = useClassOptions();
   const isEditing = !!editingExam;
 
   const [title, setTitle] = useState(editingExam?.title ?? '');
   const [subject, setSubject] = useState(editingExam?.subject ?? 'رياضيات');
   const [studentId, setStudentId] = useState<string>(editingExam?.studentId ?? STUDENT_DROPDOWN[0]?.value ?? '');
-  const [classId, setClassId] = useState<string>(editingExam?.classId ?? CLASS_DROPDOWN[0]?.value ?? '');
+  const [classId, setClassId] = useState<string>(editingExam?.classId ?? classOptions[0]?.value ?? '');
   const [score, setScore] = useState<string>(editingExam?.score != null ? String(editingExam.score) : '');
   const [maxScore, setMaxScore] = useState<string>(String(editingExam?.maxScore ?? 100));
   const [date, setDate] = useState(editingExam?.date ?? new Date().toISOString().split('T')[0]);
@@ -822,7 +803,7 @@ function ExamFormContent({
         date,
         notes: notes.trim(),
         studentName: getStudentName(studentId),
-        className: getClassName(classId),
+        className: getClassName(classId, classes),
         updatedAt: now,
       });
       toast.success('تم تحديث بيانات الامتحان');
@@ -841,7 +822,7 @@ function ExamFormContent({
         createdAt: now,
         updatedAt: now,
         studentName: getStudentName(studentId),
-        className: getClassName(classId),
+        className: getClassName(classId, classes),
       };
       addExam(newExam);
       toast.success('تم إضافة الامتحان بنجاح');
@@ -919,7 +900,7 @@ function ExamFormContent({
               <SelectValue placeholder="اختر الفصل" />
             </SelectTrigger>
             <SelectContent className="bg-[#1A1A24] border-white/[0.08]">
-              {CLASS_DROPDOWN.map((cls) => (
+              {classOptions.map((cls) => (
                 <SelectItem key={cls.value} value={cls.value} className="text-slate-200 focus:bg-white/[0.05] focus:text-white">
                   {cls.label}
                 </SelectItem>
@@ -1115,7 +1096,8 @@ function DeleteExamDialog({
 // ---------------------------------------------------------------------------
 
 export default function ExamsSection() {
-  const { exams, setExams, locale } = useAppStore();
+  const { exams, setExams, locale, classes } = useAppStore();
+  const { classOptions: classFilterOptions } = useClassOptions();
 
   // Local UI state
   const [localSearch, setLocalSearch] = useState('');
@@ -1333,7 +1315,10 @@ export default function ExamsSection() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-[#1A1A24] border-white/[0.08]">
-              {CLASS_OPTIONS.map((opt) => (
+              <SelectItem value="all" className="text-slate-200 focus:bg-white/[0.05] focus:text-white">
+                كل الفصول
+              </SelectItem>
+              {classFilterOptions.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value} className="text-slate-200 focus:bg-white/[0.05] focus:text-white">
                   {opt.label}
                 </SelectItem>
@@ -1493,7 +1478,7 @@ export default function ExamsSection() {
                     {/* Class */}
                     <TableCell className="py-3.5 px-4 hidden lg:table-cell">
                       <span className="text-sm text-slate-300">
-                        {getClassName(exam.classId)}
+                        {getClassName(exam.classId, classes)}
                       </span>
                     </TableCell>
 

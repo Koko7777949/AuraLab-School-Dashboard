@@ -1334,12 +1334,12 @@ export default function DashboardOverview() {
     if (!studentsSeeded.current && students.length === 0) {
       studentsSeeded.current = true;
       setStudents([
-        { id: 's1', name: 'أحمد العتيبي', studentId: 'STD-001', classId: 'c1', status: 'active', notes: '', psychBackground: '', avatar: '', className: 'الصف الأول أ', createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), updatedAt: new Date().toISOString() },
-        { id: 's2', name: 'سارة القحطاني', studentId: 'STD-002', classId: 'c2', status: 'active', notes: '', psychBackground: '', avatar: '', className: 'الصف الثاني ب', createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(), updatedAt: new Date().toISOString() },
-        { id: 's3', name: 'نورة الدوسري', studentId: 'STD-003', classId: 'c1', status: 'active', notes: '', psychBackground: '', avatar: '', className: 'الصف الأول أ', createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), updatedAt: new Date().toISOString() },
-        { id: 's4', name: 'خالد الحربي', studentId: 'STD-004', classId: 'c3', status: 'inactive', notes: '', psychBackground: '', avatar: '', className: 'الصف الثالث', createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), updatedAt: new Date().toISOString() },
-        { id: 's5', name: 'فاطمة الشمري', studentId: 'STD-005', classId: 'c2', status: 'graduated', notes: '', psychBackground: '', avatar: '', className: 'الصف الثاني أ', createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), updatedAt: new Date().toISOString() },
-        { id: 's6', name: 'محمد الغامدي', studentId: 'STD-006', classId: 'c1', status: 'active', notes: '', psychBackground: '', avatar: '', className: 'الصف الأول ب', createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), updatedAt: new Date().toISOString() },
+        { id: 's1', name: 'أحمد العتيبي', studentId: 'STD-001', classId: 'cls-1', status: 'active', notes: '', psychBackground: '', avatar: '', className: 'الصف الأول أ', createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), updatedAt: new Date().toISOString() },
+        { id: 's2', name: 'سارة القحطاني', studentId: 'STD-002', classId: 'cls-2', status: 'active', notes: '', psychBackground: '', avatar: '', className: 'الصف الأول ب', createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(), updatedAt: new Date().toISOString() },
+        { id: 's3', name: 'نورة الدوسري', studentId: 'STD-003', classId: 'cls-1', status: 'active', notes: '', psychBackground: '', avatar: '', className: 'الصف الأول أ', createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), updatedAt: new Date().toISOString() },
+        { id: 's4', name: 'خالد الحربي', studentId: 'STD-004', classId: 'cls-3', status: 'inactive', notes: '', psychBackground: '', avatar: '', className: 'الصف الثاني أ', createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), updatedAt: new Date().toISOString() },
+        { id: 's5', name: 'فاطمة الشمري', studentId: 'STD-005', classId: 'cls-4', status: 'graduated', notes: '', psychBackground: '', avatar: '', className: 'الصف الثاني ب', createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), updatedAt: new Date().toISOString() },
+        { id: 's6', name: 'محمد الغامدي', studentId: 'STD-006', classId: 'cls-2', status: 'active', notes: '', psychBackground: '', avatar: '', className: 'الصف الأول ب', createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), updatedAt: new Date().toISOString() },
       ]);
     }
   }, []);
