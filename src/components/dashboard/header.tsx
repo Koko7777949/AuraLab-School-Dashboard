@@ -134,9 +134,14 @@ export default function Header() {
   }, []);
 
   const timeParts = useMemo(() => {
-    if (!currentTime) return { time: '', seconds: '' };
+    if (!currentTime) return { time: '', seconds: '', period: '' };
     const parts = currentTime.split(':');
-    return { time: `${parts[0]}:${parts[1]}`, seconds: parts[2] || '' };
+    const secRaw = parts[2] || '';
+    // Split trailing day-period marker (ص/م) from the seconds digits so the
+    // narrow clock span never wraps ("١٩ ص" used to break onto a second line).
+    const seconds = secRaw.replace(/[\u0645\u0635]/g, '').trim();
+    const period = secRaw.includes('\u0645') ? '\u0645' : secRaw.includes('\u0635') ? '\u0635' : '';
+    return { time: `${parts[0]}:${parts[1]}`, seconds, period };
   }, [currentTime]);
 
   const toggleLang = useCallback(() => {
@@ -249,7 +254,7 @@ export default function Header() {
         {/* ----------------------------------------------------------------- */}
         {/* Right side (RTL start) — Search bar */}
         {/* ----------------------------------------------------------------- */}
-        <div className="relative w-full max-w-xs min-w-0 sm:max-w-sm" ref={searchRef}>
+        <div className="relative w-full max-w-[220px] min-w-0 sm:max-w-[260px] lg:max-w-xs" ref={searchRef}>
           <Search
             size={18}
             strokeWidth={1.8}
@@ -309,45 +314,47 @@ export default function Header() {
         </div>
 
         {/* ----------------------------------------------------------------- */}
-        {/* Center — Live Clock + App name */}
+        {/* Center — App name + Live clock + dates (compact, fits h-16) */}
         {/* ----------------------------------------------------------------- */}
-        <div className="hidden sm:flex flex-col items-center justify-center gap-0.5 min-w-0">
-          {/* Greeting */}
-          {greeting && (
-            <span className="text-[10px] font-medium text-[#D4A574]/70">{greeting}</span>
-          )}
-          {/* Live clock */}
-          <div className="flex items-center gap-2 select-none">
+        <div
+          className="hidden sm:flex flex-col items-center justify-center gap-0.5 min-w-0 max-w-[220px] overflow-hidden px-2 leading-none"
+          title={greeting}
+        >
+          {/* Row 1: brand + live clock */}
+          <div className="flex items-center gap-2 select-none whitespace-nowrap">
+            <h1 className="text-sm font-bold tracking-tight">
+              <span
+                className="bg-clip-text text-transparent"
+                style={{
+                  backgroundImage:
+                    'linear-gradient(135deg, #D4A574 0%, #E8C9A0 50%, #D4A574 100%)',
+                }}
+              >
+                AuraLab
+              </span>
+            </h1>
+            <span className="h-3 w-px bg-[#2A2A38]" aria-hidden="true" />
             <Clock size={13} strokeWidth={1.8} className="text-[#D4A574]/60" />
             <span className="text-sm font-semibold tabular-nums tracking-wider text-[#C4C4D4]" dir="ltr">
               {timeParts.time}
             </span>
-            <span className="text-xs font-medium tabular-nums text-[#8B8B9E] min-w-[18px] text-center animate-pulse" dir="ltr">
+            <span className="text-xs font-medium tabular-nums text-[#8B8B9E] text-center animate-pulse" dir="ltr">
               {timeParts.seconds}
             </span>
+            {timeParts.period && (
+              <span className="text-[9px] font-medium text-[#8B8B9E]/70">{timeParts.period}</span>
+            )}
           </div>
-          {/* App name */}
-          <h1 className="text-sm font-bold tracking-tight select-none">
-            <span
-              className="bg-clip-text text-transparent"
-              style={{
-                backgroundImage:
-                  'linear-gradient(135deg, #D4A574 0%, #E8C9A0 50%, #D4A574 100%)',
-              }}
-            >
-              AuraLab
-            </span>
-          </h1>
-          {/* Gregorian date */}
-          <span className="text-[10px] text-[#5A5A6E] truncate max-w-[180px]">
-            {currentDate}
-          </span>
-          {/* Hijri date */}
-          {hijriDate && (
-            <span className="text-[9px] text-[#5A5A6E]/60 truncate max-w-[180px]">
-              {hijriDate}
-            </span>
-          )}
+          {/* Row 2: Gregorian + Hijri dates */}
+          <div className="flex items-center gap-1.5 text-[10px] text-[#5A5A6E] min-w-0">
+            <span className="truncate max-w-[160px]">{currentDate}</span>
+            {hijriDate && (
+              <>
+                <span className="text-[#3A3A4A]" aria-hidden="true">•</span>
+                <span className="text-[9px] truncate max-w-[140px]">{hijriDate}</span>
+              </>
+            )}
+          </div>
         </div>
 
         {/* ----------------------------------------------------------------- */}
@@ -362,7 +369,7 @@ export default function Header() {
           />
 
           {/* Export → analytics */}
-          <div className="hidden sm:block">
+          <div className="hidden lg:block">
             <HeaderButton
               icon={Download}
               label="تصدير"
@@ -371,7 +378,7 @@ export default function Header() {
           </div>
 
           {/* Import → students */}
-          <div className="hidden sm:block">
+          <div className="hidden lg:block">
             <HeaderButton
               icon={Upload}
               label="استيراد"

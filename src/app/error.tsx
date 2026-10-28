@@ -3,6 +3,34 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle, RotateCcw, Home } from 'lucide-react';
 
+/**
+ * Global error boundary.
+ *
+ * In addition to showing a friendly Arabic recovery card, it auto-recovers
+ * from transient asset/chunk failures: when the dev server restarts (or gets
+ * OOM-killed and respawns), the browser may still reference stale chunk URLs,
+ * producing ChunkLoadError / "Failed to fetch dynamically imported module".
+ * Those errors are fixed by one full page reload — guarded via sessionStorage
+ * so we never loop.
+ */
+const RELOAD_GUARD_KEY = 'auralab:autoReloadGuard';
+
+function isChunkLoadError(err: Error & { digest?: string }): boolean {
+  const msg = (err.message || '').toLowerCase();
+  return (
+    msg.includes('chunkloaderror') ||
+    msg.includes('failed to fetch dynamically imported module') ||
+    msg.includes('loading chunk') ||
+    msg.includes('failed to load chunk') ||
+    msg.includes('importing a module script') ||
+    msg.includes('load failed') ||
+    msg.includes('networkerror') ||
+    msg.includes('server closed') ||
+    // Next.js production digest for missing chunks (generic fallback)
+    msg.includes('missing required error components')
+  );
+}
+
 export default function GlobalError({
   error,
   reset,
@@ -11,10 +39,38 @@ export default function GlobalError({
   reset: () => void;
 }) {
   const [showDetails, setShowDetails] = useState(false);
+  const [autoRecovering, setAutoRecovering] = useState(false);
+
+  // Deferred setter: keeps the synchronous effect body free of setState
+  // (react-hooks/set-state-in-effect) while still flipping the flag promptly.
+  const setAutoRecoveringSafe = () => {
+    setTimeout(() => setAutoRecovering(true), 0);
+  };
 
   useEffect(() => {
     // Log the error for debugging
     console.error('[AuraLab] Client-side error:', error);
+
+    // Auto-recover from stale-chunk / network failures with ONE full reload.
+    if (isChunkLoadError(error)) {
+      let guard: { ts: number } | null = null;
+      try {
+        guard = JSON.parse(sessionStorage.getItem(RELOAD_GUARD_KEY) || 'null');
+      } catch {
+        guard = null;
+      }
+      const now = Date.now();
+      if (!guard || now - guard.ts > 15_000) {
+        try {
+          sessionStorage.setItem(RELOAD_GUARD_KEY, JSON.stringify({ ts: now }));
+        } catch {
+          /* ignore */
+        }
+        setAutoRecoveringSafe();
+        const timer = setTimeout(() => window.location.reload(), 1200);
+        return () => clearTimeout(timer);
+      }
+    }
   }, [error]);
 
   return (
@@ -48,11 +104,12 @@ export default function GlobalError({
         {/* Title */}
         <div>
           <h2 className="text-xl font-bold text-white mb-2">
-            حدث خطأ غير متوقع
+            {autoRecovering ? 'جارٍ استعادة الاتصال…' : 'حدث خطأ غير متوقع'}
           </h2>
           <p className="text-sm text-slate-400 leading-relaxed">
-            نعتذر عن هذا الإزعاج. حدث خطأ أثناء تحميل الصفحة.
-            يمكنك المحاولة مرة أخرى أو العودة للصفحة الرئيسية.
+            {autoRecovering
+              ? 'تم انقطاع مؤقت في الاتصال بالخادم. نقوم بإعادة التحميل تلقائياً الآن.'
+              : 'نعتذر عن هذا الإزعاج. حدث خطأ أثناء تحميل الصفحة. يمكنك المحاولة مرة أخرى أو العودة للصفحة الرئيسية.'}
           </p>
         </div>
 
